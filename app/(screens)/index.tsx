@@ -20,19 +20,19 @@ export default function HomeScreens() {
   }, []);
 
   return (
-  <View style={styles.container}>
+  <View style={styles.containerSplash}>
       <LinearGradient
         colors={['#feb47b', '#ff0303']}
-        style={styles.gradient}
+        style={styles.gradientSplash}
       />
       <View style={styles.abstractShape1} />
       <View style={styles.abstractShape2} />
 
       <Image
         source={require('../../assets/images/icon-tnb.png')}
-        style={styles.image}
+        style={styles.imageSplash}
       />
-      <Text style={styles.text}>Welcome</Text>
+      <Text style={styles.textH2}>Welcome</Text>
     </View>
   );
 
