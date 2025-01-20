@@ -97,6 +97,12 @@ const styles = StyleSheet.create({
     height: 150, 
     margin: 10
   },
+  textH1Red: {
+    fontSize: 26, 
+    color: '#ff0000', 
+    fontWeight: '600', 
+    marginTop: 10
+  },
   textH1: {
     fontSize: 24, 
     color: '#fff', 
@@ -109,15 +115,16 @@ const styles = StyleSheet.create({
     fontWeight: '600', 
     marginTop: 10
   },
-  textH2Black: {
-    fontSize: 20, 
-    color: '#191919', 
-    fontWeight: '600', 
-    marginTop: 10
-  },
   textH3: {
     fontSize: 12, 
     color: '#fff', 
+    fontWeight: '600', 
+    marginTop: 10
+  },
+
+  textH2Black: {
+    fontSize: 20, 
+    color: '#191919', 
     fontWeight: '600', 
     marginTop: 10
   },
@@ -133,6 +140,7 @@ const styles = StyleSheet.create({
     fontWeight: '600', 
     marginTop: 10
   },
+  
   TermsofServices: {
     fontSize: 16, 
     color: '#0d47fc', 
@@ -146,22 +154,9 @@ const styles = StyleSheet.create({
     fontWeight: '600', 
     marginTop: 10
   },
-  textH4: {
-    fontSize: 10, 
-    color: '#fff', 
-    fontWeight: '600', 
-    marginTop: 10
-  },
   underlineText: { 
     textDecorationLine: 'underline', 
   },
-  textH1Red: {
-    fontSize: 26, 
-    color: '#ff0000', 
-    fontWeight: '600', 
-    marginTop: 10
-  },
-
   buttonPhone: {
     flexDirection: 'row',
     backgroundColor: 'white',
