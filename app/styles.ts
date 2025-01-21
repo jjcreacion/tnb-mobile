@@ -121,7 +121,29 @@ const styles = StyleSheet.create({
     fontWeight: '600', 
     marginTop: 10
   },
-
+  tabContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginBottom: 20,
+  },
+  tabButton: {
+    flex: 1,
+    padding: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
+  },
+  activeTab: {
+    borderBottomColor: 'blue',
+  },
+  tabButtonText: {
+    fontSize: 16,
+    color: 'gray',
+  },
+  activeTabText: {
+    color: 'blue',
+  },
   textH2Black: {
     fontSize: 20, 
     color: '#191919', 
