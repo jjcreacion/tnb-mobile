@@ -1,116 +1,61 @@
-/*
-import React from 'react';
-import { Modal, View, Text, TextInput, TouchableOpacity } from 'react-native';
-import { Formik } from 'formik';
-import * as Yup from 'yup';
+import React, { useState } from 'react';
+import { View, Text, TextInput, Image, TouchableOpacity, StyleSheet } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import styles from '../styles';
-import { FontAwesome } from '@expo/vector-icons';
-import VerifyCode from './verificode';
 
-interface ModalProps {
-  isVisible: boolean;
-  onClose: () => void;
-}
+const Register: React.FC = () => {
+  const [name, setName] = useState('');
+  const [address, setAddress] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
 
-const SignUp: React.FC<ModalProps> = ({ isVisible, onClose }) => {
-  const [showVerifyCode, setShowVerifyCode] = useState(false);
-
-  const validationSchema = Yup.object().shape({
-    name: Yup.string().required('Nombre es obligatorio'),
-    lastName: Yup.string().required('Apellido es obligatorio'),
-    address: Yup.string().required('Dirección es obligatoria'),
-    email: Yup.string().email('Email inválido').required('Email es obligatorio')
-  });
-
-  const handleNext = (values: any) => {
-    window.localStorage.setItem('emailForSignIn', values.email);
-    setShowVerifyCode(true);
-    console.log("Datos válidos, verificación en proceso");
-    // Aquí puedes manejar el envío del correo de verificación
+  const handleRegister = () => {
+    // Lógica para manejar el registro
   };
 
   return (
-    <Modal
-      visible={isVisible}
-      transparent={true}
-      animationType="slide"
-      onRequestClose={onClose}
-    >
-      {!showVerifyCode ? (
-        <Formik
-          initialValues={{ name: '', lastName: '', address: '', email: '' }}
-          validationSchema={validationSchema}
-          onSubmit={handleNext}
-        >
-          {({ handleChange, handleBlur, handleSubmit, values, errors }) => (
-            <View style={styles.modalContainer}>
-              <Text style={[{ marginBottom: 20 }, styles.textH1Red]}>Registro de Usuario</Text>
-
-              <Text style={styles.textH2Black}>Nombre</Text>
-              <TextInput
-                style={[{ marginBottom: 15 }, styles.input]}
-                placeholder="Nombre"
-                onChangeText={handleChange('name')}
-                onBlur={handleBlur('name')}
-                value={values.name}
-              />
-              {errors.name && <Text style={{ color: 'red', marginBottom: 5 }}>{errors.name}</Text>}
-
-              <Text style={styles.textH2Black}>Apellido</Text>
-              <TextInput
-                style={[{ marginBottom: 15 }, styles.input]}
-                placeholder="Apellido"
-                onChangeText={handleChange('lastName')}
-                onBlur={handleBlur('lastName')}
-                value={values.lastName}
-              />
-              {errors.lastName && <Text style={{ color: 'red', marginBottom: 5 }}>{errors.lastName}</Text>}
-
-              <Text style={styles.textH2Black}>Dirección</Text>
-              <TextInput
-                style={[{ marginBottom: 15 }, styles.input]}
-                placeholder="Dirección"
-                onChangeText={handleChange('address')}
-                onBlur={handleBlur('address')}
-                value={values.address}
-              />
-              {errors.address && <Text style={{ color: 'red', marginBottom: 5 }}>{errors.address}</Text>}
-
-              <Text style={styles.textH2Black}>Correo Electrónico o Teléfono</Text>
-              <TextInput
-                style={[{ marginBottom: 15 }, styles.input]}
-                placeholder="johndoe@gmail.com"
-                onChangeText={handleChange('email')}
-                onBlur={handleBlur('email')}
-                value={values.email}
-              />
-              {errors.email && <Text style={{ color: 'red', marginBottom: 5 }}>{errors.email}</Text>}
-
-              <View style={styles.containerTermsofServices}>
-                <Text style={styles.TermsofServices}> Al continuar, aceptas nuestros </Text>
-                <Text style={[styles.TermsofServices, styles.underlineText]}>Términos de Servicio</Text>
-                <Text style={styles.TermsofServices}> y </Text>
-                <Text style={[styles.TermsofServices, styles.underlineText]}>Política de Privacidad</Text>
-              </View>
-              <View style={styles.buttonContainer}>
-                <TouchableOpacity style={[styles.button, styles.buttonLeft]} onPress={onClose}>
-                  <Text style={styles.buttonText}>Atrás</Text>
-                  <FontAwesome name="arrow-left" size={24} color="white" />
-                </TouchableOpacity>
-                <TouchableOpacity style={[styles.button, styles.buttonRight]} onPress={handleSubmit}> 
-                  <Text style={styles.buttonText}>Siguiente</Text> 
-                  <FontAwesome name="arrow-right" size={24} color="white" /> 
-                </TouchableOpacity>
-              </View>
-            </View>
-          )}
-        </Formik>
-      ) : (
-        <VerifyCode isVisible={isVisible} onClose={onClose} />
-      )}
-    </Modal>
+    <View style={styles.container}>
+      <LinearGradient
+        colors={['#ff6a59', '#ff0000']}
+        style={styles.banner}
+      >
+        
+        <Text style={styles.bannerText}>New User Registration</Text>
+      </LinearGradient>
+      <View style={styles.formContainer}>
+        <Text style={styles.label}>Name</Text>
+        <TextInput
+          style={styles.input}
+          value={name}
+          onChangeText={setName}
+        />
+        <Text style={styles.label}>Address</Text>
+        <TextInput
+          style={styles.input}
+          value={address}
+          onChangeText={setAddress}
+        />
+        <Text style={styles.label}>Password</Text>
+        <TextInput
+          style={styles.input}
+          value={password}
+          onChangeText={setPassword}
+          secureTextEntry
+        />
+        <Text style={styles.label}>Confirm Password</Text>
+        <TextInput
+          style={styles.input}
+          value={confirmPassword}
+          onChangeText={setConfirmPassword}
+          secureTextEntry
+        />
+        <TouchableOpacity style={styles.buttonRegister} onPress={handleRegister}>
+          <Text style={styles.buttonTextRegister}>Register</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
   );
 };
 
-export default SignUp;
-*/
+
+export default Register;

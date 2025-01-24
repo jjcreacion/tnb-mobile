@@ -56,10 +56,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  codeContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 15,
+  },
   backgroundImageLogin: {
     flex: 1,
     resizeMode: 'cover',
     justifyContent: 'center',
+  },
+  activeTab: {
+    borderColor: 'red', // color del tab activo
   },
   abstractShape1: {
     position: 'absolute', 
@@ -97,6 +105,29 @@ const styles = StyleSheet.create({
     height: 150, 
     margin: 10
   },
+  imageIndex: {
+    width: 200, 
+    height: 200, 
+    margin: 10
+  },
+  textIndex: {
+    fontSize: 50, 
+    fontWeight: 'bold',
+    position: 'relative',
+  },
+  symbolR: {
+    fontSize: 20, 
+    position: 'absolute',
+    top: 10, 
+    right: -20, 
+  },
+  textWelcome: {
+    fontSize: 25, 
+    color: '#ff0000', 
+    fontWeight: '600', 
+    marginTop: -10,
+    marginBottom: 30
+  },
   textH1Red: {
     fontSize: 26, 
     color: '#ff0000', 
@@ -123,8 +154,20 @@ const styles = StyleSheet.create({
   },
   tabContainer: {
     flexDirection: 'row',
-    justifyContent: 'center',
+    justifyContent: 'space-around',
     marginBottom: 20,
+  },
+  tab: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 10,
+    borderBottomWidth: 2,
+    borderColor: 'transparent',
+  },
+  tabText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginLeft: 10,
   },
   tabButton: {
     flex: 1,
@@ -133,9 +176,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderBottomWidth: 2,
     borderBottomColor: 'transparent',
-  },
-  activeTab: {
-    borderBottomColor: 'blue',
   },
   tabButtonText: {
     fontSize: 16,
@@ -249,6 +289,14 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 20,
   },
+  buttonContainer2: { 
+    position: 'absolute',
+    bottom: 20,
+    width: '110%',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+  },
   button: { 
     width: 60,
     height: 60,
@@ -261,10 +309,62 @@ const styles = StyleSheet.create({
   },
   buttonRight: {
     backgroundColor: 'red',
+    marginLeft: 0,
+  },
+  codeInput: {
+    width: 50,
+    height: 50,
+    textAlign: 'center',
+    fontSize: 24,
+    borderColor: 'gray',
+    borderWidth: 1,
+    marginHorizontal: 5,
+    borderRadius: 5,
   },
   buttonText: { 
     color: 'white',
     fontWeight: 'bold',
+  },
+  container: {
+    flex: 1,
+    backgroundColor: 'white',
+  },
+  banner: {
+    height: 70,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  bannerText: {
+    color: 'white',
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom:10
+  },
+  formContainer: {
+    padding: 20,
+  },
+  label: {
+    fontSize: 18,
+    marginBottom: 5,
+  },
+  inputRegister: {
+    height: 40,
+    borderColor: 'gray',
+    borderWidth: 1,
+    marginBottom: 15,
+    paddingHorizontal: 10,
+    borderRadius: 5,
+  },
+  buttonRegister: {
+    backgroundColor: 'blue',
+    padding: 15,
+    borderRadius: 5,
+    alignItems: 'center',
+    marginTop: 10
+  },
+  buttonTextRegister: {
+    color: 'white',
+    fontSize: 18,
   },
 });
 

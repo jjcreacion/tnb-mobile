@@ -7,8 +7,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 
 export default function HomeScreens() {
-  //return <Redirect href="/splash">INdex</Redirect>;
- const router = useRouter();
+  const router = useRouter();
   const { width, height } = useWindowDimensions();
 
   useEffect(() => {
@@ -20,20 +19,17 @@ export default function HomeScreens() {
   }, []);
 
   return (
-  <View style={styles.containerSplash}>
-      <LinearGradient
-        colors={['#feb47b', '#ff0303']}
-        style={styles.gradientSplash}
-      />
-      <View style={styles.abstractShape1} />
-      <View style={styles.abstractShape2} />
+    <View style={styles.containerSplash}>
+      <View >
+        <Text style={styles.textIndex}>TNB</Text>
+        <Text style={styles.symbolR}> ®</Text>
+      </View>
+      <Text style={styles.textWelcome}>Welcome</Text>
 
       <Image
-        source={require('../../assets/images/icon-tnb.png')}
-        style={styles.imageSplash}
+        source={require('../../assets/images/icon-index.png')}
+        style={styles.imageIndex}
       />
-      <Text style={styles.textH2}>Welcome</Text>
     </View>
   );
-
 }

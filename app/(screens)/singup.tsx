@@ -1,25 +1,10 @@
-import { validateEmail } from '../../scripts/validator';
+import { validateEmail, validatePhone } from '../../scripts/validator';
 import React, { useState } from 'react';
 import { Modal, View, Text, TextInput, TouchableOpacity } from 'react-native';
-import { initializeApp } from "firebase/app";
-import { getAuth, sendSignInLinkToEmail, signInWithEmailLink } from 'firebase/auth';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import styles from '../styles';
 import { FontAwesome } from '@expo/vector-icons';
 import VerifyCode from './verificode';
-
-// Configurar Firebase
-const firebaseConfig = {
-  // Tus credenciales de Firebase
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_AUTH_DOMAIN",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_STORAGE_BUCKET",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID"
-};
-
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
 
 interface ModalProps {
   isVisible: boolean;
@@ -29,28 +14,46 @@ interface ModalProps {
 const SignUp: React.FC<ModalProps> = ({ isVisible, onClose }) => {
   const [email, setEmail] = useState('');
   const [emailValid, setEmailValid] = useState(true);
+  const [phone, setPhone] = useState('');
+  const [phoneValid, setPhoneValid] = useState(true);
+  const [selectedTab, setSelectedTab] = useState('email');
   const [showVerifyCode, setShowVerifyCode] = useState(false);
+  const [verificationCode, setVerificationCode] = useState('');
 
-  const handleNext = () => {
-    if (validateEmail(email)) {
-      window.localStorage.setItem('emailForSignIn', email);
-      const actionCodeSettings = {
-        url: 'https://www.example.com/finishSignUp', // Cambia esta URL por la de tu aplicación
-        handleCodeInApp: true,
-      };
-      sendSignInLinkToEmail(auth, email, actionCodeSettings)
-        .then(() => {
-          console.log("Verification email sent");
-          setShowVerifyCode(true);
-        })
-        .catch((error: any) => {
-          console.error("Error sending email: ", error);
-          setEmailValid(false);
-        });
+  const generateVerificationCode = () => {
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    setVerificationCode(code);
+    console.log(code);
+  };
+
+  const handleNext = async () => {
+    if (selectedTab === 'email') {
+      if (validateEmail(email)) {
+        await AsyncStorage.setItem('emailForSignIn', email);
+        setShowVerifyCode(true);
+        generateVerificationCode();
+      } else {
+        setEmailValid(false);
+      }
     } else {
-      console.log("Email inválido");
-      setEmailValid(false);
+      if (validatePhone(phone)) {
+        await AsyncStorage.setItem('phoneForSignIn', phone);
+        setShowVerifyCode(true);
+        generateVerificationCode();
+      } else {
+        setPhoneValid(false);
+      }
     }
+  };
+
+  const handleTabChange = (tab: any) => {
+    setSelectedTab(tab);
+    setEmailValid(true);
+    setPhoneValid(true);
+  };
+
+  const handleBack = () => {
+    setShowVerifyCode(false);
   };
 
   return (
@@ -62,27 +65,65 @@ const SignUp: React.FC<ModalProps> = ({ isVisible, onClose }) => {
     >
       {!showVerifyCode ? (
         <View style={styles.modalContainer}>
-          {/* Formulario de correo electrónico */}
-          <Text style={[{ marginBottom: 20 }, styles.textH1Red]}>Enter Your Email</Text>
-          <Text style={styles.textH2Black}>Email Addrress</Text>
-          <TextInput
-            style={[
-              { marginBottom: 15 },
-              styles.input,
-              !emailValid && { borderColor: 'red', borderWidth: 1 }
-            ]}
-            placeholder="johndoe@gmail.com"
-            value={email}
-            onChangeText={setEmail}
-          />
-          {!emailValid && <Text style={{ color: 'red', marginBottom: 5 }}>Invalid email</Text>}
+          <View style={styles.tabContainer}>
+            <TouchableOpacity 
+              style={[styles.tab, selectedTab === 'email' && styles.activeTab]} 
+              onPress={() => handleTabChange('email')}
+            >
+              <FontAwesome name="envelope" size={24} color="black" />
+              <Text style={styles.tabText}>Email</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.tab, selectedTab === 'phone' && styles.activeTab]} 
+              onPress={() => handleTabChange('phone')}
+            >
+              <FontAwesome name="phone" size={24} color="black" />
+              <Text style={styles.tabText}>Phone</Text>
+            </TouchableOpacity>
+          </View>
+
+          {selectedTab === 'email' ? (
+            <View>
+              <Text style={[{ marginBottom: 20 }, styles.textH1Red]}>Enter Your Email</Text>
+              <Text style={styles.textH2Black}>Email Address</Text>
+              <TextInput
+                style={[
+                  { marginBottom: 15 },
+                  styles.input,
+                  !emailValid && { borderColor: 'red', borderWidth: 1 }
+                ]}
+                placeholder="johndoe@gmail.com"
+                value={email}
+                onChangeText={setEmail}
+              />
+              {!emailValid && <Text style={{ color: 'red', marginBottom: 5 }}>Invalid email</Text>}
+            </View>
+          ) : (
+            <View>
+              <Text style={[{ marginBottom: 20 }, styles.textH1Red]}>Enter Your Phone Number</Text>
+              <Text style={styles.textH2Black}>Phone Number</Text>
+              <TextInput
+                style={[
+                  { marginBottom: 15 },
+                  styles.input,
+                  !phoneValid && { borderColor: 'red', borderWidth: 1 }
+                ]}
+                placeholder="+1234567890"
+                value={phone}
+                onChangeText={setPhone}
+              />
+              {!phoneValid && <Text style={{ color: 'red', marginBottom: 5 }}>Invalid phone number</Text>}
+            </View>
+          )}
+
           <View style={styles.containerTermsofServices}>
             <Text style={styles.TermsofServices}> By continuing, you agree to our </Text>
             <Text style={[styles.TermsofServices, styles.underlineText]}>Terms of Services</Text>
             <Text style={styles.TermsofServices}> and</Text>
             <Text style={[styles.TermsofServices, styles.underlineText]}> Privacy Policy </Text>
           </View>
-          <View style={styles.buttonContainer}>
+
+          <View style={styles.buttonContainer2}>
             <TouchableOpacity style={[styles.button, styles.buttonLeft]} onPress={onClose}>
               <Text style={styles.buttonText}>Back</Text>
               <FontAwesome name="arrow-left" size={24} color="white" />
@@ -94,7 +135,7 @@ const SignUp: React.FC<ModalProps> = ({ isVisible, onClose }) => {
           </View>
         </View>
       ) : (
-        <VerifyCode isVisible={isVisible} onClose={onClose} />
+        <VerifyCode isVisible={isVisible} onBack={handleBack} verificationCode={verificationCode} />
       )}
     </Modal>
   );
