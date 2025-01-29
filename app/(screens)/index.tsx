@@ -13,7 +13,7 @@ export default function HomeScreens() {
   useEffect(() => {
     const timer = setTimeout(() => {
       router.push('/login');
-    }, 2000);
+    }, 4000);
 
     return () => clearTimeout(timer);
   }, []);

@@ -311,6 +311,12 @@ const styles = StyleSheet.create({
     backgroundColor: 'red',
     marginLeft: 0,
   },
+  disabledButton: {
+    backgroundColor: 'gray',
+    opacity: 0.5,
+    borderWidth: 1,
+    borderColor: 'gray',
+  },
   codeInput: {
     width: 50,
     height: 50,
