@@ -1,10 +1,10 @@
-import { validateEmail, validatePhone } from '../../scripts/validator';
 import React, { useState } from 'react';
 import { Modal, View, Text, TextInput, TouchableOpacity } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import styles from '../styles';
 import { FontAwesome } from '@expo/vector-icons';
 import VerifyCode from './verificode';
+import { validateEmail, validatePhone } from '../../scripts/validator';
 
 interface ModalProps {
   isVisible: boolean;
@@ -30,6 +30,8 @@ const SignUp: React.FC<ModalProps> = ({ isVisible, onClose }) => {
     if (selectedTab === 'email') {
       if (validateEmail(email)) {
         await AsyncStorage.setItem('emailForSignIn', email);
+        await AsyncStorage.setItem('phoneForSignIn', '');
+        console.log("Email guardado:", email); // Para depuración
         setShowVerifyCode(true);
         generateVerificationCode();
       } else {
@@ -38,6 +40,8 @@ const SignUp: React.FC<ModalProps> = ({ isVisible, onClose }) => {
     } else {
       if (validatePhone(phone)) {
         await AsyncStorage.setItem('phoneForSignIn', phone);
+        await AsyncStorage.setItem('emailForSignIn', '');
+        console.log("Phone guardado:", phone); // Para depuración
         setShowVerifyCode(true);
         generateVerificationCode();
       } else {

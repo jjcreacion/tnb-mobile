@@ -311,6 +311,13 @@ const styles = StyleSheet.create({
     backgroundColor: 'red',
     marginLeft: 0,
   },
+  passwordContainer: {
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    borderWidth: 1, 
+    borderColor: '#ccc', 
+    paddingHorizontal: 10, 
+ },
   disabledButton: {
     backgroundColor: 'gray',
     opacity: 0.5,
