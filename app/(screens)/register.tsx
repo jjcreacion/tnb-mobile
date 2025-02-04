@@ -7,6 +7,7 @@ import { Formik } from 'formik';
 import * as Yup from 'yup';
 import styles from '../styles';
 import { useNavigation } from '@react-navigation/native';
+import RegisterComplete from './registerComplete';
 
 const Register: React.FC = () => {
   const [loading, setLoading] = useState(false);
@@ -16,6 +17,7 @@ const Register: React.FC = () => {
   const [verifiEmail, setVerifiEmail] = useState(0);
   const [verifiPhone, setVerifiPhone] = useState(0);
   const [isSuccessModalVisible, setIsSuccessModalVisible] = useState(false);
+  const [showComplete, setshowComplete] = useState(false);
 
   const SignupSchema = Yup.object().shape({
     first_name: Yup.string()
@@ -108,7 +110,7 @@ const Register: React.FC = () => {
 
         const userData = await userResponse.json(); 
         console.log("User created successfully:", userData); 
-
+        setshowComplete(true);
         setLoading(false);
         setMessage('Registro exitoso');
         setIsSuccessModalVisible(true); 
@@ -120,6 +122,8 @@ const Register: React.FC = () => {
   };
 
   return (
+    <View style={styles.container}> 
+    {!showComplete ? (
     <Formik
       initialValues={{ first_name: '', last_name: '', address: '', password: '', confirmPassword: '' }}
       validationSchema={SignupSchema}
@@ -202,28 +206,19 @@ const Register: React.FC = () => {
                 if (isValid) {
                   handleSubmit();
                 }
-              }} // Verifica la validez antes de enviar
+              }} 
             >
               <Text style={styles.buttonTextRegister}>Register</Text>
             </TouchableOpacity>
           </View>
-          <Modal visible={isSuccessModalVisible} transparent={true}>
-            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0, 0, 0, 0.5)' }}>
-                <View style={{ backgroundColor: 'white', padding: 20, borderRadius: 10 }}>
-                    <Text>¡Registro exitoso!</Text>
-                    <TouchableOpacity onPress={() => {
-                        setIsSuccessModalVisible(false);
-                     //   navigation.navigate('Login'); // Navega a la página de inicio de sesión
-                    }}>
-                        <Text>Ir a la página de inicio de sesión</Text>
-                    </TouchableOpacity>
-                </View>
-            </View>
-        </Modal>
         </View>
       )}
       
     </Formik>
+     ) : (
+      <RegisterComplete /> // Muestra el componente RegisterComplete
+    )}
+    </View>
   );
 };
 
