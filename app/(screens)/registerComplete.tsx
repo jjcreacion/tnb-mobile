@@ -5,7 +5,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 
 
-const registerComplete = () => {
+interface RegisterCompleteProps {
+  isVisible: boolean;
+  onClose: () => void;
+  IsVerify: () => void;
+}
+const registerComplete: React.FC<RegisterCompleteProps> = ({ isVisible, onClose, IsVerify}) => {
+
   const confettiRef = useRef<ConfettiCannon>(null);
   const pulseAnimation = useRef(new Animated.Value(1)).current;
   const router = useRouter(); 
@@ -28,6 +34,8 @@ const registerComplete = () => {
   const goToMainLayout = () => {
     console.log('Ir a principal'); 
     router.push('/login');
+    onClose();
+    IsVerify();
   };
   
   return (

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Modal, View, Text, TextInput, TouchableOpacity } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import styles from '../styles';
@@ -19,6 +19,17 @@ const SignUp: React.FC<ModalProps> = ({ isVisible, onClose }) => {
   const [selectedTab, setSelectedTab] = useState('email');
   const [showVerifyCode, setShowVerifyCode] = useState(false);
   const [verificationCode, setVerificationCode] = useState('');
+  
+  useEffect(() => {
+    if (isVisible) { 
+      setEmail('');
+      setEmailValid(true);
+      setPhone('');
+      setPhoneValid(true);
+      setSelectedTab('email'); 
+      setShowVerifyCode(false);
+    }
+  }, [isVisible]); 
 
   const generateVerificationCode = () => {
     const code = Math.floor(100000 + Math.random() * 900000).toString();
@@ -139,7 +150,7 @@ const SignUp: React.FC<ModalProps> = ({ isVisible, onClose }) => {
           </View>
         </View>
       ) : (
-        <VerifyCode isVisible={isVisible} onBack={handleBack} verificationCode={verificationCode} />
+        <VerifyCode isVisible={isVisible} onClose={onClose} onBack={handleBack} verificationCode={verificationCode} IsVerify={() => setShowVerifyCode(false)}/>
       )}
     </Modal>
   );

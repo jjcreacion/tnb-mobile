@@ -6,7 +6,7 @@ import * as Animatable from 'react-native-animatable';
 import styles from '../styles';
 import EmailModal from './loginemail'; 
 import PhoneModal from './loginphone'; 
-import SignUpModal from './singup'
+import SignUpModal from './singup';
 
 export default function LoginScreen() {
   
@@ -49,7 +49,7 @@ export default function LoginScreen() {
       <PhoneModal isVisible={isPhoneModalVisible} onClose={() => setPhoneModalVisible(false)} /> 
       <EmailModal isVisible={isEmailModalVisible} onClose={() => setEmailModalVisible(false)} /> 
       <SignUpModal isVisible={isSignUpModalVisible} onClose={() => setSignUpModalVisible(false)} />
-
+        
     </ImageBackground>
   );
 }

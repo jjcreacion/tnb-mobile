@@ -9,7 +9,12 @@ import styles from '../styles';
 import { useNavigation } from '@react-navigation/native';
 import RegisterComplete from './registerComplete';
 
-const Register: React.FC = () => {
+interface RegisterProps {
+  isVisible: boolean;
+  onClose: () => void;
+  IsVerify: () => void;
+}
+const Register: React.FC<RegisterProps> = ({ isVisible, onClose, IsVerify}) => {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
@@ -216,7 +221,7 @@ const Register: React.FC = () => {
       
     </Formik>
      ) : (
-      <RegisterComplete /> // Muestra el componente RegisterComplete
+      <RegisterComplete isVisible={isVisible} onClose={onClose} IsVerify={IsVerify} /> 
     )}
     </View>
   );

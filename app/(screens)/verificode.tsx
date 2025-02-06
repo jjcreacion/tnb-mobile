@@ -6,11 +6,13 @@ import Register from './register';
 
 interface VerifyCodeProps {
   isVisible: boolean;
+  onClose: () => void;
   onBack: () => void;
   verificationCode: string;
+  IsVerify: () => void;
 }
 
-const VerifyCode: React.FC<VerifyCodeProps> = ({ isVisible, onBack, verificationCode }) => {
+const VerifyCode: React.FC<VerifyCodeProps> = ({ isVisible, onClose, onBack, verificationCode, IsVerify }) => {
   const [code, setCode] = useState(Array(6).fill(''));
   const [codeValid, setCodeValid] = useState(true);
   const [timer, setTimer] = useState(300);
@@ -123,7 +125,7 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ isVisible, onBack, verification
       </View>
     </View>
   ) : (
-    <Register />
+    <Register isVisible={isVisible} onClose={onClose} IsVerify={IsVerify} />
   );
 };
 
