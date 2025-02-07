@@ -69,6 +69,17 @@ const styles = StyleSheet.create({
   activeTab: {
     borderColor: 'red', // color del tab activo
   },
+  inputError: {
+    borderColor: 'red', // Borde rojo si hay error
+  },
+  errorText: {
+    color: 'red', // Texto rojo para los mensajes de error
+    fontSize: 12,
+    marginTop: 5, // Espacio entre el input y el mensaje
+  },
+  buttonDisabled: {
+      backgroundColor: 'gray'
+  },
   abstractShape1: {
     position: 'absolute', 
     top: '20%', 

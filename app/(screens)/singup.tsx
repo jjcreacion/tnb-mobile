@@ -14,6 +14,7 @@ interface ModalProps {
 const SignUp: React.FC<ModalProps> = ({ isVisible, onClose }) => {
   const [email, setEmail] = useState('');
   const [emailValid, setEmailValid] = useState(true);
+  const [exist, setExist] = useState(false);
   const [phone, setPhone] = useState('');
   const [phoneValid, setPhoneValid] = useState(true);
   const [selectedTab, setSelectedTab] = useState('email');
@@ -37,6 +38,30 @@ const SignUp: React.FC<ModalProps> = ({ isVisible, onClose }) => {
     console.log(code);
   };
 
+  const verificarUsuario = async (valor: any, campo: any) => {
+   
+    const ruta = `http://192.168.1.37:3000/users/verify/${campo === 'email' ? 'email' : 'phone'}`; // Ruta completa
+    
+    console.log(ruta);
+
+    try {
+        const respuesta = await fetch(ruta, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ [campo]: valor })
+        });
+        if (!respuesta.ok) {
+            throw new Error(`Error ${respuesta.status}`);
+        }
+        const datos = await respuesta.json();
+        return datos.exists;
+    } catch (error) {
+        console.error(`Error verificando ${campo}:`, error);
+        return true;
+    }
+};
+
+/*
   const handleNext = async () => {
     if (selectedTab === 'email') {
       if (validateEmail(email)) {
@@ -58,6 +83,40 @@ const SignUp: React.FC<ModalProps> = ({ isVisible, onClose }) => {
       } else {
         setPhoneValid(false);
       }
+    }
+  };
+*/
+  const handleNext = async () => {
+    let campo = selectedTab === 'email' ? 'email' : 'phone';
+    let valor = selectedTab === 'email' ? email : phone;
+    let setValid = selectedTab === 'email' ? setEmailValid : setPhoneValid;
+    let validationFunction = selectedTab === 'email' ? validateEmail : validatePhone;
+
+    if (validationFunction(valor)) {
+        try {
+            const existe = await verificarUsuario(valor, campo);
+
+            if (existe) {
+                setExist(true);
+            } else {
+                if (campo === 'email') {
+                    await AsyncStorage.setItem('emailForSignIn', valor);
+                    await AsyncStorage.setItem('phoneForSignIn', '');
+                } else {
+                    await AsyncStorage.setItem('phoneForSignIn', valor);
+                    await AsyncStorage.setItem('emailForSignIn', '');
+                }
+
+                console.log(`${campo} guardado:`, valor);
+                setShowVerifyCode(true);
+                generateVerificationCode();
+            }
+        } catch (error) {
+            console.error(`Error verificando ${campo}:`, error);
+            alert('An error occurred. Please try again later.');
+        }
+    } else {
+        setValid(false);
     }
   };
 
@@ -112,6 +171,7 @@ const SignUp: React.FC<ModalProps> = ({ isVisible, onClose }) => {
                 onChangeText={setEmail}
               />
               {!emailValid && <Text style={{ color: 'red', marginBottom: 5 }}>Invalid email</Text>}
+              {exist && <Text style={{ color: 'red', marginBottom: 5 }}>It is already registered</Text>}              
             </View>
           ) : (
             <View>
@@ -128,6 +188,7 @@ const SignUp: React.FC<ModalProps> = ({ isVisible, onClose }) => {
                 onChangeText={setPhone}
               />
               {!phoneValid && <Text style={{ color: 'red', marginBottom: 5 }}>Invalid phone number</Text>}
+              {exist && <Text style={{ color: 'red', marginBottom: 5 }}>It is already registered</Text>}              
             </View>
           )}
 
