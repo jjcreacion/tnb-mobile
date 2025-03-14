@@ -322,6 +322,10 @@ const styles = StyleSheet.create({
     backgroundColor: 'red',
     marginLeft: 0,
   },
+  buttonRight2: {
+    backgroundColor: 'red',
+    marginLeft: 20,
+  },
   passwordContainer: {
     flexDirection: 'row', 
     alignItems: 'center', 

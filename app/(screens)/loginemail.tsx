@@ -48,18 +48,17 @@ const Login: React.FC<ModalProps> = ({ isVisible, onClose }) => {
       onClose();
 
     } catch (error: any) {
-      console.error("Error en el inicio de sesión:", error);
-
+     
       if (error.response) {
         if (error.response.status === 401) { 
-          setMensajeErrorUsuario("Credenciales incorrectas. Inténtalo de nuevo.");
+          setMensajeErrorUsuario("Incorrect credentials. Try again.");
         } else {
-          setMensajeErrorUsuario("Hubo un error al iniciar sesión. Inténtalo más tarde.");
+          setMensajeErrorUsuario("There was an error logging in. Please try again later.");
         }
       } else if (error.request) {
-        setMensajeErrorUsuario("No se pudo conectar con el servidor.");
+        setMensajeErrorUsuario("Could not connect to the server.");
       } else {
-        setMensajeErrorUsuario("Ocurrió un error inesperado.");
+        setMensajeErrorUsuario("An unexpected error occurred.");
       }
     } finally {
       setLoading(false);
@@ -113,7 +112,7 @@ const Login: React.FC<ModalProps> = ({ isVisible, onClose }) => {
 
             {mensajeErrorUsuario && <Text style={styles.errorText}>{mensajeErrorUsuario}</Text>}
 
-            <View style={styles.buttonContainer}>
+            <View style={styles.buttonContainer2}>
               <TouchableOpacity style={[styles.button, styles.buttonLeft]} onPress={onClose}>
                 <Text style={styles.buttonText}>Back</Text>
                 <FontAwesome name="arrow-left" size={24} color="white" />
@@ -130,7 +129,7 @@ const Login: React.FC<ModalProps> = ({ isVisible, onClose }) => {
                 <Text style={styles.buttonText}>Login</Text>
                 <FontAwesome name="sign-in" size={24} color="white" />
               </TouchableOpacity>
-            </View>
+            </View>            
           </View>
         )}
       </Formik>
