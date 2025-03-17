@@ -3,16 +3,12 @@ import React from 'react';
 import { Platform } from 'react-native';
 
 import { HapticTab } from '@/components/HapticTab';
-import { IconSymbol } from '@/components/ui/IconSymbol';
 import TabBarBackground from '@/components/ui/TabBarBackground';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
-import { IoIosHome } from "react-icons/io";
-import { FaUser } from "react-icons/fa";
-import { BiSupport } from "react-icons/bi";
-import { FaThList } from "react-icons/fa";
+import { FontAwesome } from '@expo/vector-icons'; 
 
-export default function TabLayout() {
+export default function TabsLayout() {
   const colorScheme = useColorScheme();
 
   return (
@@ -21,27 +17,24 @@ export default function TabLayout() {
         tabBarActiveTintColor: Colors['light'].tint,
         headerShown: false,
         tabBarButton: HapticTab,
-        tabBarBackground: TabBarBackground,
-        tabBarStyle: Platform.select({
-          ios: {
-            // Use a transparent background on iOS to show the blur effect
-            position: 'absolute',
-          },
-          default: {},
-        }),
-      }}>
+        tabBarStyle: {
+          backgroundColor: 'transparent', 
+          borderTopWidth: 0, 
+        },
+      }}
+    >
       <Tabs.Screen
         name="index"
         options={{
           title: 'Home',
-          tabBarIcon: ({ color }) => <IoIosHome />,
+          tabBarIcon: ({ color }) => <FontAwesome name="home" size={24} color={color} />, 
         }}
       />
       <Tabs.Screen
         name="requests"
         options={{
           title: 'Requests',
-          tabBarIcon: ({ color }) => <FaThList />,
+          tabBarIcon: ({ color }) => <FontAwesome name="list-ul" size={24} color={color} />, 
         }}
       />
 
@@ -49,14 +42,14 @@ export default function TabLayout() {
         name="profile"
         options={{
           title: 'Profile',
-          tabBarIcon: ({ color }) => <FaUser />,
+          tabBarIcon: ({ color }) => <FontAwesome name="user" size={24} color={color} />, 
         }}
       />
       <Tabs.Screen
         name="support"
         options={{
           title: 'Support',
-          tabBarIcon: ({ color }) => <BiSupport />,
+          tabBarIcon: ({ color }) => <FontAwesome name="question-circle" size={24} color={color} />, 
         }}
       />
     </Tabs>

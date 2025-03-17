@@ -1,74 +1,147 @@
-import { Image, StyleSheet, Platform } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, ImageBackground, StyleSheet, TextInput, TouchableOpacity, ScrollView } from 'react-native';
 
-import { HelloWave } from '@/components/HelloWave';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
-
-export default function HomeScreen() {
-  return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12'
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-        <ThemedText>
-          Tap the Explore tab to learn more about what's included in this starter app.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          When you're ready, run{' '}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
-  );
+interface ServiceCardProps {
+  title: string;
+  description: string;
+  imageSource: any;
 }
 
+const ServiceCard: React.FC<ServiceCardProps> = ({ title, description, imageSource }) => (
+  <ImageBackground source={imageSource} style={styles.card}>
+  <View style={styles.textContainer}>
+    <Text style={styles.cardTitle}>{title}</Text>
+    <Text style={styles.cardDescription}>{description}</Text>
+  </View>
+</ImageBackground>
+);
+
+const HomeScreen: React.FC = () => {
+  const [searchText, setSearchText] = useState<string>('');
+
+  return (
+    <View style={styles.container}>
+      <ImageBackground source={require('@/assets/images/roof-repair.jpg')} style={styles.backgroundImage}>
+        <View style={styles.searchContainer}>
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Buscar servicios..."
+            placeholderTextColor="gray"
+            value={searchText}
+            onChangeText={setSearchText}
+          />
+          <TouchableOpacity style={styles.searchButton}>
+            <Text style={styles.searchButtonText}>Buscar</Text>
+          </TouchableOpacity>
+        </View>
+      </ImageBackground>
+
+      <ScrollView contentContainerStyle={styles.servicesContainer}>
+        <ServiceCard
+          title="Commercial Construction"
+          description=" "
+          imageSource={require('@/assets/images/commercial.jpg')} 
+        />
+        <ServiceCard
+          title="Residential Construction"
+          description=" "
+          imageSource={require('@/assets/images/commercial.jpg')} 
+        />
+        <ServiceCard
+          title="Pre-Construction"
+          description=" "
+          imageSource={require('@/assets/images/commercial.jpg')} 
+        />
+        <ServiceCard
+          title="Special Projects"
+          description=" "
+          imageSource={require('@/assets/images/commercial.jpg')}
+        />
+        <ServiceCard
+          title="Site Management"
+          description=" "
+          imageSource={require('@/assets/images/commercial.jpg')} // Agrega la imagen
+        />
+        <ServiceCard
+          title="Infrastructure Construction"
+          description=" "
+          imageSource={require('@/assets/images/commercial.jpg')} // Agrega la imagen
+        />
+        <ServiceCard
+          title="Civil Engineering"
+          description=" "
+          imageSource={require('@/assets/images/commercial.jpg')} // Agrega la imagen
+        />
+        <ServiceCard
+          title="Landscape Construction"
+          description=" "
+          imageSource={require('@/assets/images/commercial.jpg')} // Agrega la imagen
+        />
+        
+      </ScrollView>
+    </View>
+  );
+};
+
 const styles = StyleSheet.create({
-  titleContainer: {
+  container: {
+    flex: 1, 
+  },
+  backgroundImage: {
+    height: 170, 
+    justifyContent: 'flex-start',
+  },
+  searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    margin: 16,
+    marginTop: 60,
   },
-  stepContainer: {
-    gap: 8,
+  textContainer: {
+    backgroundColor: 'rgba(0, 0, 0, 0.5)', 
+    padding: 16,
+    width: '100%',
+    alignItems: 'center',
+  },
+  searchInput: {
+    flex: 1,
+    height: 40,
+    paddingHorizontal: 10,
+    color: 'black',
+  },
+  searchButton: {
+    backgroundColor: '#007AFF',
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderRadius: 5,
+    marginLeft: 10,
+  },
+  searchButtonText: {
+    color: 'white',
+    fontSize: 16,
+  },
+  servicesContainer: {
+    padding: 16,
+  },
+  card: {
+    height: 150, 
+    borderRadius: 8,
+    overflow: 'hidden', 
+    marginBottom: 16,
+    justifyContent: 'center', 
+    alignItems: 'center', 
+  },
+  cardTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
     marginBottom: 8,
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  cardDescription: {
+    fontSize: 16,
   },
 });
+
+export default HomeScreen;
