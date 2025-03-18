@@ -129,11 +129,14 @@ const styles = StyleSheet.create({
     width: '100%',
     borderRadius: 8,
     overflow: 'hidden',
-    marginBottom: 16,
+    marginBottom: 10,
     justifyContent: 'center',
     alignItems: 'center',
     aspectRatio: 16/9,
-    resizeMode: 'cover'
+    resizeMode: 'cover',
+    borderWidth: 8, 
+    borderColor: 'rgba(128, 128, 128, 0.2)',
+    borderStyle: 'solid', 
   },
   cardTitle: {
     fontSize: 20,
