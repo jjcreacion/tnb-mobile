@@ -24,13 +24,13 @@ const HomeScreen: React.FC = () => {
         <View style={styles.searchContainer}>
           <TextInput
             style={styles.searchInput}
-            placeholder="Buscar servicios..."
+            placeholder="Search services..."
             placeholderTextColor="gray"
             value={searchText}
             onChangeText={setSearchText}
           />
           <TouchableOpacity style={styles.searchButton}>
-            <Text style={styles.searchButtonText}>Buscar</Text>
+            <Text style={styles.searchButtonText}>Search</Text>
           </TouchableOpacity>
         </View>
       </ImageBackground>
@@ -84,6 +84,7 @@ const HomeScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    width: '100%',
   },
   backgroundImage: {
     height: 170,
@@ -96,7 +97,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingHorizontal: 10,
     margin: 16,
-    marginTop: 60,
+    marginTop: 80,
   },
   textContainer: {
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
@@ -125,7 +126,7 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   card: {
-    height: 120,
+    height: 150,
     width: '100%',
     borderRadius: 8,
     overflow: 'hidden',
@@ -133,7 +134,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     aspectRatio: 16/9,
-    resizeMode: 'cover',
     borderWidth: 8, 
     borderColor: 'rgba(128, 128, 128, 0.2)',
     borderStyle: 'solid', 
