@@ -34,7 +34,7 @@ const Login: React.FC<ModalProps> = ({ isVisible, onClose }) => {
     setMensajeErrorUsuario(null);
     console.log("Enviando...");
     try {
-      const response = await axios.post('http://192.168.1.37:3000/users/login/email', {
+      const response = await axios.post('http://192.168.1.8:3000/users/login/email', {
         email: values.email,
         password: values.password,
       });
