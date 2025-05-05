@@ -33,7 +33,7 @@ const Login: React.FC<ModalProps> = ({ isVisible, onClose }) => {
     setLoginError(null); 
     setMensajeErrorUsuario(null);
     console.log("Enviando...");
-    try {
+    try {/*
       const response = await axios.post('http://192.168.1.8:3000/users/login/email', {
         email: values.email,
         password: values.password,
@@ -42,7 +42,7 @@ const Login: React.FC<ModalProps> = ({ isVisible, onClose }) => {
       const token = response.data.token;
 
       await AsyncStorage.setItem('token', token);
-      setLoading(false);
+      setLoading(false);*/
       router.push('/(tabs)');
 
       onClose();

@@ -13,39 +13,42 @@ export default function TabsLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors['light'].tint,
+        tabBarActiveTintColor: 'white', 
+        tabBarInactiveTintColor: 'white', 
         headerShown: false,
         tabBarButton: HapticTab,
-         tabBarStyle: {
-          borderTopLeftRadius: 50, 
-          borderTopRightRadius: 50, 
-          overflow: 'hidden', 
+        tabBarStyle: {
+          backgroundColor: '#23a8eb', 
+          borderTopLeftRadius: 50,
+          borderTopRightRadius: 50,
+          overflow: 'hidden',
+          borderTopWidth: 0, 
         },
         ...Platform.select({
           ios: {
             shadowColor: 'gray',
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.5,
-            shadowRadius: 4,
+            shadowOffset: { width: 0, height: -2 },
+            shadowOpacity: 0.3,
+            shadowRadius: 3,
           },
           android: {
-            elevation: 30,
+            elevation: 10,
           },
         }),
-        }}
+      }}
     >
       <Tabs.Screen
         name="index"
         options={{
           title: 'Home',
-          tabBarIcon: ({ color }) => <Icon name="home" size={24} color={color} />, 
+          tabBarIcon: ({ color }) => <Icon name="home" size={24} color={color} />,
         }}
       />
       <Tabs.Screen
-        name="request"
+        name="activity"
         options={{
-          title: 'Requests',
-          tabBarIcon: ({ color }) => <Icon name="list-alt" size={24} color={color} />,
+          title: 'Activity',
+          tabBarIcon: ({ color }) => <Icon name="notifications" size={24} color={color} />,
         }}
       />
 
