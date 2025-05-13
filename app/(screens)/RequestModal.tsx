@@ -8,7 +8,8 @@ import {
   ScrollView,
   StyleSheet,
   Button,
-  Platform,
+  Image,
+  ActivityIndicator,
 } from 'react-native';
 import { FontAwesome, MaterialIcons } from '@expo/vector-icons';
 import { Formik } from 'formik';
@@ -16,6 +17,7 @@ import * as Yup from 'yup';
 import * as ImagePicker from 'expo-image-picker';
 import MapView, { Marker } from 'react-native-maps';
 import * as Location from 'expo-location';
+import Constants from 'expo-constants';
 
 interface Service {
   codigo: number;
@@ -31,15 +33,19 @@ interface ModalProps {
 }
 
 const Request: React.FC<ModalProps> = ({ isVisible, onClose, selectedService }) => {
-  const [images, setImages] = useState([]);
+  const [images, setImages] = useState<string[]>([]);
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
   const [region, setRegion] = useState({
     latitude: 37.78825,
     longitude: -122.4324,
-    latitudeDelta: 0.0922,
-    longitudeDelta: 0.0421,
+    latitudeDelta: 0.005,
+    longitudeDelta: 0.005,
   });
+  const [uploadSuccess, setUploadSuccess] = useState(false);
+  const [uploadFailed, setUploadFailed] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const API_URL = Constants.expoConfig?.extra?.API_BASE_URL;
 
   const handleImagePicker = async () => {
     let result = await ImagePicker.launchImageLibraryAsync({
@@ -48,9 +54,13 @@ const Request: React.FC<ModalProps> = ({ isVisible, onClose, selectedService }) 
       quality: 1,
     });
 
-    if (!result.canceled) {
-      setImages(result.assets.map((asset) => asset.uri));
+    if (!result.canceled && result.assets) {
+      setImages((prevImages) => [...prevImages, ...result.assets.map((asset) => asset.uri)]);
     }
+  };
+
+  const handleRemoveImage = (uriToRemove: string) => {
+    setImages((prevImages) => prevImages.filter((uri) => uri !== uriToRemove));
   };
 
   const getLocation = async () => {
@@ -66,8 +76,8 @@ const Request: React.FC<ModalProps> = ({ isVisible, onClose, selectedService }) 
     setRegion({
       latitude: location.coords.latitude,
       longitude: location.coords.longitude,
-      latitudeDelta: 0.02,
-      longitudeDelta: 0.02,
+      latitudeDelta: 0.005,
+      longitudeDelta: 0.005,
     });
   };
 
@@ -79,6 +89,60 @@ const Request: React.FC<ModalProps> = ({ isVisible, onClose, selectedService }) 
     description: Yup.string().required('Description is required'),
     address: Yup.string().required('Address is required'),
   });
+
+  const handleSave = async (values: { description: string; address: string }) => {
+    const serviceRequestData = {
+      fkUser: 6, 
+      serviceType: selectedService?.codigo || 0,
+      serviceDescription: values.description,
+      address: values.address,
+      latitude: latitude !== null ? latitude : 0,
+      longitude: longitude !== null ? longitude : 0,
+    };
+    console.log('Datos a enviar:', serviceRequestData);
+    console.log('Imágenes seleccionadas:', images);
+
+    if (!API_URL) {
+      console.error('La URL de la API no está configurada.');
+      return;
+    }
+
+    setLoading(true);
+    setUploadFailed(false);
+    setUploadSuccess(false); 
+
+    try {
+      const response = await fetch(`${API_URL}/service_request`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(serviceRequestData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Error al guardar los datos:', errorData);
+        setLoading(false);
+        setUploadFailed(true);
+        return;
+      }
+
+      const data = await response.json();
+      console.log('Éxito al guardar los datos:', data);
+      setLoading(false);
+      setUploadSuccess(true);
+      setTimeout(() => {
+        setUploadSuccess(false);
+        onClose(); 
+      }, 3000);
+
+    } catch (error) {
+      console.error('Error de conexión o al procesar la respuesta:', error);
+      setLoading(false);
+      setUploadFailed(true);
+    }
+  };
 
   return (
     <Modal
@@ -100,99 +164,112 @@ const Request: React.FC<ModalProps> = ({ isVisible, onClose, selectedService }) 
             </View>
           )}
 
-          <Formik
-            initialValues={{
-              service: selectedService ? selectedService.title : '',
-              requirement: '',
-              description: '',
-              address: '',
-            }}
-            validationSchema={validationSchema}
-            onSubmit={(values) => {
-              const serviceRequestData = {
-                fkUser: 6, // Usuario por defecto
-                serviceType: selectedService?.codigo || 0,
-                serviceDescription: values.description,
-                address: values.address,
-                latitude: latitude !== null ? latitude : 0,
-                longitude: longitude !== null ? longitude : 0,
-              };
-              console.log(serviceRequestData, images);
-              onClose();
-              // Aquí iría la lógica para enviar los datos a tu API
-              // fetch('http://localhost:8081/service_request', {
-              //   method: 'POST',
-              //   headers: {
-              //     'Content-Type': 'application/json',
-              //   },
-              //   body: JSON.stringify(serviceRequestData),
-              // })
-              // .then(response => response.json())
-              // .then(data => console.log('Success:', data))
-              // .catch((error) => console.error('Error:', error));
-            }}
-            enableReinitialize
-          >
-            {({ handleChange, handleBlur, handleSubmit, values, errors, touched }) => (
-              <View>
+          {uploadSuccess && (
+            <View style={styles.successMessage}>
+              <Text style={styles.successText}>Datos cargados con éxito!</Text>
+            </View>
+          )}
 
-                <TextInput
-                  style={styles.descriptionInput}
-                  placeholder="Description"
-                  onChangeText={handleChange('description')}
-                  onBlur={handleBlur('description')}
-                  value={values.description}
-                  multiline
-                />
-                {touched.description && errors.description && (
-                  <Text style={styles.errorText}>{errors.description}</Text>
-                )}
+          {uploadFailed && (
+            <View style={styles.errorMessage}>
+              <Text style={styles.errorText}>Error al cargar los datos. Inténtalo de nuevo.</Text>
+            </View>
+          )}
 
-                <TextInput
-                  style={styles.input}
-                  placeholder="Address"
-                  onChangeText={handleChange('address')}
-                  onBlur={handleBlur('address')}
-                  value={values.address}
-                />
-                {touched.address && errors.address && (
-                  <Text style={styles.errorText}>{errors.address}</Text>
-                )}
+          {loading && (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color="#007bff" />
+              <Text style={styles.loadingText}>Cargando...</Text>
+            </View>
+          )}
 
-                <View style={styles.mapContainer}>
-                  <MapView
-                    style={styles.map}
-                    region={region}
-                    onRegionChangeComplete={newRegion => setRegion(newRegion)}
-                    onPress={(event) => {
-                      setLatitude(event.nativeEvent.coordinate.latitude);
-                      setLongitude(event.nativeEvent.coordinate.longitude);
-                    }}
-                  >
-                    {latitude && longitude && (
-                      <Marker
-                        coordinate={{ latitude, longitude }}
-                        title="Ubicación Seleccionada"
-                      />
-                    )}
-                  </MapView>
-                  <TouchableOpacity style={styles.gpsButton} onPress={getLocation}>
-                    <MaterialIcons name="my-location" size={24} color="white" />
-                  </TouchableOpacity>
-                </View>
+          {!uploadSuccess && !loading && !uploadFailed && (
+            <Formik
+              initialValues={{
+                service: selectedService ? selectedService.title : '',
+                requirement: '',
+                description: '',
+                address: '',
+              }}
+              validationSchema={validationSchema}
+              onSubmit={handleSave}
+              enableReinitialize
+            >
+              {({ handleChange, handleBlur, handleSubmit, values, errors, touched }) => (
+                <View>
 
-                <View style={styles.buttonContainer}>
-                  <View style={styles.button} >
-                    <Button title="Upload Images" color="#f54021" onPress={handleImagePicker} />
+                  <TextInput
+                    style={styles.descriptionInput}
+                    placeholder="Description"
+                    onChangeText={handleChange('description')}
+                    onBlur={handleBlur('description')}
+                    value={values.description}
+                    multiline
+                  />
+                  {touched.description && errors.description && (
+                    <Text style={styles.errorText}>{errors.description}</Text>
+                  )}
+
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Address"
+                    onChangeText={handleChange('address')}
+                    onBlur={handleBlur('address')}
+                    value={values.address}
+                  />
+                  {touched.address && errors.address && (
+                    <Text style={styles.errorText}>{errors.address}</Text>
+                  )}
+
+                  <View style={styles.mapContainer}>
+                    <MapView
+                      style={styles.map}
+                      region={region}
+                      onRegionChangeComplete={newRegion => setRegion(newRegion)}
+                      onPress={(event) => {
+                        setLatitude(event.nativeEvent.coordinate.latitude);
+                        setLongitude(event.nativeEvent.coordinate.longitude);
+                      }}
+                    >
+                      {latitude && longitude && (
+                        <Marker
+                          coordinate={{ latitude, longitude }}
+                          title="Ubicación Seleccionada"
+                        />
+                      )}
+                    </MapView>
+                    <TouchableOpacity style={styles.gpsButton} onPress={getLocation}>
+                      <MaterialIcons name="my-location" size={24} color="white" />
+                    </TouchableOpacity>
                   </View>
-                  <View style={styles.button}>
-                    <Button title="Save" onPress={handleSubmit} />
-                  </View>
-                </View>
 
-              </View>
-            )}
-          </Formik>
+                  <View style={styles.imagePreviewContainer}>
+                    {images.map((uri) => (
+                      <View key={uri} style={styles.imageItem}>
+                        <Image source={{ uri }} style={styles.previewImage} />
+                        <TouchableOpacity
+                          onPress={() => handleRemoveImage(uri)}
+                          style={styles.removeButton}
+                        >
+                          <FontAwesome name="trash" size={20} color="red" />
+                        </TouchableOpacity>
+                      </View>
+                    ))}
+                  </View>
+
+                  <View style={styles.buttonContainer}>
+                    <View style={styles.button} >
+                      <Button title="Upload Images" color="#f54021" onPress={handleImagePicker} />
+                    </View>
+                    <View style={styles.button}>
+                      <Button title="Save" onPress={handleSubmit} />
+                    </View>
+                  </View>
+
+                </View>
+              )}
+            </Formik>
+          )}
         </ScrollView>
       </View>
     </Modal>
@@ -273,6 +350,73 @@ const styles = StyleSheet.create({
     backgroundColor: '#007bff',
     borderRadius: 20,
     padding: 10,
+  },
+  imagePreviewContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginTop: 10,
+  },
+  imageItem: {
+    width: 100,
+    height: 100,
+    marginRight: 10,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 5,
+    position: 'relative',
+  },
+  previewImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 5,
+  },
+  removeButton: {
+    position: 'absolute',
+    top: -10,
+    right: -10,
+    backgroundColor: 'white',
+    borderRadius: 15,
+    width: 30,
+    height: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#ccc',
+  },
+  successMessage: {
+    backgroundColor: 'green',
+    padding: 15,
+    borderRadius: 5,
+    marginBottom: 20,
+    alignItems: 'center',
+  },
+  successText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  loadingContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  loadingText: {
+    marginLeft: 10,
+    fontSize: 16,
+  },
+  errorMessage: {
+    backgroundColor: 'red',
+    padding: 15,
+    borderRadius: 5,
+    marginBottom: 20,
+    alignItems: 'center',
+  },
+  errorText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
 

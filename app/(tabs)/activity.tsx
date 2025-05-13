@@ -32,7 +32,7 @@ const TabTwoScreen = () => {
   const getStatusTextAndColor = (status) => {
     switch (status) {
       case 1:
-        return { text: 'Pending', color: '#FFC107' };
+        return { text: 'Finish', color: '#FFC107' };
       case 2:
         return { text: 'Approved', color: '#4CAF50' };
       case 3:
@@ -40,7 +40,7 @@ const TabTwoScreen = () => {
       case 4:
         return { text: 'Closed', color: '#9E9E9E' };
       default:
-        return { text: 'Unknown', color: 'gray' };
+        return { text: 'Pending', color: 'gray' };
     }
   };
 
