@@ -2,8 +2,7 @@ import { Tabs } from 'expo-router';
 import React from 'react';
 import { Platform } from 'react-native';
 import { HapticTab } from '@/components/HapticTab';
-import TabBarBackground from '@/components/ui/TabBarBackground';
-import { Colors } from '@/constants/Colors';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 
@@ -13,17 +12,25 @@ export default function TabsLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: 'white', 
-        tabBarInactiveTintColor: 'white', 
+        tabBarActiveTintColor: '#f54021',
+        tabBarInactiveTintColor: '#696969',
         headerShown: false,
         tabBarButton: HapticTab,
         tabBarStyle: {
-          backgroundColor: '#23a8eb', 
+          backgroundColor: 'transparent',
           borderTopLeftRadius: 50,
           borderTopRightRadius: 50,
           overflow: 'hidden',
-          borderTopWidth: 0, 
+          borderTopWidth: 0,
         },
+        tabBarBackground: () => (
+          <LinearGradient
+            colors={['#ADD8E6', '#FFDAB9']}
+            style={{ flex: 1, borderTopLeftRadius: 50, borderTopRightRadius: 50 }}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+          />
+        ),
         ...Platform.select({
           ios: {
             shadowColor: 'gray',
