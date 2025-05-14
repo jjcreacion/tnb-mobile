@@ -412,12 +412,7 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     marginBottom: 20,
     alignItems: 'center',
-  },
-  errorText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
+  }
 });
 
 export default Request;

@@ -55,7 +55,7 @@ const HomeScreen: React.FC = () => {
 
   const handleCloseModal = () => {
     setRequestModalVisible(false);
-    setSelectedServiceData(null); 
+    setSelectedServiceData(null);
   };
 
   const images = [
@@ -65,44 +65,51 @@ const HomeScreen: React.FC = () => {
   return (
     <View style={styles.container}>
       <View style={styles.backgroundTop}>
-        <View style={styles.headerContainer}>
-          <View style={styles.leftHeader}>
-            <Image source={tnbLogo} style={styles.companyLogo} />
-            <Text style={styles.companyName}>TNB</Text>
+        <LinearGradient
+          colors={['#ADD8E6', '#FFDAB9']}
+          style={styles.linearGradientHeader}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+        >
+          <View style={styles.headerContainer}>
+            <View style={styles.leftHeader}>
+              <Image source={tnbLogo} style={styles.companyLogo} />
+              <Text style={styles.companyName}>TNB</Text>
+            </View>
+            <View style={styles.rightHeader}>
+              <Text style={styles.userName}>Hi, Johann </Text>
+              <Icon name="account-circle" size={30} color="#333" />
+            </View>
           </View>
-          <View style={styles.rightHeader}>
-            <Text style={styles.userName}>Hi, Johann </Text>
-            <Icon name="account-circle" size={30} color="white" />
-          </View>
+        </LinearGradient>
+      </View>
+      <ImageBackground source={images[0]} style={styles.backgroundImage}>
+        <View style={styles.searchContainer}>
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search..."
+            placeholderTextColor="gray"
+            value={searchText}
+            onChangeText={setSearchText}
+          />
+          <TouchableOpacity style={styles.searchIconContainer}>
+            <Icon name="search" size={30} color="white" />
+          </TouchableOpacity>
         </View>
-       </View>
-        <ImageBackground source={images[0]} style={styles.backgroundImage}>
-          <View style={styles.searchContainer}>
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Search..."
-              placeholderTextColor="gray"
-              value={searchText}
-              onChangeText={setSearchText}
-            />
-            <TouchableOpacity style={styles.searchIconContainer}>
-              <Icon name="search" size={30} color="white" />
-            </TouchableOpacity>
-          </View>
-        </ImageBackground>
+      </ImageBackground>
 
       <Text style={styles.serviceQuestion}>What service do you need?</Text>
 
       <ScrollView contentContainerStyle={styles.servicesContainer}>
         {SERVICES.map((service, index) => (
-         <ServiceItem key={index} service={service} onServicePress={handleServicePress} />
+          <ServiceItem key={index} service={service} onServicePress={handleServicePress} />
         ))}
       </ScrollView>
 
       <RequestModal
         isVisible={isRequestModalVisible}
         onClose={handleCloseModal}
-        selectedService={selectedServiceData}  
+        selectedService={selectedServiceData}
       />
 
     </View>
@@ -117,12 +124,29 @@ const styles = StyleSheet.create({
   },
   backgroundTop: {
     borderBottomWidth: 0,
-    backgroundColor: '#23a8eb',
+    backgroundColor: 'transparent',
+  },
+  linearGradientHeader: {
+    width: '100%',
+    paddingTop: 40,
+    paddingBottom: 20,
+    overflow: 'hidden',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 5,
+      },
+      android: {
+        elevation: 3,
+      },
+    }),
   },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.7)',
+    backgroundColor: '#ADD8E6',
     borderRadius: 10,
     paddingHorizontal: 0,
     margin: 20,
@@ -132,10 +156,10 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 40,
     paddingHorizontal: 10,
-    color: '#333',
+    color: '#FFDAB9',
   },
   searchIconContainer: {
-    backgroundColor: '#23a8eb',
+    backgroundColor: '#FFDAB9',
     borderTopRightRadius: 10,
     borderBottomRightRadius: 10,
     padding: 5,
@@ -144,8 +168,6 @@ const styles = StyleSheet.create({
   backgroundImage: {
     height: 120,
     justifyContent: 'flex-start',
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
     overflow: 'hidden',
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     ...Platform.select({
@@ -245,10 +267,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingHorizontal: 15,
-    paddingTop: 40,
-    marginBottom: 20,
+    paddingTop: 0,
+    marginBottom: 0,
     width: '100%',
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: 'transparent',
   },
   leftHeader: {
     flexDirection: 'row',
@@ -259,13 +281,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   companyName: {
-    color: '#fff',
+    color: '#333',
     fontSize: 22,
     fontWeight: 'bold',
     marginLeft: 8,
   },
   userName: {
-    color: '#fff',
+    color: '#333',
     fontSize: 17,
     marginLeft: 8,
   },
