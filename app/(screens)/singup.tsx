@@ -87,30 +87,25 @@ const SignUp: React.FC<ModalProps> = ({ isVisible, onClose }) => {
   };
 */
   const handleNext = async () => {
-    let campo = selectedTab === 'email' ? 'email' : 'phone';
-    let valor = selectedTab === 'email' ? email : phone;
-    let setValid = selectedTab === 'email' ? setEmailValid : setPhoneValid;
-    let validationFunction = selectedTab === 'email' ? validateEmail : validatePhone;
+    let campo = 'email';
+    let valor = email;
+    let setValid = setEmailValid;
+    let validationFunction = validateEmail;
 
     if (validationFunction(valor)) {
         try {
-            const existe = await verificarUsuario(valor, campo);
+            //const existe = await verificarUsuario(valor, campo);
 
-            if (existe) {
+            /*if (existe) {
                 setExist(true);
-            } else {
-                if (campo === 'email') {
-                    await AsyncStorage.setItem('emailForSignIn', valor);
-                    await AsyncStorage.setItem('phoneForSignIn', '');
-                } else {
-                    await AsyncStorage.setItem('phoneForSignIn', valor);
-                    await AsyncStorage.setItem('emailForSignIn', '');
-                }
-
-                console.log(`${campo} guardado:`, valor);
-                setShowVerifyCode(true);
-                generateVerificationCode();
-            }
+            } else {*/
+               await AsyncStorage.setItem('emailForSignIn', valor);
+              // await AsyncStorage.setItem('phoneForSignIn', '');
+              
+               console.log(`${campo} guardado:`, valor);
+               setShowVerifyCode(true);
+               generateVerificationCode();
+            //}
         } catch (error) {
             console.error(`Error verificando ${campo}:`, error);
             alert('An error occurred. Please try again later.');
@@ -139,26 +134,8 @@ const SignUp: React.FC<ModalProps> = ({ isVisible, onClose }) => {
     >
       {!showVerifyCode ? (
         <View style={styles.modalContainer}>
-          <View style={styles.tabContainer}>
-            <TouchableOpacity 
-              style={[styles.tab, selectedTab === 'email' && styles.activeTab]} 
-              onPress={() => handleTabChange('email')}
-            >
-              <FontAwesome name="envelope" size={24} color="black" />
-              <Text style={styles.tabText}>Email</Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={[styles.tab, selectedTab === 'phone' && styles.activeTab]} 
-              onPress={() => handleTabChange('phone')}
-            >
-              <FontAwesome name="phone" size={24} color="black" />
-              <Text style={styles.tabText}>Phone</Text>
-            </TouchableOpacity>
-          </View>
-
-          {selectedTab === 'email' ? (
-            <View>
-              <Text style={[{ marginBottom: 20 }, styles.textH1Red]}>Enter Your Email</Text>
+           <View>
+              <Text style={[{ marginBottom: 20, textAlign: 'center' }, styles.textH1]}>Enter Your Email</Text>
               <Text style={styles.textH2Black}>Email Address</Text>
               <TextInput
                 style={[
@@ -173,25 +150,7 @@ const SignUp: React.FC<ModalProps> = ({ isVisible, onClose }) => {
               {!emailValid && <Text style={{ color: 'red', marginBottom: 5 }}>Invalid email</Text>}
               {exist && <Text style={{ color: 'red', marginBottom: 5 }}>It is already registered</Text>}              
             </View>
-          ) : (
-            <View>
-              <Text style={[{ marginBottom: 20 }, styles.textH1Red]}>Enter Your Phone Number</Text>
-              <Text style={styles.textH2Black}>Phone Number</Text>
-              <TextInput
-                style={[
-                  { marginBottom: 15 },
-                  styles.input,
-                  !phoneValid && { borderColor: 'red', borderWidth: 1 }
-                ]}
-                placeholder="+1234567890"
-                value={phone}
-                onChangeText={setPhone}
-              />
-              {!phoneValid && <Text style={{ color: 'red', marginBottom: 5 }}>Invalid phone number</Text>}
-              {exist && <Text style={{ color: 'red', marginBottom: 5 }}>It is already registered</Text>}              
-            </View>
-          )}
-
+          
           <View style={styles.containerTermsofServices}>
             <Text style={styles.TermsofServices}> By continuing, you agree to our </Text>
             <Text style={[styles.TermsofServices, styles.underlineText]}>Terms of Services</Text>

@@ -147,13 +147,13 @@ const styles = StyleSheet.create({
   },
   textH1: {
     fontSize: 24, 
-    color: '#fff', 
+    color: '#6090d5', 
     fontWeight: '600', 
     marginTop: 10
   },
   textH2: {
     fontSize: 20, 
-    color: '#fff', 
+    color: '#6090d5', 
     fontWeight: '600', 
     marginTop: 10
   },
@@ -216,7 +216,7 @@ const styles = StyleSheet.create({
   
   TermsofServices: {
     fontSize: 16, 
-    color: '#0d47fc', 
+    color: '#67696c', 
     fontWeight: '600', 
     marginTop: 10,
     textAlign: 'center',
@@ -363,10 +363,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   bannerText: {
-    color: 'white',
+    color: '#6090d5',
     fontSize: 24,
     fontWeight: 'bold',
-    marginBottom:10
+    marginBottom:10,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   formContainer: {
     padding: 20,

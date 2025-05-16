@@ -138,12 +138,7 @@ const Register: React.FC<RegisterProps> = ({ isVisible, onClose, IsVerify}) => {
     >
       {({ handleChange, handleBlur, handleSubmit, values, errors, touched, isValid }) => (
         <View style={styles.container}>
-          <LinearGradient
-            colors={['#ff6a59', '#ff0000']}
-            style={styles.banner}
-          >
-            <Text style={styles.bannerText}>New User Registration</Text>
-          </LinearGradient>
+          <Text style={[{ textAlign: 'center', marginTop: 10 }, styles.bannerText]}>New User Registration</Text>
           <View style={styles.formContainer}>
             <Text style={styles.label}>First Name</Text>
             <TextInput

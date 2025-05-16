@@ -8,6 +8,7 @@ import { useRouter } from 'expo-router';
 import Constants from 'expo-constants';
 import Icon from 'react-native-vector-icons/Ionicons'; 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import SignUpModal from './singup';
 
 const API_URL = Constants.expoConfig?.extra?.API_BASE_URL;
 
@@ -27,6 +28,7 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [isSignUpModalVisible, setSignUpModalVisible] = useState(false);
 
   const handleLogin = async (values: any) => {
     setLoading(true);
@@ -144,10 +146,13 @@ export default function LoginScreen() {
               )}
             </Formik>
             {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
-            <Text style={[styles.link, { color: textColorLink }]}>Create account</Text>
+            <TouchableOpacity onPress={() => setSignUpModalVisible(true)}>
+              <Text style={[styles.link, { color: textColorLink }]}>Create account</Text>
+            </TouchableOpacity>
           </View>
         </Animatable.View>
       </View>
+       <SignUpModal isVisible={isSignUpModalVisible} onClose={() => setSignUpModalVisible(false)} />
     </ImageBackground>
   );
 }
