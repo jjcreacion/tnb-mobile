@@ -340,13 +340,13 @@ const styles = StyleSheet.create({
     borderColor: 'gray',
   },
   codeInput: {
-    width: 50,
+    width: 46,
     height: 50,
     textAlign: 'center',
     fontSize: 24,
     borderColor: 'gray',
     borderWidth: 1,
-    marginHorizontal: 5,
+    marginHorizontal: 4,
     borderRadius: 5,
   },
   buttonText: { 

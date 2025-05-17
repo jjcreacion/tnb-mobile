@@ -5,6 +5,7 @@ import styles from '../styles';
 import { FontAwesome } from '@expo/vector-icons';
 import VerifyCode from './verificode';
 import { validateEmail, validatePhone } from '../../scripts/validator';
+import Constants from 'expo-constants';
 
 interface ModalProps {
   isVisible: boolean;
@@ -20,7 +21,8 @@ const SignUp: React.FC<ModalProps> = ({ isVisible, onClose }) => {
   const [selectedTab, setSelectedTab] = useState('email');
   const [showVerifyCode, setShowVerifyCode] = useState(false);
   const [verificationCode, setVerificationCode] = useState('');
-  
+  const API_URL = Constants.expoConfig?.extra?.API_BASE_URL;
+
   useEffect(() => {
     if (isVisible) { 
       setEmail('');
@@ -29,6 +31,7 @@ const SignUp: React.FC<ModalProps> = ({ isVisible, onClose }) => {
       setPhoneValid(true);
       setSelectedTab('email'); 
       setShowVerifyCode(false);
+      setExist(false);
     }
   }, [isVisible]); 
 
@@ -39,26 +42,34 @@ const SignUp: React.FC<ModalProps> = ({ isVisible, onClose }) => {
   };
 
   const verificarUsuario = async (valor: any, campo: any) => {
-   
-    const ruta = `http://192.168.1.37:3000/users/verify/${campo === 'email' ? 'email' : 'phone'}`; // Ruta completa
-    
+  
+  setEmailValid(true);
+  
+  if (campo === 'email') {
+    const ruta = `${API_URL}/user/verifyEmail?email=${encodeURIComponent(valor)}`; 
+
     console.log(ruta);
 
     try {
-        const respuesta = await fetch(ruta, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ [campo]: valor })
-        });
-        if (!respuesta.ok) {
-            throw new Error(`Error ${respuesta.status}`);
-        }
-        const datos = await respuesta.json();
-        return datos.exists;
+      const respuesta = await fetch(ruta, {
+        method: 'GET', 
+        headers: {
+          'Content-Type': 'application/json', 
+        },
+      });
+      if (!respuesta.ok) {
+        throw new Error(`Error ${respuesta.status}`);
+      }
+      const datos = await respuesta.json();
+      return datos.exists;
     } catch (error) {
-        console.error(`Error verificando ${campo}:`, error);
-        return true;
+      console.error(`Error verificando ${campo}:`, error);
+      return true; 
     }
+  } else if (campo === 'phone') {
+    console.log('Verificación de teléfono no implementada.');
+    return true; 
+  }
 };
 
 /*
@@ -94,18 +105,18 @@ const SignUp: React.FC<ModalProps> = ({ isVisible, onClose }) => {
 
     if (validationFunction(valor)) {
         try {
-            //const existe = await verificarUsuario(valor, campo);
+            const existe = await verificarUsuario(valor, campo);
 
-            /*if (existe) {
+            if (existe) {
                 setExist(true);
-            } else {*/
+            } else {
                await AsyncStorage.setItem('emailForSignIn', valor);
               // await AsyncStorage.setItem('phoneForSignIn', '');
               
                console.log(`${campo} guardado:`, valor);
                setShowVerifyCode(true);
                generateVerificationCode();
-            //}
+            }
         } catch (error) {
             console.error(`Error verificando ${campo}:`, error);
             alert('An error occurred. Please try again later.');

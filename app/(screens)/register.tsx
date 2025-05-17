@@ -8,6 +8,7 @@ import * as Yup from 'yup';
 import styles from '../styles';
 import { useNavigation } from '@react-navigation/native';
 import RegisterComplete from './registerComplete';
+import Constants from 'expo-constants';
 
 interface RegisterProps {
   isVisible: boolean;
@@ -23,6 +24,7 @@ const Register: React.FC<RegisterProps> = ({ isVisible, onClose, IsVerify}) => {
   const [verifiPhone, setVerifiPhone] = useState(0);
   const [isSuccessModalVisible, setIsSuccessModalVisible] = useState(false);
   const [showComplete, setshowComplete] = useState(false);
+  const API_URL = Constants.expoConfig?.extra?.API_BASE_URL;
 
   const SignupSchema = Yup.object().shape({
     first_name: Yup.string()
@@ -39,92 +41,151 @@ const Register: React.FC<RegisterProps> = ({ isVisible, onClose, IsVerify}) => {
       .required('Requested'),
   });
 
-  const handleRegister = async (values: any, resetForm: () => void) => {
-    setLoading(true);
-    setMessage('');
-    setError('');
+ const handleRegister = async (values: any, resetForm: () => void) => {
+  setLoading(true);
+  setMessage('');
+  setError('');
 
-    const createdAt = new Date().toISOString();
-    const updatedAt = new Date().toISOString();
+  const createdAt = new Date().toISOString();
+  const updatedAt = new Date().toISOString();
 
-    const email = await AsyncStorage.getItem('emailForSignIn');
-    const phone = await AsyncStorage.getItem('phoneForSignIn');
+  const email = await AsyncStorage.getItem('emailForSignIn');
+  const phone = await AsyncStorage.getItem('phoneForSignIn');
 
-    if (email !== null && email !== "") {
-      setVerifiEmail(1);
+  const personData = {
+    firstName: values.first_name,
+    middleName: '',
+    lastName: values.last_name,
+    status: 1,
+  };
+
+  console.log('Creando persona:', JSON.stringify(personData));
+
+  try {
+    const personResponse = await fetch(`${API_URL}/person`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(personData),
+    });
+
+    if (!personResponse.ok) {
+      const errorDetails = await personResponse.json();
+      throw new Error(`Error al crear persona: ${personResponse.status} - ${errorDetails?.message || personResponse.statusText || 'Error desconocido'}`);
     }
-    if (phone !== null && phone !== "") {
-      setVerifiPhone(1);
-    }
 
-    const person = {
-        first_name: values.first_name,
-        middle_name: '',
-        last_name: values.last_name,
-        address: values.address,
-        date_of_birth: '',
-        email: email,
-        phone: phone,
-        createdAt: createdAt,
-        updatedAt: updatedAt,
+    const personResult = await personResponse.json();
+    const fkPerson = personResult.pkPerson;
+    console.log('Persona creada, ID:', fkPerson);
+
+    // Crear contacto
+    const contactData = {
+      fkPerson: fkPerson,
+      entry: 1,
+      isCommercial: 0,
     };
 
-    console.log(JSON.stringify(person));
-    try {
-        const response = await fetch('http://192.168.1.37:3000/person/', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(person),
-        });
+    console.log('Creando contacto:', JSON.stringify(contactData));
+    const contactResponse = await fetch(`${API_URL}/Contact`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(contactData),
+    });
 
-        if (!response.ok) {
-            throw new Error('Algo salió mal');
-        }
-
-        const data = await response.json();
-        console.log(`ID generado: ${data.id}`); 
-
-        const user ={
-          username: '',
-          email: email,
-          validate_email: verifiEmail,
-          phone: phone, 
-          validate_phone: verifiPhone,
-          password: values.password,
-          fk_profile: 1, 
-          fk_person: data.id,
-          createdAt: createdAt,
-          updatedAt: updatedAt,
-        }
-        console.log(JSON.stringify(user));
-
-        const userResponse = await fetch('http://192.168.1.37:3000/users/', { 
-          method: 'POST',
-          headers: {
-              'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(user),
-        });
-
-        if (!userResponse.ok) {
-            const errorData = await userResponse.json(); 
-            throw new Error(`Error creating user: ${userResponse.status} - ${errorData?.message || userResponse.statusText || 'Unknown error'}`); // More informative error
-        }
-
-        const userData = await userResponse.json(); 
-        console.log("User created successfully:", userData); 
-        setshowComplete(true);
-        setLoading(false);
-        setMessage('Registro exitoso');
-        setIsSuccessModalVisible(true); 
-        resetForm();
-    } catch (err: any) {
-        setLoading(false);
-        setError('Error en el registro: ' + (err.message || 'Unknown error'));
+    if (!contactResponse.ok) {
+      const errorDetails = await contactResponse.json();
+      throw new Error(`Error al crear contacto: ${contactResponse.status} - ${errorDetails?.message || contactResponse.statusText || 'Error desconocido'}`);
     }
-  };
+
+    const contactResult = await contactResponse.json();
+    console.log('Contacto creado:', contactResult);
+
+    // Crear email de persona
+    const personEmailData = {
+      email: email,
+      isPrimary: 1,
+      fkPerson: fkPerson,
+    };
+
+    console.log('Creando email de persona:', JSON.stringify(personEmailData));
+    const personEmailResponse = await fetch(`${API_URL}/person-email`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(personEmailData),
+    });
+
+    if (!personEmailResponse.ok) {
+      const errorDetails = await personEmailResponse.json();
+      throw new Error(`Error al crear email de persona: ${personEmailResponse.status} - ${errorDetails?.message || personEmailResponse.statusText || 'Error desconocido'}`);
+    }
+
+    const personEmailResult = await personEmailResponse.json();
+    console.log('Email de persona creado:', personEmailResult);
+
+    // Crear dirección de persona
+    const personAddressData = {
+      fkPerson: fkPerson,
+      address: values.address,
+      isPrimary: 1,
+    };
+
+    console.log('Creando dirección de persona:', JSON.stringify(personAddressData));
+    const personAddressResponse = await fetch(`${API_URL}/person-address`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(personAddressData),
+    });
+
+    if (!personAddressResponse.ok) {
+      const errorDetails = await personAddressResponse.json();
+      throw new Error(`Error al crear dirección de persona: ${personAddressResponse.status} - ${errorDetails?.message || personAddressResponse.statusText || 'Error desconocido'}`);
+    }
+
+    const personAddressResult = await personAddressResponse.json();
+    console.log('Dirección de persona creada:', personAddressResult);
+
+    // Crear usuario 
+    const userData = {
+      fkPerson: fkPerson,
+      email: email,
+      password: values.password,
+    };
+
+    console.log('Creando usuario:', JSON.stringify(userData));
+    const userResponse = await fetch(`${API_URL}/user/createWithEmail`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(userData),
+    });
+
+    if (!userResponse.ok) {
+      const errorDetails = await userResponse.json();
+      throw new Error(`Error al crear usuario: ${userResponse.status} - ${errorDetails?.message || userResponse.statusText || 'Error desconocido'}`);
+    }
+
+    const userResult = await userResponse.json();
+    console.log('Usuario creado:', userResult);
+
+    setshowComplete(true);
+    setLoading(false);
+    setMessage('Registro exitoso');
+    setIsSuccessModalVisible(true);
+    resetForm();
+
+  } catch (err: any) {
+    setLoading(false);
+    setError('Error en el registro: ' + (err.message || 'Error desconocido'));
+  }
+};
 
   return (
     <View style={styles.container}> 

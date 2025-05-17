@@ -3,6 +3,8 @@ import { View, Text, ImageBackground, StyleSheet, Modal, TextInput, TouchableOpa
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { LinearGradient } from 'expo-linear-gradient';
 import RequestModal from '../(screens)/RequestModal';
+import Constants from 'expo-constants';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface Service {
   codigo: number;
@@ -47,6 +49,39 @@ const HomeScreen: React.FC = () => {
   const [searchText, setSearchText] = useState<string>('');
   const [isRequestModalVisible, setRequestModalVisible] = useState(false);
   const [selectedServiceData, setSelectedServiceData] = useState<Service | null>(null);
+  const [userName, setUserName] = useState<string>(''); 
+  const API_URL = Constants.expoConfig?.extra?.API_BASE_URL;
+
+  useEffect(() => {
+    const loadUserData = async () => {
+      try {
+        const userId = await AsyncStorage.getItem('userId');
+         if (userId) {
+          const response = await fetch(`${API_URL}/user/findOne/${userId}`);
+         if (response.ok) {
+            const userData = await response.json();
+            if (userData?.person?.firstName && userData?.person?.lastName) {
+              setUserName(`${userData.person.firstName} ${userData.person.lastName}`);
+            } else if (userData?.person?.firstName) {
+              setUserName(userData.person.firstName);
+            } else {
+              setUserName('Usuario'); 
+            }
+          } else {
+            console.error('Error al cargar los datos del usuario:', response.status);
+            setUserName('Usuario'); 
+          }
+        } else {
+          setUserName('Usuario'); 
+        }
+      } catch (error) {
+        console.error('Error al cargar los datos del usuario:', error);
+        setUserName('Usuario'); 
+      }
+    };
+
+    loadUserData();
+  }, []);
 
   const handleServicePress = (service: Service) => {
     setSelectedServiceData(service);
@@ -77,7 +112,7 @@ const HomeScreen: React.FC = () => {
               <Text style={styles.companyName}>TNB</Text>
             </View>
             <View style={styles.rightHeader}>
-              <Text style={styles.userName}>Hi, Johann </Text>
+              <Text style={styles.userName}>Hi, {userName} </Text>
               <Icon name="account-circle" size={30} color="#333" />
             </View>
           </View>

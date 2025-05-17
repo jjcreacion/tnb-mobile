@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -11,22 +11,54 @@ import {
   Platform,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import Constants from 'expo-constants';
 
 export default function ProfileScreen() {
   const [userData, setUserData] = useState({
     profilePicture: require('@/assets/images/user.png'),
-    username: 'UsuarioEjemplo',
-    email: 'usuario@ejemplo.com',
-    phone: '123-456-7890',
-    firstName: 'Nombre',
-    middleName: 'Segundo',
-    lastName: 'Apellido',
-    birthdate: '01/01/1990',
-    address: 'Calle Principal #123',
+    username: '',
+    email: '',
+    phone: '',
+    firstName: '',
+    middleName: '',
+    lastName: '',
+    birthdate: '',
+    address: '',
   });
-
   const [isEditing, setIsEditing] = useState(false);
   const [focusedInput, setFocusedInput] = useState(null);
+  const API_URL = Constants.expoConfig?.extra?.API_BASE_URL || 'http://localhost:12099';
+
+  useEffect(() => {
+    const loadUserData = async () => {
+      try {
+        const userId = await AsyncStorage.getItem('userId');
+        if (userId) {
+          const response = await fetch(`${API_URL}/user/findOne/${userId}`);
+          if (response.ok) {
+            const userDataFromApi = await response.json();
+            setUserData({
+              ...userData,
+              username: userDataFromApi.username || '',
+              email: userDataFromApi.email || '',
+              phone: userDataFromApi.phone || '',
+              firstName: userDataFromApi.person?.firstName || '',
+              middleName: userDataFromApi.person?.middleName || '',
+              lastName: userDataFromApi.person?.lastName || '',
+              address: userDataFromApi.person?.addresses?.[0]?.address || '',
+            });
+          } else {
+            console.error('Error al cargar los datos del usuario:', response.status);
+          }
+        }
+      } catch (error) {
+        console.error('Error al cargar los datos del usuario:', error);
+      }
+    };
+
+    loadUserData();
+  }, []);
 
   const handleEdit = () => {
     setIsEditing(!isEditing);
@@ -54,26 +86,83 @@ export default function ProfileScreen() {
           </TouchableOpacity>
         </View>
 
-        {Object.entries(userData).map(([key, value]) => {
-          if (key === 'profilePicture') return null;
+        <View style={styles.detailSection}>
+          <Text style={styles.sectionTitle}>Email</Text>
+          {isEditing ? (
+            <TextInput
+              style={[styles.detailInput, focusedInput === 'email' && styles.focusedInput]}
+              value={userData.email}
+              onChangeText={(text) => handleChange('email', text)}
+              onFocus={() => setFocusedInput('email')}
+              onBlur={() => setFocusedInput(null)}
+            />
+          ) : (
+            <Text style={styles.sectionValue}>{userData.email || 'N/A'}</Text>
+          )}
+        </View>
 
-          return (
-            <View key={key} style={styles.detailRow}>
-              <Text style={styles.cardTitle}>{key}:</Text>
-              {isEditing ? (
-                <TextInput
-                  style={[styles.detailInput, focusedInput === key && styles.focusedInput]}
-                  value={value}
-                  onChangeText={(text) => handleChange(key, text)}
-                  onFocus={() => setFocusedInput(key)}
-                  onBlur={() => setFocusedInput(null)}
-                />
-              ) : (
-                <Text style={styles.cardDescription}>{value}</Text>
-              )}
-            </View>
-          );
-        })}
+        <View style={styles.detailSection}>
+          <Text style={styles.sectionTitle}>Phone</Text>
+          {isEditing ? (
+            <TextInput
+              style={[styles.detailInput, focusedInput === 'phone' && styles.focusedInput]}
+              value={userData.phone}
+              onChangeText={(text) => handleChange('phone', text)}
+              onFocus={() => setFocusedInput('phone')}
+              onBlur={() => setFocusedInput(null)}
+            />
+          ) : (
+            <Text style={styles.sectionValue}>{userData.phone || 'N/A'}</Text>
+          )}
+        </View>
+
+        <View style={styles.detailSection}>
+          <Text style={styles.sectionTitle}>First Name</Text>
+          {isEditing ? (
+            <TextInput
+              style={[styles.detailInput, focusedInput === 'firstName' && styles.focusedInput]}
+              value={userData.firstName}
+              onChangeText={(text) => handleChange('firstName', text)}
+              onFocus={() => setFocusedInput('firstName')}
+              onBlur={() => setFocusedInput(null)}
+            />
+          ) : (
+            <Text style={styles.sectionValue}>{userData.firstName || 'N/A'}</Text>
+          )}
+        </View>
+
+        <View style={styles.detailSection}>
+          <Text style={styles.sectionTitle}>Last Name</Text>
+          {isEditing ? (
+            <TextInput
+              style={[styles.detailInput, focusedInput === 'lastName' && styles.focusedInput]}
+              value={userData.lastName}
+              onChangeText={(text) => handleChange('lastName', text)}
+              onFocus={() => setFocusedInput('lastName')}
+              onBlur={() => setFocusedInput(null)}
+            />
+          ) : (
+            <Text style={styles.sectionValue}>{userData.lastName || 'N/A'}</Text>
+          )}
+        </View>
+
+        <View style={styles.detailSection}>
+          <Text style={styles.sectionTitle}>Address</Text>
+          {isEditing ? (
+            <TextInput
+              style={[styles.detailInput, focusedInput === 'address' && styles.focusedInput]}
+              value={userData.address}
+              onChangeText={(text) => handleChange('address', text)}
+              onFocus={() => setFocusedInput('address')}
+              onBlur={() => setFocusedInput(null)}
+            />
+          ) : (
+            <Text style={styles.sectionValue}>{userData.address || 'N/A'}</Text>
+          )}
+        </View>
+
+        {/* Puedes agregar más secciones para otros campos como middleName, birthdate, etc. */}
+
       </View>
     </ScrollView>
   );
@@ -89,8 +178,8 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
     borderBottomLeftRadius: 10,
     borderBottomRightRadius: 10,
-    overflow: 'visible', 
-    position: 'relative', 
+    overflow: 'visible',
+    position: 'relative',
     ...Platform.select({
       ios: {
         shadowColor: 'gray',
@@ -110,7 +199,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     width: '100%',
-    zIndex: 1, 
+    zIndex: 1,
   },
   profilePictureContainer: {
     width: 150,
@@ -120,9 +209,9 @@ const styles = StyleSheet.create({
     borderColor: 'gray',
     justifyContent: 'center',
     alignItems: 'center',
-    overflow: 'visible', 
-    position: 'relative', 
-    zIndex: 2, 
+    overflow: 'visible',
+    position: 'relative',
+    zIndex: 2,
   },
   profilePicture: {
     width: '100%',
@@ -144,29 +233,40 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 16,
   },
   header: {
     fontSize: 24,
     fontWeight: 'bold',
-    marginBottom: 16,
   },
-  cardTitle: {
+  detailSection: {
+    marginBottom: 15,
+  },
+  sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    marginBottom: 8,
+    marginBottom: 5,
+    color: '#333',
   },
-  cardDescription: {
+  sectionValue: {
     fontSize: 16,
-    marginBottom: 8,
+    color: '#555',
   },
   detailRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: 10,
   },
+  detailInput: {
+    flex: 1,
+    borderBottomWidth: 1,
+    borderBottomColor: '#ccc',
+    paddingVertical: 5,
+    fontSize: 16,
+    marginLeft: 10,
+  },
   focusedInput: {
     borderBottomColor: 'blue',
-    color: 'red',
+    color: 'black',
   },
 });

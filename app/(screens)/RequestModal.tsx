@@ -18,6 +18,7 @@ import * as ImagePicker from 'expo-image-picker';
 import MapView, { Marker } from 'react-native-maps';
 import * as Location from 'expo-location';
 import Constants from 'expo-constants';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface Service {
   codigo: number;
@@ -30,12 +31,14 @@ interface ModalProps {
   isVisible: boolean;
   onClose: () => void;
   selectedService: Service | null;
+  onServiceCreated?: () => void; // Prop opcional para la función de refresh
 }
 
-const Request: React.FC<ModalProps> = ({ isVisible, onClose, selectedService }) => {
+const Request: React.FC<ModalProps> = ({ isVisible, onClose, selectedService, onServiceCreated }) => {
   const [images, setImages] = useState<string[]>([]);
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
+  const [pkUser, setPkUser] = useState<string | null>(null);
   const [region, setRegion] = useState({
     latitude: 37.78825,
     longitude: -122.4324,
@@ -46,6 +49,25 @@ const Request: React.FC<ModalProps> = ({ isVisible, onClose, selectedService }) 
   const [uploadFailed, setUploadFailed] = useState(false);
   const [loading, setLoading] = useState(false);
   const API_URL = Constants.expoConfig?.extra?.API_BASE_URL;
+
+  useEffect(() => {
+    const fetchPkUser = async () => {
+      try {
+        const storedPkUser = await AsyncStorage.getItem('userId');
+        if (storedPkUser) {
+          setPkUser(storedPkUser);
+          console.log('pkUser obtenido de AsyncStorage:', storedPkUser);
+        } else {
+          console.log('No se encontró userId en AsyncStorage en el componente Request.');
+        }
+      } catch (error) {
+        console.error('Error al obtener userId de AsyncStorage:', error);
+      }
+    };
+
+    fetchPkUser();
+    getLocation();
+  }, []);
 
   const handleImagePicker = async () => {
     let result = await ImagePicker.launchImageLibraryAsync({
@@ -85,14 +107,28 @@ const Request: React.FC<ModalProps> = ({ isVisible, onClose, selectedService }) 
     getLocation();
   }, []);
 
+  useEffect(() => {
+    if (!isVisible) {
+      setUploadFailed(false);
+      setUploadSuccess(false);
+      setLoading(false);
+    }
+  }, [isVisible]);
+
   const validationSchema = Yup.object().shape({
     description: Yup.string().required('Description is required'),
     address: Yup.string().required('Address is required'),
   });
 
   const handleSave = async (values: { description: string; address: string }) => {
+    if (!pkUser) {
+      console.error('pkUser no está disponible. Asegúrate de que se haya cargado desde AsyncStorage.');
+      setUploadFailed(true);
+      return;
+    }
+
     const serviceRequestData = {
-      fkUser: 6, 
+      fkUser: parseInt(pkUser, 10),
       serviceType: selectedService?.codigo || 0,
       serviceDescription: values.description,
       address: values.address,
@@ -109,7 +145,7 @@ const Request: React.FC<ModalProps> = ({ isVisible, onClose, selectedService }) 
 
     setLoading(true);
     setUploadFailed(false);
-    setUploadSuccess(false); 
+    setUploadSuccess(false);
 
     try {
       const response = await fetch(`${API_URL}/service_request`, {
@@ -134,7 +170,10 @@ const Request: React.FC<ModalProps> = ({ isVisible, onClose, selectedService }) 
       setUploadSuccess(true);
       setTimeout(() => {
         setUploadSuccess(false);
-        onClose(); 
+        onClose();
+        if (onServiceCreated) {
+          onServiceCreated(); // ¡Llamamos a la función de refresh!
+        }
       }, 3000);
 
     } catch (error) {
@@ -183,7 +222,7 @@ const Request: React.FC<ModalProps> = ({ isVisible, onClose, selectedService }) 
             </View>
           )}
 
-          {!uploadSuccess && !loading && !uploadFailed && (
+          {!uploadSuccess && !loading && !uploadFailed && pkUser && (
             <Formik
               initialValues={{
                 service: selectedService ? selectedService.title : '',
@@ -269,6 +308,9 @@ const Request: React.FC<ModalProps> = ({ isVisible, onClose, selectedService }) 
                 </View>
               )}
             </Formik>
+          )}
+          {!pkUser && !loading && (
+            <Text>No se ha podido cargar la información del usuario.</Text>
           )}
         </ScrollView>
       </View>

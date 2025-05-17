@@ -1,33 +1,73 @@
-import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { StyleSheet, View, Text, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { Picker } from '@react-native-picker/picker';
 import axios from 'axios';
 import Constants from 'expo-constants';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const TabTwoScreen = () => {
+const TabTwoScreen = ({ navigation }) => { // Asegúrate de recibir la prop navigation si la estás usando para navegar
   const [services, setServices] = useState([]);
   const [selectedStatus, setSelectedStatus] = useState('All');
-  const [loading, setLoading] = useState(true);  
-  const userId = 6;
+  const [loading, setLoading] = useState(true);
+  const [userId, setUserId] = useState<string | null>(null);
   const API_URL = Constants.expoConfig?.extra?.API_BASE_URL;
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const fetchServices = useCallback(async (currentUserId) => {
+    setIsRefreshing(true);
+    setLoading(true);
+    try {
+      const response = await axios.get(`${API_URL}/service_request/user/${currentUserId}`);
+
+      if (response.status === 200) {
+        setServices(response.data);
+        console.log('Datos del usuario cargados:', response.data);
+      } else if (response.status === 404) {
+        if (response.data && response.data.message && response.data.message.includes('No requests found')) {
+          setServices([]);
+          console.log('No se encontraron solicitudes para este usuario.');
+        } else {
+          console.error('Error inesperado al obtener servicios:', response);
+        }
+      } else {
+        console.error('Error al obtener servicios:', response);
+      }
+    } catch (error) {
+    } finally {
+      setLoading(false);
+      setIsRefreshing(false);
+    }
+  }, [API_URL, setServices, setLoading, setIsRefreshing]);
 
   useEffect(() => {
-    const fetchUserServices = async () => {
-      setLoading(true); 
+    const fetchUserIdAndInitialServices = async () => {
+      setLoading(true);
+      setIsRefreshing(true);
       try {
-        const response = await axios.get(`${API_URL}/service_request/user/${userId}`);
-        setServices(response.data);
-        console.log(response.data); 
+        const storedUserId = await AsyncStorage.getItem('userId');
+        if (storedUserId) {
+          setUserId(storedUserId);
+          fetchServices(storedUserId);
+        } else {
+          setLoading(false);
+          setIsRefreshing(false);
+        }
       } catch (error) {
-        console.error('Error fetching user services:', error);
-     } finally {
-        setLoading(false); 
+        setLoading(false);
+        setIsRefreshing(false);
       }
     };
 
-    fetchUserServices();
-  }, [userId, API_URL]);
+    fetchUserIdAndInitialServices();
+  }, [fetchServices]);
+
+  const onRefresh = useCallback(async () => {
+    const currentUserId = await AsyncStorage.getItem('userId');
+    if (currentUserId) {
+      fetchServices(currentUserId);
+    }
+  }, [fetchServices]);
 
   const getStatusTextAndColor = (status) => {
     switch (status) {
@@ -71,7 +111,12 @@ const TabTwoScreen = () => {
     : services.filter(service => getStatusTextAndColor(service.status).text === selectedStatus);
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView
+      style={styles.container}
+      refreshControl={
+        <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} />
+      }
+    >
       <Text style={styles.header}>Activity</Text>
 
       {loading ? (
@@ -79,10 +124,14 @@ const TabTwoScreen = () => {
           <ActivityIndicator size="large" color="#007AFF" />
           <Text style={styles.loadingText}>Loading...</Text>
         </View>
-      ) : filteredServices.length > 0 ? (
-        filteredServices.map(renderServiceCard)
+      ) : userId ? (
+        filteredServices.length > 0 ? (
+          filteredServices.map(renderServiceCard)
+        ) : (
+          <Text>No services found.</Text>
+        )
       ) : (
-        <Text>No services found.</Text>
+        <Text>No se ha podido cargar la información del usuario.</Text>
       )}
     </ScrollView>
   );
