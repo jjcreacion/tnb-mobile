@@ -25,6 +25,8 @@ export default function ProfileScreen() {
     lastName: '',
     birthdate: '',
     address: '',
+    pkUser: null,
+    createdAt: null, 
   });
   const [isEditing, setIsEditing] = useState(false);
   const [focusedInput, setFocusedInput] = useState(null);
@@ -38,6 +40,24 @@ export default function ProfileScreen() {
           const response = await fetch(`${API_URL}/user/findOne/${userId}`);
           if (response.ok) {
             const userDataFromApi = await response.json();
+
+          
+           const rawPkUser = userDataFromApi.pkUser;
+            const formattedPkUser = rawPkUser
+              ? String(rawPkUser).padStart(6, '0')
+              : null;
+
+          
+            let formattedCreatedAt = null;
+            if (userDataFromApi.createdAt) {
+              const date = new Date(userDataFromApi.createdAt);
+              formattedCreatedAt = date.toLocaleDateString('es-ES', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+              });
+            }
+
             setUserData({
               ...userData,
               username: userDataFromApi.username || '',
@@ -47,6 +67,8 @@ export default function ProfileScreen() {
               middleName: userDataFromApi.person?.middleName || '',
               lastName: userDataFromApi.person?.lastName || '',
               address: userDataFromApi.person?.addresses?.[0]?.address || '',
+              pkUser: formattedPkUser,
+              createdAt: formattedCreatedAt, 
             });
           } else {
             console.error('Error al cargar los datos del usuario:', response.status);
@@ -75,9 +97,13 @@ export default function ProfileScreen() {
           <View style={styles.profilePictureContainer}>
             <Image source={userData.profilePicture} style={styles.profilePicture} />
           </View>
+          {userData.pkUser && (
+            <Text style={styles.pkUserText}>
+              Client ID: {userData.pkUser}
+            </Text>
+          )}
         </View>
       </ImageBackground>
-
       <View style={styles.card}>
         <View style={styles.cardHeader}>
           <Text style={styles.header}>My Profile</Text>
@@ -161,8 +187,8 @@ export default function ProfileScreen() {
           )}
         </View>
 
-        {/* Puedes agregar más secciones para otros campos como middleName, birthdate, etc. */}
-
+        
+        
       </View>
     </ScrollView>
   );
@@ -216,6 +242,14 @@ const styles = StyleSheet.create({
   profilePicture: {
     width: '100%',
     height: '100%',
+  },
+  pkUserText: {
+    marginTop: 10,
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+    textAlign: 'center',
+    width: '100%',
   },
   card: {
     backgroundColor: '#FFFFFF',
