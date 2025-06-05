@@ -97,11 +97,9 @@ export default function ProfileScreen() {
           <View style={styles.profilePictureContainer}>
             <Image source={userData.profilePicture} style={styles.profilePicture} />
           </View>
-          {userData.pkUser && (
-            <Text style={styles.pkUserText}>
+           <Text style={styles.pkUserText}>
               Client ID: {userData.pkUser}
             </Text>
-          )}
         </View>
       </ImageBackground>
       <View style={styles.card}>

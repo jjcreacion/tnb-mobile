@@ -31,7 +31,7 @@ interface ModalProps {
   isVisible: boolean;
   onClose: () => void;
   selectedService: Service | null;
-  onServiceCreated?: () => void; // Prop opcional para la función de refresh
+  onServiceCreated?: () => void; 
 }
 
 const Request: React.FC<ModalProps> = ({ isVisible, onClose, selectedService, onServiceCreated }) => {
@@ -172,7 +172,7 @@ const Request: React.FC<ModalProps> = ({ isVisible, onClose, selectedService, on
         setUploadSuccess(false);
         onClose();
         if (onServiceCreated) {
-          onServiceCreated(); // ¡Llamamos a la función de refresh!
+          onServiceCreated(); 
         }
       }, 3000);
 
