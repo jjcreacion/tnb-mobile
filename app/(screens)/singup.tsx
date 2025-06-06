@@ -35,10 +35,24 @@ const SignUp: React.FC<ModalProps> = ({ isVisible, onClose }) => {
     }
   }, [isVisible]); 
 
-  const generateVerificationCode = () => {
+  const generateVerificationCode = async () => {
     const code = Math.floor(100000 + Math.random() * 900000).toString();
     setVerificationCode(code);
     console.log(code);
+
+    const verifyData = {
+      email: email,
+      code: code,
+    };
+
+    const verifyResponse = await fetch(`${API_URL}/mailer/send-code`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(verifyData),
+    });
+
   };
 
   const verificarUsuario = async (valor: any, campo: any) => {
