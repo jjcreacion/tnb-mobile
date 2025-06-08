@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { StyleSheet, View, Text, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl, Platform } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { Picker } from '@react-native-picker/picker';
 import axios from 'axios';
 import Constants from 'expo-constants';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { LinearGradient } from 'expo-linear-gradient';
 
-const TabTwoScreen = ({ navigation }) => { // Asegúrate de recibir la prop navigation si la estás usando para navegar
+const TabTwoScreen = ({  }) => {
   const [services, setServices] = useState([]);
   const [selectedStatus, setSelectedStatus] = useState('All');
   const [loading, setLoading] = useState(true);
@@ -14,7 +15,7 @@ const TabTwoScreen = ({ navigation }) => { // Asegúrate de recibir la prop navi
   const API_URL = Constants.expoConfig?.extra?.API_BASE_URL;
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const fetchServices = useCallback(async (currentUserId) => {
+  const fetchServices = useCallback(async (currentUserId: any) => {
     setIsRefreshing(true);
     setLoading(true);
     try {
@@ -34,6 +35,7 @@ const TabTwoScreen = ({ navigation }) => { // Asegúrate de recibir la prop navi
         console.error('Error al obtener servicios:', response);
       }
     } catch (error) {
+      // Handle network or other errors silently for now, as per original logic
     } finally {
       setLoading(false);
       setIsRefreshing(false);
@@ -54,6 +56,7 @@ const TabTwoScreen = ({ navigation }) => { // Asegúrate de recibir la prop navi
           setIsRefreshing(false);
         }
       } catch (error) {
+        // Handle errors silently for now, as per original logic
         setLoading(false);
         setIsRefreshing(false);
       }
@@ -69,7 +72,7 @@ const TabTwoScreen = ({ navigation }) => { // Asegúrate de recibir la prop navi
     }
   }, [fetchServices]);
 
-  const getStatusTextAndColor = (status) => {
+  const getStatusTextAndColor = (status: any ) => {
     switch (status) {
       case 1:
         return { text: 'Finish', color: '#FFC107' };
@@ -84,7 +87,7 @@ const TabTwoScreen = ({ navigation }) => { // Asegúrate de recibir la prop navi
     }
   };
 
-  const renderServiceCard = (service) => {
+  const renderServiceCard = (service: any) => {
     const statusInfo = getStatusTextAndColor(service.status);
 
     return (
@@ -117,7 +120,21 @@ const TabTwoScreen = ({ navigation }) => { // Asegúrate de recibir la prop navi
         <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} />
       }
     >
-      <Text style={styles.header}>Activity</Text>
+     <View style={styles.backgroundTop}>
+        <LinearGradient
+          colors={['#ea0e08', '#fa2d64']}
+          style={styles.linearGradientHeader}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+        >
+          <View style={styles.headerContainer}>
+            <View style={styles.leftHeader}>
+              <Text style={styles.companyName}>ACTIVITY</Text>
+            </View>
+          </View>
+        </LinearGradient>
+
+      </View>
 
       {loading ? (
         <View style={styles.loadingContainer}>
@@ -128,10 +145,16 @@ const TabTwoScreen = ({ navigation }) => { // Asegúrate de recibir la prop navi
         filteredServices.length > 0 ? (
           filteredServices.map(renderServiceCard)
         ) : (
-          <Text>No services found.</Text>
+          <View style={styles.noServicesContainer}>
+            <Icon name="sentiment-dissatisfied" size={60} color="#666" />
+            <Text style={styles.noServicesText}>No activity</Text>
+          </View>
         )
       ) : (
-        <Text>No se ha podido cargar la información del usuario.</Text>
+        <View style={styles.noServicesContainer}>
+          <Icon name="error-outline" size={60} color="#666" />
+          <Text style={styles.noServicesText}>Could not load user information.</Text>
+        </View>
       )}
     </ScrollView>
   );
@@ -140,7 +163,10 @@ const TabTwoScreen = ({ navigation }) => { // Asegúrate de recibir la prop navi
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 16,
+  },
+  backgroundTop: {
+    borderBottomWidth: 0,
+    backgroundColor: 'transparent',
   },
   card: {
     backgroundColor: '#FFFFFF',
@@ -153,11 +179,26 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
   },
+  companyName: {
+    color: '#fff7f9',
+    fontSize: 22,
+    fontWeight: 'bold',
+    marginLeft: 8,
+  },
   cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 8,
+  },
+  headerContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 15,
+    paddingTop: 0,
+    marginBottom: 0,
+    width: '100%',
+    backgroundColor: 'transparent',
   },
   cardTitle: {
     fontSize: 18,
@@ -168,6 +209,23 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginBottom: 8,
   },
+  linearGradientHeader: {
+    width: '100%',
+    paddingTop: 40,
+    paddingBottom: 20,
+    overflow: 'hidden',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 5,
+      },
+      android: {
+        elevation: 3,
+      },
+    }),
+  },
   cardFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -176,6 +234,10 @@ const styles = StyleSheet.create({
   cardDate: {
     fontSize: 14,
     color: 'gray',
+  },
+  leftHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   header: {
     fontSize: 24,
@@ -211,6 +273,21 @@ const styles = StyleSheet.create({
     marginTop: 10,
     fontSize: 16,
     color: 'gray',
+  },
+  noServicesContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 50, 
+    width: '100%', 
+    backgroundColor: 'transparent', 
+  },
+  noServicesText: {
+    marginTop: 15, 
+    fontSize: 25, 
+    fontWeight: 'bold',
+    color: '#666', 
+    textAlign: 'center',
   },
 });
 

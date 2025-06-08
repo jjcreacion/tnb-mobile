@@ -1,28 +1,4 @@
-// styles.ts
 
-/*
-const lightTheme = {
-  textColor: '#000000',
-  // Otros colores de tema claro...
-};
-
-const darkTheme = {
-  textColor: '#ffffff',
-  // Otros colores de tema oscuro...
-};
-
-const currentTheme = lightTheme; // O darkTheme, dependiendo del estado del tema
-
-const styles = StyleSheet.create({
-  textH2: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginTop: 10,
-    color: currentTheme.textColor, // Usar color del tema actual
-  },
-  // Otros estilos...
-});
-*/
 
 import { StyleSheet } from 'react-native';
 
@@ -32,6 +8,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center', 
     alignItems: 'center', 
     position: 'relative'
+  },
+  pickerStyle: {
+    height: 50, 
+    width: '100%',
+    borderColor: '#ddd',
+    borderWidth: 1,
+    borderRadius: 5,
+    marginBottom: 10,
+    backgroundColor: '#fff',
   },
   containerTermsofServices: { 
     flexDirection: 'row', 
@@ -76,6 +61,42 @@ const styles = StyleSheet.create({
     color: 'red', // Texto rojo para los mensajes de error
     fontSize: 12,
     marginTop: 5, // Espacio entre el input y el mensaje
+  },
+  mapStyle: {
+    width: '100%',
+    height: 200,
+    marginTop: 10,
+    borderRadius: 8,
+    marginBottom: 10, 
+  },
+  scrollContent: {
+    flexGrow: 1,
+    padding: 5, 
+  },
+  buttonGPS: {
+    backgroundColor: '#6c757d', 
+    padding: 12,
+    borderRadius: 5,
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  buttonTextGPS: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  pickerContainer: { 
+    borderColor: '#ddd',
+    borderWidth: 1,
+    borderRadius: 5,
+    marginBottom: 10,
+    overflow: 'hidden', 
+    backgroundColor: '#fff',
+    height: 40, 
+    justifyContent: 'center', 
+  },
+  picker: {
+    width: '100%',
   },
   buttonDisabled: {
       backgroundColor: 'gray'

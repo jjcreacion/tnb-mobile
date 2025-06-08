@@ -66,9 +66,8 @@ const ServiceItem: React.FC<ServiceItemProps> = ({ service, onServicePress, isRe
           colors={['rgba(0,0,0,0.4)', 'rgba(0,0,0,0.7)']}
           style={styles.recommendedCardOverlay}
         >
-          <Icon name={service.icon} size={35} color="#fff" />
           <Text style={styles.recommendedCardTitle}>{service.title}</Text>
-          <Text style={styles.recommendedCardDescription}>{service.description}</Text> {/* Display description */}
+          <Text style={styles.recommendedCardDescription}>{service.description}</Text>
         </LinearGradient>
       </TouchableOpacity>
     );
@@ -78,10 +77,9 @@ const ServiceItem: React.FC<ServiceItemProps> = ({ service, onServicePress, isRe
     <TouchableOpacity onPress={() => onServicePress(service)} style={styles.serviceItem}>
       {service.image && <Image source={service.image} style={styles.serviceItemImage} />}
       <View style={styles.serviceItemContent}>
-        <Icon name={service.icon} size={30} color={service.color} />
-        <View> {/* Wrap title and description in a View */}
+        <View>
           <Text style={styles.serviceTitle}>{service.title}</Text>
-          <Text style={styles.serviceDescription}>{service.description}</Text> {/* Display description */}
+          <Text style={styles.serviceDescription}>{service.description}</Text> 
         </View>
       </View>
     </TouchableOpacity>
@@ -174,11 +172,6 @@ const HomeScreen: React.FC = () => {
           </View>
         </LinearGradient>
 
-          <View style={styles.headerContainer}>
-            <View style={styles.leftHeader}>
-              <Text style={styles.companyName}>HOME</Text>
-            </View>
-          </View>
       </View>
 
       <Text style={styles.sectionTitle}>Recommended for you</Text>
