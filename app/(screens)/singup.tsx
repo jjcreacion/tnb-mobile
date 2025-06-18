@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Modal, View, Text, TextInput, TouchableOpacity } from 'react-native';
+import { Modal, View, Text, TextInput, TouchableOpacity, ScrollView } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import styles from '../styles';
 import { FontAwesome } from '@expo/vector-icons';
@@ -157,6 +157,7 @@ const SignUp: React.FC<ModalProps> = ({ isVisible, onClose }) => {
       animationType="slide"
       onRequestClose={onClose}
     >
+      
       {!showVerifyCode ? (
         <View style={styles.modalContainer}>
            <View>

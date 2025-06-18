@@ -80,7 +80,8 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ isVisible, onClose, onBack, ver
 
   return !showRegister ? (
     <View style={styles.modalContainer}>
-      <Text style={[{ marginBottom: 20 }, styles.textH1Red]}>Enter Verification Code</Text>
+      <Text style={styles.textH1Red}>Enter Verification Code</Text>
+      <Text style={{ marginBottom: 20 }}>Check your inbox and enter the verification code to continue with your registration. </Text>
       <View style={styles.codeContainer}>
         {code.map((digit, index) => (
           <TextInput

@@ -28,6 +28,13 @@ const styles = StyleSheet.create({
     flex: 1, 
     backgroundColor: '#ffffff', 
     padding: 20, 
+    paddingTop: 60
+  },
+  modalContainer2: { 
+    flex: 1, 
+    backgroundColor: '#ffffff', 
+    padding: 10, 
+    paddingTop: 10
   },
   gradientSplash: {
     position: 'absolute', 

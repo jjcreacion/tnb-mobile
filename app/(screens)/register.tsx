@@ -23,24 +23,15 @@ const Register: React.FC<RegisterProps> = ({ isVisible, onClose, IsVerify }) => 
   const [focusedInput, setFocusedInput] = useState<string | null>(null);
   const [showComplete, setshowComplete] = useState(false);
 
-  const HOUSTON_LATITUDE = 29.7604;
-  const HOUSTON_LONGITUDE = -95.3698;
   const DEFAULT_LATITUDE_DELTA = 0.0922;
   const DEFAULT_LONGITUDE_DELTA = 0.0421;
 
-  const [mapRegion, setMapRegion] = useState({
-    latitude: HOUSTON_LATITUDE,
-    longitude: HOUSTON_LONGITUDE,
-    latitudeDelta: DEFAULT_LATITUDE_DELTA,
-    longitudeDelta: DEFAULT_LONGITUDE_DELTA,
-  });
-  const [markerCoordinate, setMarkerCoordinate] = useState<{ latitude: number; longitude: number } | null>({
-    latitude: HOUSTON_LATITUDE,
-    longitude: HOUSTON_LONGITUDE,
-  });
-  const [country, setCountry] = useState('United States');
-  const [state, setState] = useState('Texas');
-  const [city, setCity] = useState('Houston');
+  const [mapRegion, setMapRegion] = useState<{ latitude: number; longitude: number; latitudeDelta: number; longitudeDelta: number } | null>(null);
+  const [markerCoordinate, setMarkerCoordinate] = useState<{ latitude: number; longitude: number } | null>(null);
+
+  const [country, setCountry] = useState('');
+  const [state, setState] = useState('');
+  const [city, setCity] = useState('');
 
   const mapRef = useRef<MapView>(null);
 
@@ -58,26 +49,42 @@ const Register: React.FC<RegisterProps> = ({ isVisible, onClose, IsVerify }) => 
     'Ontario': [{ label: 'Toronto', value: 'Toronto' }, { label: 'Ottawa', value: 'Ottawa' }],
   };
 
+  const countryMap: { [key: string]: string } = {
+    'Estados Unidos': 'United States',
+    'Canadá': 'Canada', 
+    'México': 'Mexico', 
+  };
 
   useEffect(() => {
-    reverseGeocode(HOUSTON_LATITUDE, HOUSTON_LONGITUDE, null); // Pass null for setFieldValue initially
-
     (async () => {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        setError('Location permission was denied. You can manually enter your address.');
+        setError('Location permission was denied. You can manually enter your address or use "Use My Current GPS Location" button.');
       }
     })();
-  }, []);
+  }, []); 
 
   const reverseGeocode = async (latitude: number, longitude: number, setFieldValue: ((field: string, value: any, shouldValidate?: boolean) => void) | null) => {
     try {
       const geocodedAddress = await Location.reverseGeocodeAsync({ latitude, longitude });
       if (geocodedAddress && geocodedAddress.length > 0) {
         const { country, region, city, street, name } = geocodedAddress[0];
-        setCountry(country || '');
-        setState(region || '');
+        
+        const mappedCountry = countryMap[country || ''] || country; 
+
+        setCountry(mappedCountry || '');
+        setState(region || ''); 
         setCity(city || '');
+
+        console.log("Valores obtenidos del GPS:", country, region, city); 
+        console.log("Valores internos de los Picker:");
+        console.log("Países disponibles:", countries.map(c => c.value));
+        if (country && states[country as keyof typeof states]) {
+            console.log("Estados disponibles para", country, ":", states[country as keyof typeof states].map(s => s.value));
+        }
+        if (region && cities[region as keyof typeof cities]) { 
+            console.log("Ciudades disponibles para", region, ":", cities[region as keyof typeof cities].map(c => c.value));
+        }
 
         if (setFieldValue) {
           const fullAddress = [street, name, city, region, country]
@@ -105,7 +112,7 @@ const Register: React.FC<RegisterProps> = ({ isVisible, onClose, IsVerify }) => 
     setMessage('');
     setError('');
 
-    if (!markerCoordinate || !country || !state || !city) {
+     if (!markerCoordinate && (!country || !state || !city)) {
       setLoading(false);
       setError('Please select a location on the map or manually enter country, state, and city.');
       return;
@@ -190,11 +197,11 @@ const Register: React.FC<RegisterProps> = ({ isVisible, onClose, IsVerify }) => 
         fkPerson: fkPerson,
         address: values.address,
         isPrimary: 1,
-      /*  latitude: markerCoordinate.latitude,
-        longitude: markerCoordinate.longitude,
-        country: country,
-        state: state,
-        city: city,*/
+        ...(markerCoordinate && { latitude: markerCoordinate.latitude }),
+        ...(markerCoordinate && { longitude: markerCoordinate.longitude }),
+        ...(country && { country: country }),
+        ...(state && { state: state }),
+        ...(city && { city: city }),
       };
 
       console.log('Creating person address:', JSON.stringify(personAddressData));
@@ -251,16 +258,22 @@ const Register: React.FC<RegisterProps> = ({ isVisible, onClose, IsVerify }) => 
   const handleCountryChange = (itemValue: string) => {
     setCountry(itemValue);
     setState(''); 
-    setCity('');
+    setCity(''); 
+    setMarkerCoordinate(null);
+    setMapRegion(null);
   };
 
   const handleStateChange = (itemValue: string) => {
     setState(itemValue);
     setCity(''); 
+    setMarkerCoordinate(null);
+    setMapRegion(null);
   };
 
   const handleCityChange = (itemValue: string) => {
     setCity(itemValue);
+    setMarkerCoordinate(null);
+    setMapRegion(null);
   };
 
   const getCurrentLocation = async (setFieldValue: (field: string, value: any, shouldValidate?: boolean) => void) => {
@@ -349,7 +362,13 @@ const Register: React.FC<RegisterProps> = ({ isVisible, onClose, IsVerify }) => 
                 <MapView
                   ref={mapRef}
                   style={styles.mapStyle} 
-                  region={mapRegion}
+                  initialRegion={mapRegion === null ? {
+                    latitude: 37.0902, 
+                    longitude: -95.7129,
+                    latitudeDelta: 50, 
+                    longitudeDelta: 50,
+                  } : undefined}
+                  region={mapRegion || undefined} 
                   onRegionChangeComplete={setMapRegion}
                   showsUserLocation={true}
                   onPress={async (e) => {
@@ -381,10 +400,7 @@ const Register: React.FC<RegisterProps> = ({ isVisible, onClose, IsVerify }) => 
                     ))}
                   </Picker>
                 </View>
-                {errors.address && touched.address ? ( 
-                  <Text style={{ color: 'red' }}>{errors.address}</Text>
-                ) : null}
-
+              
 
                 <Text style={styles.label}>State</Text>
                 <View style={styles.pickerContainer}>
@@ -416,7 +432,7 @@ const Register: React.FC<RegisterProps> = ({ isVisible, onClose, IsVerify }) => 
                   </Picker>
                 </View>
 
-                <Text style={styles.label}>Password</Text>
+                <Text style={styles.label}>Create Password</Text>
                 <TextInput
                   style={[styles.input, focusedInput === 'password' && { borderColor: 'blue', borderWidth: 2 }]}
                   onChangeText={handleChange('password')}
