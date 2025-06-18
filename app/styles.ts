@@ -329,12 +329,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   buttonContainer2: { 
-    position: 'absolute',
-    bottom: 20,
-    width: '110%',
+    width: '100%',
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
+    marginTop: 10
   },
   button: { 
     width: 60,
