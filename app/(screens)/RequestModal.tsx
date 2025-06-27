@@ -31,7 +31,7 @@ interface ModalProps {
   isVisible: boolean;
   onClose: () => void;
   selectedService: Service | null;
-  onServiceCreated?: () => void; 
+  onServiceCreated?: () => void;
 }
 
 const Request: React.FC<ModalProps> = ({ isVisible, onClose, selectedService, onServiceCreated }) => {
@@ -112,6 +112,7 @@ const Request: React.FC<ModalProps> = ({ isVisible, onClose, selectedService, on
       setUploadFailed(false);
       setUploadSuccess(false);
       setLoading(false);
+      setImages([]); // Limpia las imágenes al cerrar el modal
     }
   }, [isVisible]);
 
@@ -119,6 +120,61 @@ const Request: React.FC<ModalProps> = ({ isVisible, onClose, selectedService, on
     description: Yup.string().required('Description is required'),
     address: Yup.string().required('Address is required'),
   });
+
+  const uploadImages = async (serviceRequestId: number) => {
+    if (images.length === 0) {
+      console.log('No hay imágenes para subir.');
+      return;
+    }
+
+    setLoading(true);
+    setUploadFailed(false);
+    setUploadSuccess(false);
+
+    const formData = new FormData();
+    formData.append('serviceRequestId', serviceRequestId.toString());
+
+    images.forEach((imageUri, index) => {
+      // Necesitas obtener el nombre del archivo y el tipo para el FormData
+      const uriParts = imageUri.split('.');
+      const fileType = uriParts[uriParts.length - 1];
+      const fileName = `image_${index}.${fileType}`;
+
+      formData.append('images', {
+        uri: imageUri,
+        name: fileName,
+        type: `image/${fileType}`,
+      } as any); // 'as any' es necesario por un problema de tipado de FormData en React Native
+    });
+
+    try {
+      const response = await fetch('http://216.246.113.71:8080/service_request/upload-images', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Error al subir las imágenes:', errorData);
+        setUploadFailed(true);
+        return false;
+      }
+
+      console.log('Imágenes subidas con éxito:', await response.json());
+      return true;
+
+    } catch (error) {
+      console.error('Error de conexión o al procesar la respuesta al subir imágenes:', error);
+      setUploadFailed(true);
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
+
 
   const handleSave = async (values: { description: string; address: string }) => {
     if (!pkUser) {
@@ -140,12 +196,15 @@ const Request: React.FC<ModalProps> = ({ isVisible, onClose, selectedService, on
 
     if (!API_URL) {
       console.error('La URL de la API no está configurada.');
+      setUploadFailed(true);
       return;
     }
 
     setLoading(true);
     setUploadFailed(false);
     setUploadSuccess(false);
+
+    let serviceRequestId = null;
 
     try {
       const response = await fetch(`${API_URL}/service_request`, {
@@ -166,13 +225,25 @@ const Request: React.FC<ModalProps> = ({ isVisible, onClose, selectedService, on
 
       const data = await response.json();
       console.log('Éxito al guardar los datos:', data);
+      serviceRequestId = data.id; // Asume que el backend devuelve el ID en el campo 'id'
+
+      if (serviceRequestId && images.length > 0) {
+        const imagesUploaded = await uploadImages(serviceRequestId);
+        if (!imagesUploaded) {
+          // Si las imágenes fallaron, marcamos como error general
+          setUploadFailed(true);
+          setLoading(false);
+          return;
+        }
+      }
+
       setLoading(false);
       setUploadSuccess(true);
       setTimeout(() => {
         setUploadSuccess(false);
         onClose();
         if (onServiceCreated) {
-          onServiceCreated(); 
+          onServiceCreated();
         }
       }, 3000);
 
@@ -205,13 +276,13 @@ const Request: React.FC<ModalProps> = ({ isVisible, onClose, selectedService, on
 
           {uploadSuccess && (
             <View style={styles.successMessage}>
-              <Text style={styles.successText}>Datos cargados con éxito!</Text>
+              <Text style={styles.successText}>Datos y/o imágenes cargados con éxito!</Text>
             </View>
           )}
 
           {uploadFailed && (
             <View style={styles.errorMessage}>
-              <Text style={styles.errorText}>Error al cargar los datos. Inténtalo de nuevo.</Text>
+              <Text style={styles.errorText}>Error al cargar los datos y/o imágenes. Inténtalo de nuevo.</Text>
             </View>
           )}
 
