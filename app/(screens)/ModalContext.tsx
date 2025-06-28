@@ -1,6 +1,6 @@
 import React, { createContext, useState, Dispatch, SetStateAction } from 'react';
 
-interface ModalContextType {  // Define la interfaz para el contexto
+interface ModalContextType {  
   isSignUpModalVisible: boolean;
   setIsSignUpModalVisible: Dispatch<SetStateAction<boolean>>;
   isPhoneModalVisible: boolean;
@@ -9,9 +9,9 @@ interface ModalContextType {  // Define la interfaz para el contexto
   setIsEmailModalVisible: Dispatch<SetStateAction<boolean>>;
 }
 
-export const ModalContext = createContext<ModalContextType>({ // Define el tipo del contexto y un valor por defecto
+export const ModalContext = createContext<ModalContextType>({ 
   isSignUpModalVisible: false,
-  setIsSignUpModalVisible: () => {}, // Función vacía por defecto
+  setIsSignUpModalVisible: () => {}, 
   isPhoneModalVisible: false,
   setIsPhoneModalVisible: () => {},
   isEmailModalVisible: false,
@@ -19,12 +19,12 @@ export const ModalContext = createContext<ModalContextType>({ // Define el tipo 
 });
 
 
-export const ModalProvider: React.FC<{ children?: React.ReactNode }> = ({ children }) => { // Tipa children
+export const ModalProvider: React.FC<{ children?: React.ReactNode }> = ({ children }) => { 
   const [isSignUpModalVisible, setIsSignUpModalVisible] = useState(false);
   const [isPhoneModalVisible, setIsPhoneModalVisible] = useState(false);
   const [isEmailModalVisible, setIsEmailModalVisible] = useState(false);
 
-  const value = { // Crea el objeto value
+  const value = { 
     isSignUpModalVisible,
     setIsSignUpModalVisible,
     isPhoneModalVisible,

@@ -29,35 +29,23 @@ const Register: React.FC<RegisterProps> = ({ isVisible, onClose, IsVerify }) => 
   const [mapRegion, setMapRegion] = useState<{ latitude: number; longitude: number; latitudeDelta: number; longitudeDelta: number } | null>(null);
   const [markerCoordinate, setMarkerCoordinate] = useState<{ latitude: number; longitude: number } | null>(null);
 
-  // Estados para almacenar los IDs numéricos seleccionados
   const [selectedCountryId, setSelectedCountryId] = useState<number | null>(null);
   const [selectedStateId, setSelectedStateId] = useState<number | null>(null);
   const [selectedCityId, setSelectedCityId] = useState<number | null>(null);
 
-  // Estados para los datos dinámicos del backend
   const [dynamicCountries, setDynamicCountries] = useState<{ label: string; value: number }[]>([]);
-  // Usamos el nombre del país como clave para los estados
   const [dynamicStates, setDynamicStates] = useState<{ [countryName: string]: { label: string; value: number }[] }>({});
-  // Usamos el nombre del estado como clave para las ciudades
   const [dynamicCities, setDynamicCities] = useState<{ [stateName: string]: { label: string; value: number }[] }>({});
 
-  // Mapas para la conversión de ID a nombre y viceversa (útil para la geocodificación inversa y el acceso a los objetos anidados)
   const [countryIdToNameMap, setCountryIdToNameMap] = useState<{ [key: number]: string }>({});
   const [stateIdToNameMap, setStateIdToNameMap] = useState<{ [key: number]: string }>({});
-  const [countryNameToIdMap, setCountryNameToIdMap] = useState<{ [key: string]: number }>({}); // Para buscar el ID por nombre de país
-  const [stateNameToIdMap, setStateNameToIdMap] = useState<{ [key: string]: number }>({}); // Para buscar el ID por nombre de estado
-
+  const [countryNameToIdMap, setCountryNameToIdMap] = useState<{ [key: string]: number }>({}); 
+  const [stateNameToIdMap, setStateNameToIdMap] = useState<{ [key: string]: number }>({}); 
 
   const mapRef = useRef<MapView>(null);
 
-  const API_URL = Constants.expoConfig?.extra?.API_BASE_URL || 'http://216.246.113.71:8080'; // Fallback URL
+  const API_URL = Constants.expoConfig?.extra?.API_BASE_URL || 'http://216.246.113.71:8080'; 
 
-  // No necesitamos estos arreglos estáticos ya que los cargaremos dinámicamente
-  // const countries = [{ label: 'United States', value: 'United States' }, { label: 'Canada', value: 'Canada' }, { label: 'Mexico', value: 'Mexico' }];
-  // const states = { /* ... */ };
-  // const cities = { /* ... */ };
-
-  // Este mapa se usará si reverseGeocode devuelve un nombre de país en español
   const countryDisplayNameToEnglishNameMap: { [key: string]: string } = {
     'Estados Unidos': 'United States',
     'Canadá': 'Canada',
@@ -73,12 +61,10 @@ const Register: React.FC<RegisterProps> = ({ isVisible, onClose, IsVerify }) => 
     })();
   }, []);
 
-  // --- Carga dinámica de datos al montar el componente ---
   useEffect(() => {
     const fetchLocationData = async () => {
       setLoading(true);
       try {
-        // 1. Fetch Countries
         const countriesResponse = await fetch(`${API_URL}/country/findAll`);
         if (!countriesResponse.ok) throw new Error('Failed to fetch countries');
         const rawCountries = await countriesResponse.json();
@@ -98,7 +84,6 @@ const Register: React.FC<RegisterProps> = ({ isVisible, onClose, IsVerify }) => 
         setCountryIdToNameMap(newCountryIdToNameMap);
         setCountryNameToIdMap(newCountryNameToIdMap);
 
-        // 2. Fetch States
         const statesResponse = await fetch(`${API_URL}/state/findAll`);
         if (!statesResponse.ok) throw new Error('Failed to fetch states');
         const rawStates = await statesResponse.json();
@@ -125,7 +110,6 @@ const Register: React.FC<RegisterProps> = ({ isVisible, onClose, IsVerify }) => 
         setStateIdToNameMap(newStateIdToNameMap);
         setStateNameToIdMap(newStateNameToIdMap);
 
-        // 3. Fetch Cities
         const citiesResponse = await fetch(`${API_URL}/country_city/findAll`);
         if (!citiesResponse.ok) throw new Error('Failed to fetch cities');
         const rawCities = await citiesResponse.json();
@@ -154,23 +138,20 @@ const Register: React.FC<RegisterProps> = ({ isVisible, onClose, IsVerify }) => 
     };
 
     fetchLocationData();
-  }, [API_URL]); // Vuelve a cargar si la URL de la API cambia
+  }, [API_URL]);
 
   const reverseGeocode = async (latitude: number, longitude: number, setFieldValue: ((field: string, value: any, shouldValidate?: boolean) => void) | null) => {
-    setLoading(true); // Mostrar indicador de carga durante el geocoding
+    setLoading(true); 
     setError('');
     try {
       const geocodedAddress = await Location.reverseGeocodeAsync({ latitude, longitude });
       if (geocodedAddress && geocodedAddress.length > 0) {
         const { country, region, city, street, name } = geocodedAddress[0];
 
-        // Mapear el nombre del país si es necesario (ej. "Estados Unidos" a "United States")
         const englishCountryName = countryDisplayNameToEnglishNameMap[country || ''] || country;
 
-        // Buscar los IDs numéricos basados en los nombres obtenidos
         const countryId = countryNameToIdMap[englishCountryName || ''] || null;
         const stateId = stateNameToIdMap[region || ''] || null;
-        // Para la ciudad, necesitamos buscarla dentro de las ciudades del estado específico
         let cityId = null;
         if (region && dynamicCities[region]) {
           const foundCity = dynamicCities[region].find(c => c.label === city);
@@ -193,13 +174,13 @@ const Register: React.FC<RegisterProps> = ({ isVisible, onClose, IsVerify }) => 
           setFieldValue('address', fullAddress);
         }
       }
-      console.log("Coordinates passed to reverseGeocode:", latitude, longitude); // <-- Nuevo log
+      console.log("Coordinates passed to reverseGeocode:", latitude, longitude); 
    
     } catch (error) {
       console.error('Error during reverse geocoding:', error);
       setError('Could not get address details for this location. Please enter manually.');
     } finally {
-      setLoading(false); // Ocultar indicador de carga
+      setLoading(false); 
     }
   };
 
@@ -216,7 +197,6 @@ const Register: React.FC<RegisterProps> = ({ isVisible, onClose, IsVerify }) => 
     setMessage('');
     setError('');
 
-    // Validar que se hayan seleccionado país, estado y ciudad (por ID)
     if (!markerCoordinate && (!selectedCountryId || !selectedStateId || !selectedCityId)) {
       setLoading(false);
       setError('Please select a location on the map or manually select country, state, and city.');
@@ -302,11 +282,10 @@ const Register: React.FC<RegisterProps> = ({ isVisible, onClose, IsVerify }) => 
 
       const personEmailResult = await personEmailResponse.json();
       console.log('Person email created:', personEmailResult);
-      console.log('Value of markerCoordinate before sending:', markerCoordinate); // <-- Nuevo log
-      console.log('Latitude to send:', markerCoordinate ? markerCoordinate.latitude : 0); // <-- Nuevo log
-      console.log('Longitude to send:', markerCoordinate ? markerCoordinate.longitude : 0); // <-- Nuevo log
+      console.log('Value of markerCoordinate before sending:', markerCoordinate); 
+      console.log('Latitude to send:', markerCoordinate ? markerCoordinate.latitude : 0); 
+      console.log('Longitude to send:', markerCoordinate ? markerCoordinate.longitude : 0); 
   
-      // Aquí es donde usas los IDs numéricos seleccionados
       const personAddressData = {
         fkPerson: fkPerson,
         address: values.address,
@@ -412,7 +391,7 @@ const Register: React.FC<RegisterProps> = ({ isVisible, onClose, IsVerify }) => 
         longitude: location.coords.longitude,
       });
 
-      console.log('GPS Location set to markerCoordinate:', location.coords.latitude, location.coords.longitude); // <-- Nuevo log
+      console.log('GPS Location set to markerCoordinate:', location.coords.latitude, location.coords.longitude); 
     
       mapRef.current?.animateToRegion(newRegion, 1000);
       await reverseGeocode(location.coords.latitude, location.coords.longitude, setFieldValue);
@@ -424,10 +403,8 @@ const Register: React.FC<RegisterProps> = ({ isVisible, onClose, IsVerify }) => 
     }
   };
 
-  // Obtener el nombre del país y estado seleccionados para acceder a los objetos anidados
   const currentCountryName = selectedCountryId !== null ? countryIdToNameMap[selectedCountryId] : '';
   const currentStateName = selectedStateId !== null ? stateIdToNameMap[selectedStateId] : '';
-
 
   return (
     <View style={styles.container}>

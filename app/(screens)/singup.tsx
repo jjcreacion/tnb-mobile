@@ -86,31 +86,6 @@ const SignUp: React.FC<ModalProps> = ({ isVisible, onClose }) => {
   }
 };
 
-/*
-  const handleNext = async () => {
-    if (selectedTab === 'email') {
-      if (validateEmail(email)) {
-        await AsyncStorage.setItem('emailForSignIn', email);
-        await AsyncStorage.setItem('phoneForSignIn', '');
-        console.log("Email guardado:", email); // Para depuración
-        setShowVerifyCode(true);
-        generateVerificationCode();
-      } else {
-        setEmailValid(false);
-      }
-    } else {
-      if (validatePhone(phone)) {
-        await AsyncStorage.setItem('phoneForSignIn', phone);
-        await AsyncStorage.setItem('emailForSignIn', '');
-        console.log("Phone guardado:", phone); // Para depuración
-        setShowVerifyCode(true);
-        generateVerificationCode();
-      } else {
-        setPhoneValid(false);
-      }
-    }
-  };
-*/
   const handleNext = async () => {
     let campo = 'email';
     let valor = email;
@@ -125,8 +100,7 @@ const SignUp: React.FC<ModalProps> = ({ isVisible, onClose }) => {
                 setExist(true);
             } else {
                await AsyncStorage.setItem('emailForSignIn', valor);
-              // await AsyncStorage.setItem('phoneForSignIn', '');
-              
+             
                console.log(`${campo} guardado:`, valor);
                setShowVerifyCode(true);
                generateVerificationCode();

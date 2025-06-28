@@ -37,11 +37,9 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ isVisible, onClose, onBack, ver
     setCode(newCode);
 
     if (value !== '' && index < inputsRef.current.length - 1) {
-      // Mover el enfoque al siguiente cuadro de texto
       inputsRef.current[index + 1]?.focus();
     }
 
-   // Verificar el código cuando todos los cuadros de texto estén llenos
    const allFilled = newCode.every(digit => digit !== '');
    if (allFilled) {
      const enteredCode = newCode.join('');
@@ -58,7 +56,6 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ isVisible, onClose, onBack, ver
   const handleKeyPress = (e: any, index: number) => {
     if (e.nativeEvent.key === 'Backspace' && index > 0) {
       if (code[index] === '') {
-        // Mover el enfoque al cuadro de texto anterior
         inputsRef.current[index - 1]?.focus();
       }
     }
@@ -72,7 +69,6 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ isVisible, onClose, onBack, ver
 
   const handleNext = () => {
     if (isCodeCorrect) {
-      // Código correcto, continuar con el proceso
       setshowRegister(true); 
       console.log("Código correcto!");
     }

@@ -112,7 +112,7 @@ const Request: React.FC<ModalProps> = ({ isVisible, onClose, selectedService, on
       setUploadFailed(false);
       setUploadSuccess(false);
       setLoading(false);
-      setImages([]); // Limpia las imágenes al cerrar el modal
+      setImages([]); 
     }
   }, [isVisible]);
 
@@ -135,7 +135,6 @@ const Request: React.FC<ModalProps> = ({ isVisible, onClose, selectedService, on
     formData.append('serviceRequestId', serviceRequestId.toString());
 
     images.forEach((imageUri, index) => {
-      // Necesitas obtener el nombre del archivo y el tipo para el FormData
       const uriParts = imageUri.split('.');
       const fileType = uriParts[uriParts.length - 1];
       const fileName = `image_${index}.${fileType}`;
@@ -144,11 +143,11 @@ const Request: React.FC<ModalProps> = ({ isVisible, onClose, selectedService, on
         uri: imageUri,
         name: fileName,
         type: `image/${fileType}`,
-      } as any); // 'as any' es necesario por un problema de tipado de FormData en React Native
+      } as any); 
     });
 
     try {
-      const response = await fetch('http://216.246.113.71:8080/service_request/upload-images', {
+      const response = await fetch(`${API_URL}/service_request/upload-images`, {
         method: 'POST',
         headers: {
           'Content-Type': 'multipart/form-data',
@@ -225,12 +224,11 @@ const Request: React.FC<ModalProps> = ({ isVisible, onClose, selectedService, on
 
       const data = await response.json();
       console.log('Éxito al guardar los datos:', data);
-      serviceRequestId = data.id; // Asume que el backend devuelve el ID en el campo 'id'
+      serviceRequestId = data.requestId; 
 
       if (serviceRequestId && images.length > 0) {
         const imagesUploaded = await uploadImages(serviceRequestId);
         if (!imagesUploaded) {
-          // Si las imágenes fallaron, marcamos como error general
           setUploadFailed(true);
           setLoading(false);
           return;
