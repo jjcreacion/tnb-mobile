@@ -225,6 +225,8 @@ const Request: React.FC<ModalProps> = ({ isVisible, onClose, selectedService, on
       const data = await response.json();
       console.log('Éxito al guardar los datos:', data);
       serviceRequestId = data.requestId; 
+      console.log("data.requestId "+data.requestId);
+      console.log("serviceRequestId "+serviceRequestId);
 
       if (serviceRequestId && images.length > 0) {
         const imagesUploaded = await uploadImages(serviceRequestId);
