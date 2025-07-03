@@ -18,7 +18,6 @@ export const ModalContext = createContext<ModalContextType>({
   setIsEmailModalVisible: () => {},
 });
 
-
 export const ModalProvider: React.FC<{ children?: React.ReactNode }> = ({ children }) => { 
   const [isSignUpModalVisible, setIsSignUpModalVisible] = useState(false);
   const [isPhoneModalVisible, setIsPhoneModalVisible] = useState(false);
