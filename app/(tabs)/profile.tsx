@@ -20,7 +20,7 @@ import * as ImageManipulator from 'expo-image-manipulator'; // Import ImageManip
 
 export default function ProfileScreen() {
   const [userData, setUserData] = useState({
-    profilePicture: require('@/assets/images/user.png'),
+    profilePicture: '',
     username: '',
     email: '',
     phone: '',
@@ -35,6 +35,7 @@ export default function ProfileScreen() {
   const [isEditing, setIsEditing] = useState(false);
   const [focusedInput, setFocusedInput] = useState(null);
   const [isLoading, setIsLoading] = useState(false); // New state for loading indicator
+  const [fullImageUrl, setFullImageUrl]= useState('@/assets/images/user.png'); 
 
   // Ensure API_URL is correctly defined for your environment
   const API_URL = Constants.expoConfig?.extra?.API_BASE_URL || 'http://localhost:12099';
@@ -54,6 +55,7 @@ export default function ProfileScreen() {
           if (response.ok) {
             const userDataFromApi = await response.json();
 
+           
             // Formatea pkUser para que tenga 6 dígitos, rellenando con ceros a la izquierda
             const rawPkUser = userDataFromApi.pkUser;
             const formattedPkUser = rawPkUser
@@ -83,7 +85,7 @@ export default function ProfileScreen() {
               pkUser: formattedPkUser,
               createdAt: formattedCreatedAt,
               // Si la URL de profilePicture está disponible desde la API, úsala; de lo contrario, mantén la predeterminada
-              profilePicture: userDataFromApi.profilePicture ? { uri: userDataFromApi.profilePicture } : require('@/assets/images/user.png'),
+              profilePicture: userDataFromApi.img_profile || '',
             });
           } else {
             console.error('Error al cargar los datos del usuario:', response.status);
@@ -101,9 +103,7 @@ export default function ProfileScreen() {
     loadUserData();
   }, []);
 
-  /**
-   * Alterna el modo de edición para los detalles del perfil.
-   */
+
   const handleEdit = () => {
     setIsEditing(!isEditing);
   };
@@ -136,7 +136,6 @@ export default function ProfileScreen() {
       const response = await fetch(UPLOAD_IMAGE_URL, {
         method: 'POST',
         headers: {
-          // No es necesario establecer 'Content-Type' para FormData, fetch lo hace automáticamente
         },
         body: formData,
       });
@@ -146,13 +145,13 @@ export default function ProfileScreen() {
       } else {
         const errorText = await response.text();
         console.error('Error al subir la imagen:', response.status, errorText);
-        setUserData(prevData => ({ ...prevData, profilePicture: require('@/assets/images/user.png') })); // Revert to default or previous
+        setUserData(prevData => ({ ...prevData, profilePicture: require('@/assets/images/user.png') })); 
       }
     } catch (error) {
       console.error('Error de red al subir la imagen:', error);
-      setUserData(prevData => ({ ...prevData, profilePicture: require('@/assets/images/user.png') })); // Revert to default or previous
+      setUserData(prevData => ({ ...prevData, profilePicture: require('@/assets/images/user.png') })); 
     } finally {
-      setIsLoading(false); // End loading
+      setIsLoading(false); 
     }
   };
 
@@ -215,8 +214,34 @@ export default function ProfileScreen() {
       <ImageBackground source={require('@/assets/images/roof-repair.jpg')} style={styles.backgroundImage}>
         <View style={styles.profileHeader}>
           <View style={styles.profilePictureContainer}>
-            {/* Imagen de perfil del usuario */}
-            <Image source={userData.profilePicture} style={styles.profilePicture} />
+            {/* Imagen de perfil del usuarnpx io */}
+            
+            <Image
+            source={(() => { 
+              if (!userData.profilePicture) {
+                return require('@/assets/images/user.png');
+              }
+
+                if (typeof userData.profilePicture === 'string' && (
+                  userData.profilePicture.startsWith('http://') ||
+                  userData.profilePicture.startsWith('https://') ||
+                  userData.profilePicture.startsWith('file://')
+                )) {
+                return { uri: userData.profilePicture };
+              }
+
+              if (typeof userData.profilePicture === 'string') {
+                const remoteImageUrl = `${API_URL}/${userData.profilePicture}`;
+                return { uri: remoteImageUrl };
+              }
+
+              return require('@/assets/images/user.png');
+            })()}
+            style={styles.profilePicture}
+          />
+
+
+
             {/* Botón para cambiar la foto de perfil, visible solo en modo de edición */}
             {isEditing && (
               <TouchableOpacity
