@@ -10,13 +10,14 @@ import {
   ImageBackground,
   Platform,
   Alert,
-  ActivityIndicator, // Import ActivityIndicator for loading state
+  ActivityIndicator, 
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 import * as ImagePicker from 'expo-image-picker';
-import * as ImageManipulator from 'expo-image-manipulator'; // Import ImageManipulator
+import * as ImageManipulator from 'expo-image-manipulator'; 
+import { FontAwesome } from '@expo/vector-icons';
 
 export default function ProfileScreen() {
   const [userData, setUserData] = useState({
@@ -32,37 +33,28 @@ export default function ProfileScreen() {
     pkUser: null,
     createdAt: null,
   });
+
   const [isEditing, setIsEditing] = useState(false);
   const [focusedInput, setFocusedInput] = useState(null);
-  const [isLoading, setIsLoading] = useState(false); // New state for loading indicator
-  const [fullImageUrl, setFullImageUrl]= useState('@/assets/images/user.png'); 
-
-  // Ensure API_URL is correctly defined for your environment
+  const [isLoading, setIsLoading] = useState(false); 
   const API_URL = Constants.expoConfig?.extra?.API_BASE_URL || 'http://localhost:12099';
-  const UPLOAD_IMAGE_URL = 'http://216.246.113.71:8080/user/upload-profile-image'; // Specific endpoint for image upload
+  const UPLOAD_IMAGE_URL = Constants.expoConfig?.extra?.API_BASE_URL+'/user/upload-profile-image'; 
 
   useEffect(() => {
-    /**
-     * Carga los datos del usuario desde AsyncStorage y obtiene detalles adicionales de la API.
-     * Actualiza el estado userData con la información obtenida.
-     */
-    const loadUserData = async () => {
+     const loadUserData = async () => {
       try {
-        setIsLoading(true); // Start loading
+        setIsLoading(true); 
         const userId = await AsyncStorage.getItem('userId');
         if (userId) {
           const response = await fetch(`${API_URL}/user/findOne/${userId}`);
           if (response.ok) {
             const userDataFromApi = await response.json();
 
-           
-            // Formatea pkUser para que tenga 6 dígitos, rellenando con ceros a la izquierda
             const rawPkUser = userDataFromApi.pkUser;
             const formattedPkUser = rawPkUser
               ? String(rawPkUser).padStart(6, '0')
               : null;
 
-            // Formatea la fecha de creación para mostrarla
             let formattedCreatedAt = null;
             if (userDataFromApi.createdAt) {
               const date = new Date(userDataFromApi.createdAt);
@@ -72,6 +64,8 @@ export default function ProfileScreen() {
                 day: 'numeric',
               });
             }
+            
+            console.log("Imagen de Usuario"+userDataFromApi.img_profile);
 
             setUserData({
               ...userData,
@@ -83,8 +77,7 @@ export default function ProfileScreen() {
               lastName: userDataFromApi.person?.lastName || '',
               address: userDataFromApi.person?.addresses?.[0]?.address || '',
               pkUser: formattedPkUser,
-              createdAt: formattedCreatedAt,
-              // Si la URL de profilePicture está disponible desde la API, úsala; de lo contrario, mantén la predeterminada
+              createdAt: formattedCreatedAt,  
               profilePicture: userDataFromApi.img_profile || '',
             });
           } else {
@@ -96,13 +89,12 @@ export default function ProfileScreen() {
         console.error('Error al cargar los datos del usuario:', error);
         Alert.alert('Error', 'Hubo un problema de conexión al cargar los datos del usuario.');
       } finally {
-        setIsLoading(false); // End loading
+        setIsLoading(false); 
       }
     };
 
     loadUserData();
   }, []);
-
 
   const handleEdit = () => {
     setIsEditing(!isEditing);
@@ -117,19 +109,69 @@ export default function ProfileScreen() {
     setUserData({ ...userData, [name]: value });
   };
 
+  const handleSaveProfile = async () => {
+    if (!userData.firstName || !userData.lastName || !userData.phone || !userData.address || !userData.email) {
+      Alert.alert('Error', 'Todos los campos de nombre, apellido, teléfono, dirección y correo electrónico son obligatorios.');
+      return;
+    }
+
+    const bodyData = {
+      pkUser: userData.pkUser,
+      email: userData.email,
+      person: {
+        pkPerson: userData.pkUser, 
+        firstName: userData.firstName,
+        middleName: userData.middleName,
+        lastName: userData.lastName,
+        status: 1, 
+      },
+      phone: userData.phone, 
+      address: userData.address, 
+    };
+
+    console.log("Saving profile data:", bodyData);
+    
+    try {
+      setIsLoading(true);
+      const response = await fetch(`${API_URL}/user/updateUserProfile`, {
+        method: 'PATCH', 
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(bodyData),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        Alert.alert('Perfil Guardado', 'Los cambios en tu perfil han sido guardados.');
+        setIsEditing(false); 
+      } else {
+        const errorText = await response.text();
+        console.error('Error al guardar el perfil:', response.status, errorText);
+        Alert.alert('Error', 'No se pudieron guardar los cambios en el perfil. Inténtalo de nuevo.');
+      }
+
+    } catch (error) {
+      console.error('Error de red al guardar el perfil:', error);
+      Alert.alert('Error', 'Hubo un problema de conexión al guardar el perfil.');
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
   /**
    * Sube la imagen de perfil al servidor.
    * @param {string} imageUri - La URI local de la imagen seleccionada.
    * @param {string} pkUser - El ID del usuario.
    */
   const uploadProfileImage = async (imageUri, pkUser) => {
-    setIsLoading(true); // Start loading for upload
+    setIsLoading(true); 
     const formData = new FormData();
     formData.append('pkUser', pkUser);
     formData.append('file', {
       uri: imageUri,
-      name: `profile_${pkUser}.jpg`, // Nombre del archivo, puedes ajustar la extensión
-      type: 'image/jpeg', // Tipo MIME de la imagen, ajusta si es necesario (e.g., 'image/png')
+      name: `profile_${pkUser}.jpg`,
+      type: 'image/jpeg', 
     });
 
     try {
@@ -142,6 +184,7 @@ export default function ProfileScreen() {
 
       if (response.ok) {
         const result = await response.json();
+        Alert.alert('Éxito', 'Imagen de perfil actualizada correctamente.');
       } else {
         const errorText = await response.text();
         console.error('Error al subir la imagen:', response.status, errorText);
@@ -150,44 +193,38 @@ export default function ProfileScreen() {
     } catch (error) {
       console.error('Error de red al subir la imagen:', error);
       setUserData(prevData => ({ ...prevData, profilePicture: require('@/assets/images/user.png') })); 
-    } finally {
+   } finally {
       setIsLoading(false); 
     }
   };
 
   
   const handleImagePick = async () => {
-    // Solicitar permisos de la biblioteca de medios
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
       Alert.alert('Permiso denegado', 'Necesitamos permiso para acceder a tu galería de imágenes para cambiar la foto de perfil.');
       return;
     }
 
-    // Iniciar la biblioteca de imágenes para seleccionar una imagen
     let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images, // Permitir solo imágenes
-      allowsEditing: true, // Permitir edición básica (recortar, redimensionar)
-      aspect: [1, 1], // Forzar una relación de aspecto cuadrada
-      quality: 1, // Alta calidad (se comprimirá después)
+      mediaTypes: ImagePicker.MediaTypeOptions.Images, 
+      allowsEditing: true, 
+      aspect: [1, 1], 
+      quality: 1,
     });
 
-    // Si se seleccionó una imagen y no se canceló
-    if (!result.canceled && result.assets && result.assets.length > 0) {
+     if (!result.canceled && result.assets && result.assets.length > 0) {
       const selectedImageUri = result.assets[0].uri;
 
       try {
-        // Comprimir la imagen antes de subirla
         const manipulatedImage = await ImageManipulator.manipulateAsync(
           selectedImageUri,
-          [], // No se realizan operaciones de redimensionamiento, solo compresión
-          { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG } // Comprimir al 70% de calidad JPEG
+          [],
+          { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG } 
         );
 
-        // Actualizar el estado con la URI de la imagen manipulada
         setUserData({ ...userData, profilePicture: { uri: manipulatedImage.uri } });
 
-        // Llamar a la función para subir la imagen al backend
         if (userData.pkUser) {
           uploadProfileImage(manipulatedImage.uri, userData.pkUser);
         } else {
@@ -202,7 +239,6 @@ export default function ProfileScreen() {
 
   return (
     <ScrollView style={styles.container}>
-      {/* Indicador de carga */}
       {isLoading && (
         <View style={styles.loadingOverlay}>
           <ActivityIndicator size="large" color="#007AFF" />
@@ -210,12 +246,9 @@ export default function ProfileScreen() {
         </View>
       )}
 
-      {/* Imagen de fondo para la sección del encabezado */}
       <ImageBackground source={require('@/assets/images/roof-repair.jpg')} style={styles.backgroundImage}>
         <View style={styles.profileHeader}>
           <View style={styles.profilePictureContainer}>
-            {/* Imagen de perfil del usuarnpx io */}
-            
             <Image
             source={(() => { 
               if (!userData.profilePicture) {
@@ -239,10 +272,6 @@ export default function ProfileScreen() {
             })()}
             style={styles.profilePicture}
           />
-
-
-
-            {/* Botón para cambiar la foto de perfil, visible solo en modo de edición */}
             {isEditing && (
               <TouchableOpacity
                 style={styles.changePictureButton}
@@ -252,7 +281,6 @@ export default function ProfileScreen() {
               </TouchableOpacity>
             )}
           </View>
-          {/* Correo electrónico del usuario y ID de cliente */}
           <Text style={styles.pkUserText}>
             {userData.email}
           </Text>
@@ -262,17 +290,14 @@ export default function ProfileScreen() {
         </View>
       </ImageBackground>
 
-      {/* Tarjeta principal de detalles del perfil */}
       <View style={styles.card}>
         <View style={styles.cardHeader}>
           <Text style={styles.header}>Mi Perfil</Text>
-          {/* Botón de edición para alternar el modo de edición */}
           <TouchableOpacity onPress={handleEdit}>
             <Icon name="edit" size={24} color="#007AFF" />
           </TouchableOpacity>
         </View>
 
-        {/* Sección de Nombre */}
         <View style={styles.detailSection}>
           <Text style={styles.sectionTitle}>Nombre</Text>
           {isEditing ? (
@@ -288,7 +313,6 @@ export default function ProfileScreen() {
           )}
         </View>
 
-        {/* Sección de Apellido */}
         <View style={styles.detailSection}>
           <Text style={styles.sectionTitle}>Apellido</Text>
           {isEditing ? (
@@ -304,7 +328,6 @@ export default function ProfileScreen() {
           )}
         </View>
 
-        {/* Sección de Teléfono */}
         <View style={styles.detailSection}>
           <Text style={styles.sectionTitle}>Teléfono</Text>
           {isEditing ? (
@@ -320,7 +343,6 @@ export default function ProfileScreen() {
           )}
         </View>
 
-        {/* Sección de Dirección */}
         <View style={styles.detailSection}>
           <Text style={styles.sectionTitle}>Dirección</Text>
           {isEditing ? (
@@ -335,6 +357,14 @@ export default function ProfileScreen() {
             <Text style={styles.sectionValue}>{userData.address || 'N/A'}</Text>
           )}
         </View>
+          
+          {isEditing &&
+          <View style={styles.contSave}>            
+             <TouchableOpacity style={styles.buttomSave} onPress={handleSaveProfile}>
+                <Text style={styles.buttonSaveText}>Save</Text>
+             </TouchableOpacity>
+          </View>
+          }
 
       </View>
     </ScrollView>
@@ -419,6 +449,32 @@ const styles = StyleSheet.create({
     color: '#333',
     textAlign: 'center',
     width: '100%',
+  },
+  buttomSave: {
+    backgroundColor: '#007AFF',
+    borderRadius: 8,
+    paddingVertical: 10,
+    width: '60%',
+    alignItems: 'center',
+    marginBottom: 10,
+    flexDirection: 'row', 
+    justifyContent: 'center', 
+    shadowColor: '#000', 
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  buttonSaveText: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  contSave: {
+    marginTop: 20,
+    marginBottom: 10,
+    alignItems: 'center', 
+    width: '100%', 
   },
   card: {
     backgroundColor: '#FFFFFF',

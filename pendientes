@@ -1,4 +1,17 @@
-* Icono cerrar en el modal para seleccionar el servicio.
-* Carga de imagenes al servidor para la app.
-* Enviar email al momento de registro.
-* Cargar direccion al momento de registro, pais y ciudad.
+
+* Serivir imagenes de pefil en el backend.
+* Agregar telefono y Direccion al momento de editar el perfil.
+* Editar fotos y perfil en la App mobile.
+* Reset Password.
+* Se duplica el nombre de la calle en campo address (Registro).
+* Verificar carga de Pais, estado y Ciudad.(Registro).
+* Campo opcional para APT/UNIT.(Registro).
+* Encabezado muy arriba. (Registro).
+* Mostrar contraseña. (Registro).
+* Modificar interfaz final de registro (Welcome to the familiy - abajo: Sign Up Successful) (Registro).
+* Promociones desde el backOffice en el index
+* La barra de menu esta muy alta.
+* Barra superio esta muy arriba (Donde esta el tnb y el nombre de usuario)
+* No hace simetria el mapa de registro, en el formulario para solicitar servicio.
+* Agregar las subcategorias (Request Service). 
+* Boton de historial en el menu para los servicios en progreso. 
