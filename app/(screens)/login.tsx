@@ -9,6 +9,7 @@ import Constants from 'expo-constants';
 import Icon from 'react-native-vector-icons/Ionicons'; 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import SignUpModal from './singup';
+import ResetModal from './resetPassword';
 
 const API_URL = Constants.expoConfig?.extra?.API_BASE_URL;
 
@@ -29,6 +30,8 @@ export default function LoginScreen() {
   const [errorMessage, setErrorMessage] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isSignUpModalVisible, setSignUpModalVisible] = useState(false);
+  const [resetModalVisible, setResetModalVisible] = useState(false);
+
 
   const handleLogin = async (values: any) => {
     setLoading(true);
@@ -149,10 +152,15 @@ export default function LoginScreen() {
             <TouchableOpacity onPress={() => setSignUpModalVisible(true)}>
               <Text style={[styles.link, { color: textColorLink }]}>Create account</Text>
             </TouchableOpacity>
+            <Text>Forgot your password?</Text>
+            <TouchableOpacity onPress={() => setResetModalVisible(true)}>
+              <Text style={[styles.link, { color: textColorLink }]}>Reset</Text>
+            </TouchableOpacity>
           </View>
         </Animatable.View>
       </View>
        <SignUpModal isVisible={isSignUpModalVisible} onClose={() => setSignUpModalVisible(false)} />
+       <ResetModal isVisible={resetModalVisible} onClose={() => setResetModalVisible(false)} />
     </ImageBackground>
   );
 }
@@ -237,7 +245,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   link: {
-    marginTop: 10,
     fontSize: 14,
   },
   errorText: {

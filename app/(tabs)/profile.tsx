@@ -10,18 +10,18 @@ import {
   ImageBackground,
   Platform,
   Alert,
-  ActivityIndicator, 
+  ActivityIndicator,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 import * as ImagePicker from 'expo-image-picker';
-import * as ImageManipulator from 'expo-image-manipulator'; 
+import * as ImageManipulator from 'expo-image-manipulator';
 import { FontAwesome } from '@expo/vector-icons';
 
 export default function ProfileScreen() {
   const [userData, setUserData] = useState({
-    profilePicture: '',
+    profilePicture: '', 
     username: '',
     email: '',
     phone: '',
@@ -36,14 +36,14 @@ export default function ProfileScreen() {
 
   const [isEditing, setIsEditing] = useState(false);
   const [focusedInput, setFocusedInput] = useState(null);
-  const [isLoading, setIsLoading] = useState(false); 
+  const [isLoading, setIsLoading] = useState(false);
   const API_URL = Constants.expoConfig?.extra?.API_BASE_URL || 'http://localhost:12099';
-  const UPLOAD_IMAGE_URL = Constants.expoConfig?.extra?.API_BASE_URL+'/user/upload-profile-image'; 
+  const UPLOAD_IMAGE_URL = `${API_URL}/user/upload-profile-image`;
 
   useEffect(() => {
-     const loadUserData = async () => {
+    const loadUserData = async () => {
       try {
-        setIsLoading(true); 
+        setIsLoading(true);
         const userId = await AsyncStorage.getItem('userId');
         if (userId) {
           const response = await fetch(`${API_URL}/user/findOne/${userId}`);
@@ -64,21 +64,25 @@ export default function ProfileScreen() {
                 day: 'numeric',
               });
             }
-            
-            console.log("Imagen de Usuario"+userDataFromApi.img_profile);
+
+            const fullProfilePictureUrl = userDataFromApi.img_profile
+              ? `${API_URL}/${userDataFromApi.img_profile}`
+              : '';
+
+            console.log("Imagen de usuario: " + fullProfilePictureUrl + " API " + API_URL);
 
             setUserData({
               ...userData,
               username: userDataFromApi.username || '',
               email: userDataFromApi.email || '',
-              phone: userDataFromApi.phone || '',
+              phone: userDataFromApi.person?.phones?.[0]?.phone || '',
               firstName: userDataFromApi.person?.firstName || '',
               middleName: userDataFromApi.person?.middleName || '',
               lastName: userDataFromApi.person?.lastName || '',
               address: userDataFromApi.person?.addresses?.[0]?.address || '',
               pkUser: formattedPkUser,
-              createdAt: formattedCreatedAt,  
-              profilePicture: userDataFromApi.img_profile || '',
+              createdAt: formattedCreatedAt,
+              profilePicture: fullProfilePictureUrl, 
             });
           } else {
             console.error('Error al cargar los datos del usuario:', response.status);
@@ -89,7 +93,7 @@ export default function ProfileScreen() {
         console.error('Error al cargar los datos del usuario:', error);
         Alert.alert('Error', 'Hubo un problema de conexión al cargar los datos del usuario.');
       } finally {
-        setIsLoading(false); 
+        setIsLoading(false);
       }
     };
 
@@ -117,24 +121,30 @@ export default function ProfileScreen() {
 
     const bodyData = {
       pkUser: userData.pkUser,
-      email: userData.email,
       person: {
-        pkPerson: userData.pkUser, 
         firstName: userData.firstName,
-        middleName: userData.middleName,
         lastName: userData.lastName,
-        status: 1, 
+        phones: [
+          {
+            phone: userData.phone,
+            isPrimary: 1,
+          },
+        ],
+        addresses: [
+          {
+            address: userData.address,
+            isPrimary: 1,
+          },
+        ],
       },
-      phone: userData.phone, 
-      address: userData.address, 
     };
 
     console.log("Saving profile data:", bodyData);
-    
+
     try {
       setIsLoading(true);
       const response = await fetch(`${API_URL}/user/updateUserProfile`, {
-        method: 'PATCH', 
+        method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
         },
@@ -144,7 +154,7 @@ export default function ProfileScreen() {
       if (response.ok) {
         const result = await response.json();
         Alert.alert('Perfil Guardado', 'Los cambios en tu perfil han sido guardados.');
-        setIsEditing(false); 
+        setIsEditing(false);
       } else {
         const errorText = await response.text();
         console.error('Error al guardar el perfil:', response.status, errorText);
@@ -165,40 +175,60 @@ export default function ProfileScreen() {
    * @param {string} pkUser - El ID del usuario.
    */
   const uploadProfileImage = async (imageUri, pkUser) => {
-    setIsLoading(true); 
+    setIsLoading(true);
     const formData = new FormData();
     formData.append('pkUser', pkUser);
     formData.append('file', {
       uri: imageUri,
       name: `profile_${pkUser}.jpg`,
-      type: 'image/jpeg', 
+      type: 'image/jpeg',
     });
 
     try {
       const response = await fetch(UPLOAD_IMAGE_URL, {
         method: 'POST',
-        headers: {
-        },
         body: formData,
       });
 
       if (response.ok) {
         const result = await response.json();
-        Alert.alert('Éxito', 'Imagen de perfil actualizada correctamente.');
+        if (result && typeof result.imageUrl === 'string') {
+          const imageUrl = result.imageUrl.startsWith('http')
+            ? result.imageUrl
+            : `${API_URL}/${result.imageUrl}`; 
+
+          setUserData(prevData => ({
+            ...prevData,
+            profilePicture: imageUrl 
+          }));
+          Alert.alert('Éxito', 'Imagen de perfil subida correctamente.');
+        } else {
+          setUserData(prevData => ({
+            ...prevData,
+            profilePicture: imageUri 
+          }));
+        }
       } else {
         const errorText = await response.text();
-        console.error('Error al subir la imagen:', response.status, errorText);
-        setUserData(prevData => ({ ...prevData, profilePicture: require('@/assets/images/user.png') })); 
+        console.error('Error al subir la imagen al servidor:', response.status, errorText);
+        setUserData(prevData => ({
+          ...prevData,
+          profilePicture: imageUri 
+        }));
+        Alert.alert('Advertencia', 'La imagen se guardó localmente, pero hubo un problema al subirla al servidor.');
       }
     } catch (error) {
       console.error('Error de red al subir la imagen:', error);
-      setUserData(prevData => ({ ...prevData, profilePicture: require('@/assets/images/user.png') })); 
-   } finally {
-      setIsLoading(false); 
+      setUserData(prevData => ({
+        ...prevData,
+        profilePicture: imageUri 
+      }));
+      Alert.alert('Error', 'Hubo un problema de conexión al subir la imagen, pero se guardó localmente.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  
   const handleImagePick = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
@@ -207,28 +237,28 @@ export default function ProfileScreen() {
     }
 
     let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images, 
-      allowsEditing: true, 
-      aspect: [1, 1], 
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
       quality: 1,
     });
 
-     if (!result.canceled && result.assets && result.assets.length > 0) {
+    if (!result.canceled && result.assets && result.assets.length > 0) {
       const selectedImageUri = result.assets[0].uri;
 
       try {
         const manipulatedImage = await ImageManipulator.manipulateAsync(
           selectedImageUri,
           [],
-          { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG } 
+          { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG }
         );
 
-        setUserData({ ...userData, profilePicture: { uri: manipulatedImage.uri } });
+        setUserData(prevData => ({ ...prevData, profilePicture: manipulatedImage.uri }));
 
         if (userData.pkUser) {
           uploadProfileImage(manipulatedImage.uri, userData.pkUser);
         } else {
-          Alert.alert('Error', 'No se pudo obtener el ID de usuario para subir la imagen.');
+          Alert.alert('Error', 'No se pudo obtener el ID de usuario para subir la imagen. Asegúrate de que el perfil se haya cargado correctamente.');
         }
       } catch (error) {
         console.error('Error al manipular la imagen:', error);
@@ -250,28 +280,14 @@ export default function ProfileScreen() {
         <View style={styles.profileHeader}>
           <View style={styles.profilePictureContainer}>
             <Image
-            source={(() => { 
-              if (!userData.profilePicture) {
-                return require('@/assets/images/user.png');
+              source={
+                userData.profilePicture
+                  ? { uri: userData.profilePicture } 
+                  : require('@/assets/images/user.png')
               }
-
-                if (typeof userData.profilePicture === 'string' && (
-                  userData.profilePicture.startsWith('http://') ||
-                  userData.profilePicture.startsWith('https://') ||
-                  userData.profilePicture.startsWith('file://')
-                )) {
-                return { uri: userData.profilePicture };
-              }
-
-              if (typeof userData.profilePicture === 'string') {
-                const remoteImageUrl = `${API_URL}/${userData.profilePicture}`;
-                return { uri: remoteImageUrl };
-              }
-
-              return require('@/assets/images/user.png');
-            })()}
-            style={styles.profilePicture}
-          />
+              style={styles.profilePicture}
+              key={userData.profilePicture} 
+            />
             {isEditing && (
               <TouchableOpacity
                 style={styles.changePictureButton}
@@ -357,14 +373,14 @@ export default function ProfileScreen() {
             <Text style={styles.sectionValue}>{userData.address || 'N/A'}</Text>
           )}
         </View>
-          
-          {isEditing &&
-          <View style={styles.contSave}>            
-             <TouchableOpacity style={styles.buttomSave} onPress={handleSaveProfile}>
-                <Text style={styles.buttonSaveText}>Save</Text>
-             </TouchableOpacity>
+
+        {isEditing &&
+          <View style={styles.contSave}>
+            <TouchableOpacity style={styles.buttomSave} onPress={handleSaveProfile}>
+              <Text style={styles.buttonSaveText}>Save</Text>
+            </TouchableOpacity>
           </View>
-          }
+        }
 
       </View>
     </ScrollView>
@@ -457,9 +473,9 @@ const styles = StyleSheet.create({
     width: '60%',
     alignItems: 'center',
     marginBottom: 10,
-    flexDirection: 'row', 
-    justifyContent: 'center', 
-    shadowColor: '#000', 
+    flexDirection: 'row',
+    justifyContent: 'center',
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
@@ -473,8 +489,8 @@ const styles = StyleSheet.create({
   contSave: {
     marginTop: 20,
     marginBottom: 10,
-    alignItems: 'center', 
-    width: '100%', 
+    alignItems: 'center',
+    width: '100%',
   },
   card: {
     backgroundColor: '#FFFFFF',
