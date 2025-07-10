@@ -21,7 +21,7 @@ import { FontAwesome } from '@expo/vector-icons';
 
 export default function ProfileScreen() {
   const [userData, setUserData] = useState({
-    profilePicture: '', 
+    profilePicture: '',
     username: '',
     email: '',
     phone: '',
@@ -82,7 +82,7 @@ export default function ProfileScreen() {
               address: userDataFromApi.person?.addresses?.[0]?.address || '',
               pkUser: formattedPkUser,
               createdAt: formattedCreatedAt,
-              profilePicture: fullProfilePictureUrl, 
+              profilePicture: fullProfilePictureUrl,
             });
           } else {
             console.error('Error al cargar los datos del usuario:', response.status);
@@ -195,33 +195,36 @@ export default function ProfileScreen() {
         if (result && typeof result.imageUrl === 'string') {
           const imageUrl = result.imageUrl.startsWith('http')
             ? result.imageUrl
-            : `${API_URL}/${result.imageUrl}`; 
+            : `${API_URL}/${result.imageUrl}`;
 
           setUserData(prevData => ({
             ...prevData,
-            profilePicture: imageUrl 
+            profilePicture: imageUrl
           }));
           Alert.alert('Éxito', 'Imagen de perfil subida correctamente.');
         } else {
+          // Fallback to local URI if server response is not as expected
           setUserData(prevData => ({
             ...prevData,
-            profilePicture: imageUri 
+            profilePicture: imageUri
           }));
         }
       } else {
         const errorText = await response.text();
         console.error('Error al subir la imagen al servidor:', response.status, errorText);
+        // Fallback to local URI on server error
         setUserData(prevData => ({
           ...prevData,
-          profilePicture: imageUri 
+          profilePicture: imageUri
         }));
         Alert.alert('Advertencia', 'La imagen se guardó localmente, pero hubo un problema al subirla al servidor.');
       }
     } catch (error) {
       console.error('Error de red al subir la imagen:', error);
+      // Fallback to local URI on network error
       setUserData(prevData => ({
         ...prevData,
-        profilePicture: imageUri 
+        profilePicture: imageUri
       }));
       Alert.alert('Error', 'Hubo un problema de conexión al subir la imagen, pero se guardó localmente.');
     } finally {
@@ -279,14 +282,10 @@ export default function ProfileScreen() {
       <ImageBackground source={require('@/assets/images/roof-repair.jpg')} style={styles.backgroundImage}>
         <View style={styles.profileHeader}>
           <View style={styles.profilePictureContainer}>
+            {/* Modificación: Asegura que la prop 'source' siempre tenga un valor válido. */}
             <Image
-              source={
-                userData.profilePicture
-                  ? { uri: userData.profilePicture } 
-                  : require('@/assets/images/user.png')
-              }
+              source={userData.profilePicture ? { uri: userData.profilePicture } : require('@/assets/images/user.png')}
               style={styles.profilePicture}
-              key={userData.profilePicture} 
             />
             {isEditing && (
               <TouchableOpacity
@@ -436,8 +435,6 @@ const styles = StyleSheet.create({
     width: 150,
     height: 150,
     borderRadius: 75,
-    borderWidth: 2,
-    borderColor: 'gray',
     justifyContent: 'center',
     alignItems: 'center',
     overflow: 'visible',

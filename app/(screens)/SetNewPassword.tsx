@@ -56,7 +56,7 @@ const SetNewPassword: React.FC<SetNewPasswordProps> = ({ isVisible, onClose }) =
 
     try {
       const response = await fetch(`${API_URL}/user/reset-password`, {
-        method: 'POST',
+        method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
         },
@@ -96,7 +96,6 @@ const SetNewPassword: React.FC<SetNewPasswordProps> = ({ isVisible, onClose }) =
           secureTextEntry={!showNewPassword} 
           value={newPassword}
           onChangeText={setNewPassword}
-          onBlur={validatePassword}
         />
         <TouchableOpacity
           onPress={() => setShowNewPassword(!showNewPassword)}
