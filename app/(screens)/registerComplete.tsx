@@ -52,10 +52,10 @@ const registerComplete: React.FC<RegisterCompleteProps> = ({ isVisible, onClose,
       </Animated.View>
 
       <Text style={styles.message1}>
-        Registration Successful!
+        Welcome to the Family TNB
       </Text>
       <Text style={styles.message2}>
-        You can now sign in.
+        Sign Up Successful!
       </Text>
 
        <TouchableOpacity style={styles.button} onPress={goToMainLayout}> 

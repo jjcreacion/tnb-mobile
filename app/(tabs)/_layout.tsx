@@ -21,8 +21,8 @@ export default function TabsLayout() {
           borderTopRightRadius: 0,
           overflow: 'hidden',
           borderTopWidth: 0,
-          height: Platform.OS === 'ios' ? 120 : 90, 
-          paddingBottom: Platform.OS === 'ios' ? 35 : 0,
+          height: Platform.OS === 'ios' ?  70: 90, 
+          marginTop: Platform.OS === 'ios' ?  30: 0, 
         },
         tabBarLabelStyle: {
           fontSize: 12, 
@@ -53,6 +53,14 @@ export default function TabsLayout() {
         options={{
           title: 'Activity',
           tabBarIcon: ({ color }) => <Icon name="notifications" size={30} color={color} />,
+        }}
+      />
+
+      <Tabs.Screen
+        name="history"
+        options={{
+          title: 'History',
+          tabBarIcon: ({ color }) => <Icon name="history" size={30} color={color} />,
         }}
       />
 

@@ -24,6 +24,26 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center', 
   },
+  passwordInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 5,
+    marginBottom: 10, 
+    paddingRight: 10, 
+    backgroundColor: '#fff', 
+  },
+  passwordInput: {
+    flex: 1, 
+    borderWidth: 0, 
+    marginBottom: 0, 
+    paddingVertical: 10, 
+    paddingHorizontal: 10,
+  },
+  eyeIcon: {
+    padding: 5,
+  },
   modalContainer: { 
     flex: 1, 
     backgroundColor: '#ffffff', 
@@ -397,7 +417,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   formContainer: {
-    padding: 20,
+    padding: 15,
   },
   label: {
     fontSize: 18,

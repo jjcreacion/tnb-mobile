@@ -1,14 +1,15 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, ScrollView, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Formik } from 'formik';
 import * as Yup from 'yup';
-import styles from '../styles';
+import styles from '../styles'; // Assuming styles are defined here
 import RegisterComplete from './registerComplete';
 import Constants from 'expo-constants';
 import MapView, { Marker } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { Picker } from '@react-native-picker/picker';
+import { FontAwesome } from '@expo/vector-icons'; 
 
 interface RegisterProps {
   isVisible: boolean;
@@ -22,6 +23,9 @@ const Register: React.FC<RegisterProps> = ({ isVisible, onClose, IsVerify }) => 
   const [error, setError] = useState('');
   const [focusedInput, setFocusedInput] = useState<string | null>(null);
   const [showComplete, setshowComplete] = useState(false);
+  // State for password visibility
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const DEFAULT_LATITUDE_DELTA = 0.0922;
   const DEFAULT_LONGITUDE_DELTA = 0.0421;
@@ -43,6 +47,7 @@ const Register: React.FC<RegisterProps> = ({ isVisible, onClose, IsVerify }) => 
   const [stateNameToIdMap, setStateNameToIdMap] = useState<{ [key: string]: number }>({}); 
 
   const mapRef = useRef<MapView>(null);
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null); // Ref for debounce timeout
 
   const API_URL = Constants.expoConfig?.extra?.API_BASE_URL || 'http://216.246.113.71:8080'; 
 
@@ -50,6 +55,7 @@ const Register: React.FC<RegisterProps> = ({ isVisible, onClose, IsVerify }) => 
     'Estados Unidos': 'United States',
     'Canadá': 'Canada',
     'México': 'Mexico',
+    // Add other mappings if necessary
   };
 
   useEffect(() => {
@@ -148,6 +154,7 @@ const Register: React.FC<RegisterProps> = ({ isVisible, onClose, IsVerify }) => 
       if (geocodedAddress && geocodedAddress.length > 0) {
         const { country, region, city, street, name } = geocodedAddress[0];
 
+        // Map display name to English name for consistent lookup
         const englishCountryName = countryDisplayNameToEnglishNameMap[country || ''] || country;
 
         const countryId = countryNameToIdMap[englishCountryName || ''] || null;
@@ -183,6 +190,54 @@ const Register: React.FC<RegisterProps> = ({ isVisible, onClose, IsVerify }) => 
       setLoading(false); 
     }
   };
+
+  // New function to handle address search and update map/pickers
+  const handleAddressSearch = useCallback(async (address: string, setFieldValue: (field: string, value: any, shouldValidate?: boolean) => void) => {
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
+    if (!address.trim()) {
+      // Clear map and pickers if address is empty
+      setMapRegion(null);
+      setMarkerCoordinate(null);
+      setSelectedCountryId(null);
+      setSelectedStateId(null);
+      setSelectedCityId(null);
+      return;
+    }
+
+    searchTimeoutRef.current = setTimeout(async () => {
+      setLoading(true);
+      setError('');
+      try {
+        const geocodedLocation = await Location.geocodeAsync(address);
+        if (geocodedLocation && geocodedLocation.length > 0) {
+          const { latitude, longitude } = geocodedLocation[0];
+          const newRegion = {
+            latitude,
+            longitude,
+            latitudeDelta: DEFAULT_LATITUDE_DELTA,
+            longitudeDelta: DEFAULT_LONGITUDE_DELTA,
+          };
+          setMapRegion(newRegion);
+          setMarkerCoordinate({ latitude, longitude });
+          mapRef.current?.animateToRegion(newRegion, 1000);
+          await reverseGeocode(latitude, longitude, setFieldValue);
+        } else {
+          setError('No location found for the entered address.');
+          setMapRegion(null);
+          setMarkerCoordinate(null);
+        }
+      } catch (err) {
+        console.error('Error during geocoding:', err);
+        setError('Failed to search for address: ' + (err as Error).message);
+      } finally {
+        setLoading(false);
+      }
+    }, 700); // Debounce time
+  }, [DEFAULT_LATITUDE_DELTA, DEFAULT_LONGITUDE_DELTA, reverseGeocode]);
+
 
   const SignupSchema = Yup.object().shape({
     first_name: Yup.string().required('First Name is required'),
@@ -353,18 +408,18 @@ const Register: React.FC<RegisterProps> = ({ isVisible, onClose, IsVerify }) => 
     setSelectedCountryId(itemValue);
     setSelectedStateId(null);
     setSelectedCityId(null);
-    setMapRegion(null);
+    setMapRegion(null); // Reset map region when country changes
   };
 
   const handleStateChange = (itemValue: number | null) => {
     setSelectedStateId(itemValue);
     setSelectedCityId(null);
-    setMapRegion(null);
+    setMapRegion(null); // Reset map region when state changes
   };
 
   const handleCityChange = (itemValue: number | null) => {
     setSelectedCityId(itemValue);
-    setMapRegion(null);
+    setMapRegion(null); // Reset map region when city changes
   };
 
   const getCurrentLocation = async (setFieldValue: (field: string, value: any, shouldValidate?: boolean) => void) => {
@@ -418,7 +473,7 @@ const Register: React.FC<RegisterProps> = ({ isVisible, onClose, IsVerify }) => 
         >
           {({ handleChange, handleBlur, handleSubmit, values, errors, touched, isValid, setFieldValue }) => (
             <ScrollView contentContainerStyle={styles.scrollContent}>
-              <Text style={[{ textAlign: 'center', marginTop: 10 }, styles.bannerText]}>New User Registration</Text>
+              <Text style={[{ textAlign: 'center', marginTop: 30 }, styles.bannerText]}>New User Registration</Text>
               <View style={styles.formContainer}>
                 <Text style={styles.label}>First Name</Text>
                 <TextInput
@@ -447,7 +502,10 @@ const Register: React.FC<RegisterProps> = ({ isVisible, onClose, IsVerify }) => 
                 <Text style={styles.label}>Address</Text>
                 <TextInput
                   style={[styles.input, focusedInput === 'address' && { borderColor: 'blue', borderWidth: 2 }]}
-                  onChangeText={handleChange('address')}
+                  onChangeText={(text) => {
+                    handleChange('address')(text); // Update Formik's value
+                    handleAddressSearch(text, setFieldValue); // Trigger map search
+                  }}
                   onBlur={handleBlur('address')}
                   onFocus={() => setFocusedInput('address')}
                   value={values.address}
@@ -531,27 +589,45 @@ const Register: React.FC<RegisterProps> = ({ isVisible, onClose, IsVerify }) => 
                 </View>
 
                 <Text style={styles.label}>Create Password</Text>
-                <TextInput
-                  style={[styles.input, focusedInput === 'password' && { borderColor: 'blue', borderWidth: 2 }]}
-                  onChangeText={handleChange('password')}
-                  onBlur={handleBlur('password')}
-                  onFocus={() => setFocusedInput('password')}
-                  value={values.password}
-                  secureTextEntry
-                />
+                {/* Password input with show/hide toggle */}
+                <View style={[styles.passwordInputContainer, focusedInput === 'password' && { borderColor: 'blue', borderWidth: 2 }]}>
+                  <TextInput
+                    style={[styles.input, styles.passwordInput]}
+                    onChangeText={handleChange('password')}
+                    onBlur={handleBlur('password')}
+                    onFocus={() => setFocusedInput('password')}
+                    value={values.password}
+                    secureTextEntry={!showPassword} // Toggle based on state
+                  />
+                  <TouchableOpacity
+                    style={styles.eyeIcon}
+                    onPress={() => setShowPassword(!showPassword)}
+                  >
+                    <FontAwesome name={showPassword ? 'eye' : 'eye-slash'} size={20} color="gray" />
+                  </TouchableOpacity>
+                </View>
                 {errors.password && touched.password ? (
                   <Text style={{ color: 'red' }}>{errors.password}</Text>
                 ) : null}
 
                 <Text style={styles.label}>Confirm Password</Text>
-                <TextInput
-                  style={[styles.input, focusedInput === 'confirmPassword' && { borderColor: 'blue', borderWidth: 2 }]}
-                  onChangeText={handleChange('confirmPassword')}
-                  onBlur={handleBlur('confirmPassword')}
-                  onFocus={() => setFocusedInput('confirmPassword')}
-                  value={values.confirmPassword}
-                  secureTextEntry
-                />
+                {/* Confirm Password input with show/hide toggle */}
+                <View style={[styles.passwordInputContainer, focusedInput === 'confirmPassword' && { borderColor: 'blue', borderWidth: 2 }]}>
+                  <TextInput
+                    style={[styles.input, styles.passwordInput]}
+                    onChangeText={handleChange('confirmPassword')}
+                    onBlur={handleBlur('confirmPassword')}
+                    onFocus={() => setFocusedInput('confirmPassword')}
+                    value={values.confirmPassword}
+                    secureTextEntry={!showConfirmPassword} // Toggle based on state
+                  />
+                  <TouchableOpacity
+                    style={styles.eyeIcon}
+                    onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                  >
+                    <FontAwesome name={showConfirmPassword ? 'eye' : 'eye-slash'} size={20} color="gray" />
+                  </TouchableOpacity>
+                </View>
                 {errors.confirmPassword && touched.confirmPassword ? (
                   <Text style={{ color: 'red' }}>{errors.confirmPassword}</Text>
                 ) : null}

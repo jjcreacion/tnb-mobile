@@ -56,6 +56,7 @@ const TabTwoScreen = ({  }) => {
           setIsRefreshing(false);
         }
       } catch (error) {
+        // Handle errors silently for now, as per original logic
         setLoading(false);
         setIsRefreshing(false);
       }
