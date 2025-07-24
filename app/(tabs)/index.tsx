@@ -11,22 +11,40 @@ import {
   Image,
   FlatList,
   Dimensions,
+  Linking, 
+  ActivityIndicator,
+  Alert, 
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { LinearGradient } from 'expo-linear-gradient';
-import RequestModal from '../(screens)/RequestModal';
+import RequestModal from '../(screens)/RequestModal'; 
 import Constants from 'expo-constants';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { FontAwesome } from '@expo/vector-icons';
 
 const { width: screenWidth } = Dimensions.get('window');
 
 interface Service {
   codigo: number;
   title: string;
-  description: string; 
+  description: string;
   icon: string;
   color: string;
   image?: any;
+}
+
+interface Campaign {
+  campaignsId: number;
+  title: string;
+  description: string;
+  imageUrl: string;
+  startDate: string;
+  endDate: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  phone?: string; 
+  whatsapp?: string; 
 }
 
 const tnbLogo = require('@/assets/images/icon-tnb.png');
@@ -45,55 +63,136 @@ const SERVICES: Service[] = [
   { codigo: 11, title: 'Other', description: 'Custom services to meet your specific needs.', icon: 'question-mark', color: '#9e9e9e', image: require('@/assets/images/other.jpeg') },
 ];
 
-const RECOMMENDED_SERVICES: Service[] = [
-  SERVICES[1],
-  SERVICES[9],
-  SERVICES[6],
-];
-
 interface ServiceItemProps {
   service: Service;
   onServicePress: (service: Service) => void;
-  isRecommendedCard?: boolean;
 }
 
-const ServiceItem: React.FC<ServiceItemProps> = ({ service, onServicePress, isRecommendedCard = false }) => {
-  if (isRecommendedCard) {
-    return (
-      <TouchableOpacity onPress={() => onServicePress(service)} style={styles.recommendedCard}>
-        <Image source={service.image} style={styles.recommendedCardImage} />
-        <LinearGradient
-          colors={['rgba(0,0,0,0.4)', 'rgba(0,0,0,0.7)']}
-          style={styles.recommendedCardOverlay}
-        >
-          <Text style={styles.recommendedCardTitle}>{service.title}</Text>
-          <Text style={styles.recommendedCardDescription}>{service.description}</Text>
-        </LinearGradient>
-      </TouchableOpacity>
-    );
-  }
+interface CampaignItemProps {
+  campaign: Campaign;
+  onCampaignPress: (campaign: Campaign) => void;
+  API_BASE_URL: string;
+}
 
+const CampaignItem: React.FC<CampaignItemProps> = ({ campaign, onCampaignPress, API_BASE_URL }) => {
+  const fullImageUrl = `${API_BASE_URL}${campaign.imageUrl}`;
+  return (
+    <TouchableOpacity onPress={() => onCampaignPress(campaign)} style={styles.recommendedCard}>
+      <Image source={{ uri: fullImageUrl }} style={styles.recommendedCardImage} />
+      <LinearGradient
+        colors={['rgba(0,0,0,0.4)', 'rgba(0,0,0,0.7)']}
+        style={styles.recommendedCardOverlay}
+      >
+        <Text style={styles.recommendedCardTitle}>{campaign.title}</Text>
+        <Text style={styles.recommendedCardDescription}>{campaign.description}</Text>
+      </LinearGradient>
+    </TouchableOpacity>
+  );
+};
+
+const ServiceItem: React.FC<ServiceItemProps> = ({ service, onServicePress }) => {
   return (
     <TouchableOpacity onPress={() => onServicePress(service)} style={styles.serviceItem}>
       {service.image && <Image source={service.image} style={styles.serviceItemImage} />}
       <View style={styles.serviceItemContent}>
         <View>
           <Text style={styles.serviceTitle}>{service.title}</Text>
-          <Text style={styles.serviceDescription}>{service.description}</Text> 
+          <Text style={styles.serviceDescription}>{service.description}</Text>
         </View>
       </View>
     </TouchableOpacity>
   );
 };
 
+
+interface CampaignModalProps {
+  isVisible: boolean;
+  onClose: () => void;
+  campaign: Campaign | null;
+}
+
+const CampaignModal: React.FC<CampaignModalProps> = ({ isVisible, onClose, campaign }) => {
+  if (!campaign) {
+    return null;
+  }
+
+  const API_BASE_URL = Constants.expoConfig?.extra?.API_BASE_URL;
+  const fullImageUrl = `${API_BASE_URL}${campaign.imageUrl}`;
+
+  const handlePhoneCall = () => {
+    if (campaign.phone) {
+      Linking.openURL(`tel:${campaign.phone}`).catch(err => console.error('Failed to open dialer:', err));
+    } else {
+      Alert.alert('Información no disponible', 'Número de teléfono no proporcionado para esta campaña.');
+    }
+  };
+
+  const handleWhatsApp = () => {
+    if (campaign.whatsapp) {
+      Linking.openURL(`whatsapp://send?phone=${campaign.whatsapp}`).catch(err => {
+        console.error('Failed to open WhatsApp:', err);
+        Alert.alert('Error', 'No se pudo abrir WhatsApp. Asegúrate de tenerlo instalado.');
+      });
+    } else {
+      Alert.alert('Información no disponible', 'Número de WhatsApp no proporcionado para esta campaña.');
+    }
+  };
+
+  return (
+    <Modal
+      animationType="slide"
+      transparent={true}
+      visible={isVisible}
+      onRequestClose={onClose}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
+           <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+            <Icon name="close" size={20} color="#fff" /> 
+          </TouchableOpacity>
+          <ScrollView contentContainerStyle={styles.modalScrollViewContent}>
+            <Image source={{ uri: fullImageUrl }} style={styles.modalImage} />
+            <Text style={styles.modalTitle}>{campaign.title}</Text>
+            <Text style={styles.modalDescription}>{campaign.description}</Text>
+
+            <View style={styles.contactContainer}>
+              {campaign.phone && (
+                <TouchableOpacity style={styles.contactButton} onPress={handlePhoneCall}>
+                  <Icon name="phone" size={24} color="#fff" />
+                  <Text style={styles.contactButtonText}>Llamar: {campaign.phone}</Text>
+                </TouchableOpacity>
+              )}
+              {campaign.whatsapp && (
+                <TouchableOpacity style={[styles.contactButton, styles.whatsappButton]} onPress={handleWhatsApp}>
+                  <Icon name="whatsapp" size={24} color="#fff" />
+                  <FontAwesome name="whatsapp" size={30} color="#fff" />
+                  <Text style={styles.contactButtonText}>WhatsApp: {campaign.whatsapp}</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          </ScrollView>
+        </View>
+      </View>
+    </Modal>
+  );
+};
+
+
 const HomeScreen: React.FC = () => {
   const [searchText, setSearchText] = useState<string>('');
-  const [isRequestModalVisible, setRequestModalVisible] = useState(false);
-  const [selectedServiceData, setSelectedServiceData] = useState<Service | null>(null);
+  const [isRequestModalVisible, setRequestModalVisible] = useState(false); // For service request modal
+  const [selectedServiceData, setSelectedServiceData] = useState<Service | null>(null); // For service data
+  const [isCampaignModalVisible, setCampaignModalVisible] = useState(false); // For campaign modal
+  const [selectedCampaignData, setSelectedCampaignData] = useState<Campaign | null>(null); // For campaign data
   const [userName, setUserName] = useState<string>('');
-  const API_URL = Constants.expoConfig?.extra?.API_BASE_URL;
+  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [loadingCampaigns, setLoadingCampaigns] = useState(true);
+  const [errorCampaigns, setErrorCampaigns] = useState<string | null>(null);
 
-  const flatListRef = useRef<FlatList>(null);
+  const API_BASE_URL = Constants.expoConfig?.extra?.API_BASE_URL;
+  const CAMPAIGNS_ENDPOINT = '/mobile-campaigns/active';
+
+  const flatListRef = useRef<FlatList<Campaign>>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
 
   useEffect(() => {
@@ -101,7 +200,7 @@ const HomeScreen: React.FC = () => {
       try {
         const userId = await AsyncStorage.getItem('userId');
         if (userId) {
-          const response = await fetch(`${API_URL}/user/findOne/${userId}`);
+          const response = await fetch(`${API_BASE_URL}/user/findOne/${userId}`);
           if (response.ok) {
             const userData = await response.json();
             if (userData?.person?.firstName && userData?.person?.lastName) {
@@ -125,35 +224,71 @@ const HomeScreen: React.FC = () => {
     };
 
     loadUserData();
-  }, []);
+  }, [API_BASE_URL]);
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      const nextIndex = (currentIndex + 1) % RECOMMENDED_SERVICES.length;
-      setCurrentIndex(nextIndex);
-      flatListRef.current?.scrollToIndex({ animated: true, index: nextIndex });
-    }, 5000);
+    const fetchCampaigns = async () => {
+      try {
+        setLoadingCampaigns(true);
+        const response = await fetch(`${API_BASE_URL}${CAMPAIGNS_ENDPOINT}`);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data: Campaign[] = await response.json();
+        const campaignsWithContact = data.map(camp => ({
+          ...camp,
+          phone: '(862)4012414',
+          whatsapp: '+1(229)4445456', 
+        }));
+        setCampaigns(campaignsWithContact);
+      } catch (error: any) {
+        console.error('Error fetching campaigns:', error);
+        setErrorCampaigns(error.message || 'Failed to load campaigns.');
+      } finally {
+        setLoadingCampaigns(false);
+      }
+    };
 
-    return () => clearInterval(interval);
-  }, [currentIndex]);
+    if (API_BASE_URL) {
+      fetchCampaigns();
+    }
+  }, [API_BASE_URL]);
+
+  useEffect(() => {
+    if (campaigns.length > 0) {
+      const interval = setInterval(() => {
+        const nextIndex = (currentIndex + 1) % campaigns.length;
+        setCurrentIndex(nextIndex);
+        flatListRef.current?.scrollToIndex({ animated: true, index: nextIndex });
+      }, 5000);
+      return () => clearInterval(interval);
+    }
+  }, [currentIndex, campaigns]);
 
   const handleServicePress = (service: Service) => {
     setSelectedServiceData(service);
     setRequestModalVisible(true);
   };
 
-  const handleCloseModal = () => {
+  const handleCloseServiceModal = () => {
     setRequestModalVisible(false);
     setSelectedServiceData(null);
   };
 
-  const images = [
-    require('@/assets/images/roof-repair.jpg'),
-  ];
+  const handleCampaignPress = (campaign: Campaign) => {
+    setSelectedCampaignData(campaign);
+    setCampaignModalVisible(true);
+  };
+
+  const handleCloseCampaignModal = () => {
+    setCampaignModalVisible(false);
+    setSelectedCampaignData(null);
+  };
+
 
   return (
     <View style={styles.container}>
-       <View style={styles.backgroundTop}>
+      <View style={styles.backgroundTop}>
         <LinearGradient
           colors={['#ea0e08', '#fa2d64']}
           style={styles.linearGradientHeader}
@@ -171,29 +306,36 @@ const HomeScreen: React.FC = () => {
             </View>
           </View>
         </LinearGradient>
-
       </View>
 
       <Text style={styles.sectionTitle}>Recommended for you</Text>
 
       <View style={styles.recommendedCarouselContainer}>
-        <FlatList
-          ref={flatListRef}
-          data={RECOMMENDED_SERVICES}
-          renderItem={({ item }) => (
-            <ServiceItem service={item} onServicePress={handleServicePress} isRecommendedCard={true} />
-          )}
-          keyExtractor={(item) => item.codigo.toString()}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          pagingEnabled
-          onScroll={e => {
-            const contentOffsetX = e.nativeEvent.contentOffset.x;
-            const newIndex = Math.round(contentOffsetX / screenWidth);
-            setCurrentIndex(newIndex);
-          }}
-          scrollEventThrottle={16}
-        />
+        {loadingCampaigns ? (
+          <ActivityIndicator size="large" color="#ea0e08" style={styles.loadingIndicator} />
+        ) : errorCampaigns ? (
+          <Text style={styles.errorMessage}>{errorCampaigns}</Text>
+        ) : campaigns.length > 0 ? (
+          <FlatList
+            ref={flatListRef}
+            data={campaigns}
+            renderItem={({ item }) => (
+              <CampaignItem campaign={item} onCampaignPress={handleCampaignPress} API_BASE_URL={API_BASE_URL || ''} />
+            )}
+            keyExtractor={(item) => item.campaignsId.toString()}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            pagingEnabled
+            onScroll={e => {
+              const contentOffsetX = e.nativeEvent.contentOffset.x;
+              const newIndex = Math.round(contentOffsetX / screenWidth);
+              setCurrentIndex(newIndex);
+            }}
+            scrollEventThrottle={16}
+          />
+        ) : (
+          <Text style={styles.noCampaignsMessage}>No campaigns available at the moment.</Text>
+        )}
       </View>
 
       <Text style={styles.sectionTitle}>Services to explore</Text>
@@ -206,8 +348,14 @@ const HomeScreen: React.FC = () => {
 
       <RequestModal
         isVisible={isRequestModalVisible}
-        onClose={handleCloseModal}
+        onClose={handleCloseServiceModal}
         selectedService={selectedServiceData}
+      />
+
+      <CampaignModal
+        isVisible={isCampaignModalVisible}
+        onClose={handleCloseCampaignModal}
+        campaign={selectedCampaignData}
       />
     </View>
   );
@@ -279,6 +427,21 @@ const styles = StyleSheet.create({
   recommendedCarouselContainer: {
     height: 200,
     marginBottom: 5,
+    justifyContent: 'center', 
+    alignItems: 'center', 
+  },
+  loadingIndicator: {
+    paddingVertical: 20,
+  },
+  errorMessage: {
+    color: 'red',
+    textAlign: 'center',
+    padding: 20,
+  },
+  noCampaignsMessage: {
+    color: '#666',
+    textAlign: 'center',
+    padding: 20,
   },
   recommendedCard: {
     width: screenWidth - 40,
@@ -316,7 +479,7 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     marginTop: 5,
   },
-  recommendedCardDescription: { 
+  recommendedCardDescription: {
     fontSize: 13,
     color: '#E0E0E0',
     marginTop: 2,
@@ -369,7 +532,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: '#333',
   },
-  serviceDescription: { 
+  serviceDescription: {
     fontSize: 12,
     marginLeft: 15,
     color: '#666',
@@ -378,6 +541,90 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     marginRight: 5,
+  },
+  
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalContent: {
+    width: '90%',
+    maxHeight: '80%',
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    padding: 20,
+    alignItems: 'center',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 5,
+      },
+    }),
+  },
+  modalScrollViewContent: {
+    alignItems: 'center',
+    paddingBottom: 10,
+  },
+  closeButton: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    zIndex: 1,
+    width: 30,
+    height: 30, 
+    borderRadius: 15, 
+    backgroundColor: '#000', 
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalImage: {
+    width: '100%',
+    height: 200,
+    borderRadius: 10,
+    marginBottom: 15,
+    resizeMode: 'cover',
+  },
+  modalTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 10,
+    textAlign: 'center',
+    color: '#333',
+  },
+  modalDescription: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  contactContainer: {
+    width: '100%',
+    marginTop: 10,
+  },
+  contactButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#03a9f4', 
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 10,
+    justifyContent: 'center',
+  },
+  whatsappButton: {
+    backgroundColor: '#25D366', 
+  },
+  contactButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginLeft: 10,
   },
 });
 
