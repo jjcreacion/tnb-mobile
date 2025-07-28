@@ -164,7 +164,6 @@ const CampaignModal: React.FC<CampaignModalProps> = ({ isVisible, onClose, campa
               )}
               {campaign.whatsapp && (
                 <TouchableOpacity style={[styles.contactButton, styles.whatsappButton]} onPress={handleWhatsApp}>
-                  <Icon name="whatsapp" size={24} color="#fff" />
                   <FontAwesome name="whatsapp" size={30} color="#fff" />
                   <Text style={styles.contactButtonText}>WhatsApp: {campaign.whatsapp}</Text>
                 </TouchableOpacity>
@@ -275,9 +274,41 @@ const HomeScreen: React.FC = () => {
     setSelectedServiceData(null);
   };
 
-  const handleCampaignPress = (campaign: Campaign) => {
+  const handleCampaignPress = async (campaign: Campaign) => {
+
+    const userIdString = await AsyncStorage.getItem('userId');
+
+    if (userIdString === null) {
+      console.error('Error: ID de usuario no encontrado en AsyncStorage.');
+      return;
+    }
+
+    const userId = parseInt(userIdString, 10);
+
+    try {
+      const expressInterestEndpoint = `${API_BASE_URL}/mobile-campaigns/${campaign.campaignsId}/express-interest`;
+      const response = await fetch(expressInterestEndpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userId }),
+      });
+
+      if (response.ok) {
+        console.log(`Interest expressed for campaign ${campaign.campaignsId} by user ${userId}`);
+      } else {
+        const errorData = await response.json();
+        console.error('Error expressing interest:', errorData);
+      }
+    } catch (error) {
+      console.error('Network error expressing interest:', error);
+      Alert.alert('Error', 'Could not connect to the server. Please check your internet connection.');
+    }
+    
     setSelectedCampaignData(campaign);
     setCampaignModalVisible(true);
+
   };
 
   const handleCloseCampaignModal = () => {
