@@ -24,13 +24,11 @@ import { FontAwesome } from '@expo/vector-icons';
 
 const { width: screenWidth } = Dimensions.get('window');
 
-interface Service {
-  codigo: number;
-  title: string;
+interface Category {
+  pkCategory: number;
+  name: string;
   description: string;
-  icon: string;
-  color: string;
-  image?: any;
+  imagePath: string; 
 }
 
 interface Campaign {
@@ -49,24 +47,26 @@ interface Campaign {
 
 const tnbLogo = require('@/assets/images/icon-tnb.png');
 
-const SERVICES: Service[] = [
-  { codigo: 1, title: 'Insurance Claim', description: 'Expert assistance with property damage claims.', icon: 'gavel', color: '#f44336', image: require('@/assets/images/insurance-claim.jpeg') },
-  { codigo: 2, title: 'Roofing', description: 'Professional installation and repair for all roof types.', icon: 'roofing', color: '#795548', image: require('@/assets/images/roofing.jpeg') },
-  { codigo: 3, title: 'HVAC', description: 'Heating, ventilation, and air conditioning services.', icon: 'ac-unit', color: '#03a9f4', image: require('@/assets/images/hvac.jpeg') },
-  { codigo: 4, title: 'Gutters', description: 'Gutter repair, cleaning, and new installations.', icon: 'format-align-left', color: '#607d8b', image: require('@/assets/images/gutters.jpg') },
-  { codigo: 5, title: 'Windows', description: 'Window replacement and repair for better insulation.', icon: 'window', color: '#4caf50', image: require('@/assets/images/windows.jpeg') },
-  { codigo: 6, title: 'Insolation', description: 'Improve energy efficiency with proper insulation.', icon: 'layers', color: '#ff9800', image: require('@/assets/images/Insolation.jpeg') },
-  { codigo: 7, title: 'Solar Panel', description: 'Harness solar energy for your home or business.', icon: 'solar-power', color: '#f44336', image: require('@/assets/images/solar-panel.jpeg') },
-  { codigo: 8, title: 'Electric Service', description: 'Safe and reliable electrical installations and repairs.', icon: 'electrical-services', color: '#9c27b0', image: require('@/assets/images/electric-service.jpeg') },
-  { codigo: 9, title: 'Water Treatment', description: 'Solutions for clean and healthy water in your home.', icon: 'opacity', color: '#2196f3', image: require('@/assets/images/water-treatment.jpeg') },
-  { codigo: 10, title: 'Tax Services', description: 'Professional tax preparation and financial advice.', icon: 'attach-money', color: '#8bc34a', image: require('@/assets/images/taxservices.jpeg') },
-  { codigo: 11, title: 'Other', description: 'Custom services to meet your specific needs.', icon: 'question-mark', color: '#9e9e9e', image: require('@/assets/images/other.jpeg') },
-];
-
 interface ServiceItemProps {
-  service: Service;
-  onServicePress: (service: Service) => void;
+  category: Category;
+  onServicePress: (category: Category) => void;
+  API_BASE_URL: string;
 }
+
+const ServiceItem: React.FC<ServiceItemProps> = ({ category, onServicePress, API_BASE_URL }) => {
+  const fullImagePath = `${API_BASE_URL}${category.imagePath}`;
+  return (
+    <TouchableOpacity onPress={() => onServicePress(category)} style={styles.serviceItem}>
+      {category.imagePath && <Image source={{ uri: fullImagePath }} style={styles.serviceItemImage} />}
+      <View style={styles.serviceItemContent}>
+        <View>
+          <Text style={styles.serviceTitle}>{category.name}</Text>
+          <Text style={styles.serviceDescription}>{category.description}</Text>
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
+};
 
 interface CampaignItemProps {
   campaign: Campaign;
@@ -89,21 +89,6 @@ const CampaignItem: React.FC<CampaignItemProps> = ({ campaign, onCampaignPress, 
     </TouchableOpacity>
   );
 };
-
-const ServiceItem: React.FC<ServiceItemProps> = ({ service, onServicePress }) => {
-  return (
-    <TouchableOpacity onPress={() => onServicePress(service)} style={styles.serviceItem}>
-      {service.image && <Image source={service.image} style={styles.serviceItemImage} />}
-      <View style={styles.serviceItemContent}>
-        <View>
-          <Text style={styles.serviceTitle}>{service.title}</Text>
-          <Text style={styles.serviceDescription}>{service.description}</Text>
-        </View>
-      </View>
-    </TouchableOpacity>
-  );
-};
-
 
 interface CampaignModalProps {
   isVisible: boolean;
@@ -176,19 +161,22 @@ const CampaignModal: React.FC<CampaignModalProps> = ({ isVisible, onClose, campa
   );
 };
 
-
 const HomeScreen: React.FC = () => {
   const [searchText, setSearchText] = useState<string>('');
-  const [isRequestModalVisible, setRequestModalVisible] = useState(false); // For service request modal
-  const [selectedServiceData, setSelectedServiceData] = useState<Service | null>(null); // For service data
-  const [isCampaignModalVisible, setCampaignModalVisible] = useState(false); // For campaign modal
-  const [selectedCampaignData, setSelectedCampaignData] = useState<Campaign | null>(null); // For campaign data
+  const [isRequestModalVisible, setRequestModalVisible] = useState(false);
+  const [selectedServiceData, setSelectedServiceData] = useState<Category | null>(null);
+  const [isCampaignModalVisible, setCampaignModalVisible] = useState(false);
+  const [selectedCampaignData, setSelectedCampaignData] = useState<Campaign | null>(null);
   const [userName, setUserName] = useState<string>('');
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [loadingCampaigns, setLoadingCampaigns] = useState(true);
+  const [loadingCategories, setLoadingCategories] = useState(true);
   const [errorCampaigns, setErrorCampaigns] = useState<string | null>(null);
+  const [errorCategories, setErrorCategories] = useState<string | null>(null);
 
   const API_BASE_URL = Constants.expoConfig?.extra?.API_BASE_URL;
+  const CATEGORIES_ENDPOINT = '/category/findAll';
   const CAMPAIGNS_ENDPOINT = '/mobile-campaigns/active';
 
   const flatListRef = useRef<FlatList<Campaign>>(null);
@@ -248,8 +236,26 @@ const HomeScreen: React.FC = () => {
       }
     };
 
+    const fetchCategories = async () => {
+      try {
+        setLoadingCategories(true);
+        const response = await fetch(`${API_BASE_URL}${CATEGORIES_ENDPOINT}`);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data: Category[] = await response.json();
+        setCategories(data);
+      } catch (error: any) {
+        console.error('Error fetching categories:', error);
+        setErrorCategories(error.message || 'Failed to load categories.');
+      } finally {
+        setLoadingCategories(false);
+      }
+    };
+
     if (API_BASE_URL) {
       fetchCampaigns();
+      fetchCategories();
     }
   }, [API_BASE_URL]);
 
@@ -264,8 +270,8 @@ const HomeScreen: React.FC = () => {
     }
   }, [currentIndex, campaigns]);
 
-  const handleServicePress = (service: Service) => {
-    setSelectedServiceData(service);
+  const handleServicePress = (category: Category) => {
+    setSelectedServiceData(category);
     setRequestModalVisible(true);
   };
 
@@ -275,7 +281,6 @@ const HomeScreen: React.FC = () => {
   };
 
   const handleCampaignPress = async (campaign: Campaign) => {
-
     const userIdString = await AsyncStorage.getItem('userId');
 
     if (userIdString === null) {
@@ -308,14 +313,12 @@ const HomeScreen: React.FC = () => {
     
     setSelectedCampaignData(campaign);
     setCampaignModalVisible(true);
-
   };
 
   const handleCloseCampaignModal = () => {
     setCampaignModalVisible(false);
     setSelectedCampaignData(null);
   };
-
 
   return (
     <View style={styles.container}>
@@ -372,15 +375,28 @@ const HomeScreen: React.FC = () => {
       <Text style={styles.sectionTitle}>Services to explore</Text>
 
       <ScrollView contentContainerStyle={styles.allServicesContainer}>
-        {SERVICES.map((service) => (
-          <ServiceItem key={service.codigo} service={service} onServicePress={handleServicePress} />
-        ))}
+        {loadingCategories ? (
+          <ActivityIndicator size="large" color="#ea0e08" style={styles.loadingIndicator} />
+        ) : errorCategories ? (
+          <Text style={styles.errorMessage}>{errorCategories}</Text>
+        ) : categories.length > 0 ? (
+          categories.map((category) => (
+            <ServiceItem
+              key={category.pkCategory}
+              category={category}
+              onServicePress={handleServicePress}
+              API_BASE_URL={API_BASE_URL || ''}
+            />
+          ))
+        ) : (
+          <Text style={styles.noCampaignsMessage}>No categories available at the moment.</Text>
+        )}
       </ScrollView>
 
       <RequestModal
         isVisible={isRequestModalVisible}
         onClose={handleCloseServiceModal}
-        selectedService={selectedServiceData}
+        selectedCategory={selectedServiceData}
       />
 
       <CampaignModal

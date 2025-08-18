@@ -20,21 +20,21 @@ import * as Location from 'expo-location';
 import Constants from 'expo-constants';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-interface Service {
-  codigo: number;
-  title: string;
-  icon: string;
-  color: string;
+interface Category {
+  pkCategory: number;
+  name: string;
+  description: string;
+  imagePath: string; 
 }
 
 interface ModalProps {
   isVisible: boolean;
   onClose: () => void;
-  selectedService: Service | null;
+  selectedCategory: Category | null;
   onServiceCreated?: () => void;
 }
 
-const Request: React.FC<ModalProps> = ({ isVisible, onClose, selectedService, onServiceCreated }) => {
+const Request: React.FC<ModalProps> = ({ isVisible, onClose, selectedCategory, onServiceCreated }) => {
   const [images, setImages] = useState<string[]>([]);
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
@@ -184,14 +184,12 @@ const Request: React.FC<ModalProps> = ({ isVisible, onClose, selectedService, on
 
     const serviceRequestData = {
       fkUser: parseInt(pkUser, 10),
-      serviceType: selectedService?.codigo || 0,
+      serviceType: selectedCategory?.pkCategory || 0,
       serviceDescription: values.description,
       address: values.address,
       latitude: latitude !== null ? latitude : 0,
       longitude: longitude !== null ? longitude : 0,
     };
-    console.log('Datos a enviar:', serviceRequestData);
-    console.log('Imágenes seleccionadas:', images);
 
     if (!API_URL) {
       console.error('La URL de la API no está configurada.');
@@ -267,10 +265,10 @@ const Request: React.FC<ModalProps> = ({ isVisible, onClose, selectedService, on
             <FontAwesome name="close" size={24} color="black" />
           </TouchableOpacity>
 
-          {selectedService && (
+          {selectedCategory && (
             <View style={styles.iconContainer}>
-              <MaterialIcons name={selectedService.icon} size={80} color={selectedService.color} />
-              <Text style={styles.titleText}>{selectedService.title}</Text>
+              {/*<MaterialIcons name={selectedCategory.icon} size={80} color={selectedService.color} />*/}
+              <Text style={styles.titleText}>{selectedCategory.name}</Text>
             </View>
           )}
 
@@ -296,7 +294,7 @@ const Request: React.FC<ModalProps> = ({ isVisible, onClose, selectedService, on
           {!uploadSuccess && !loading && !uploadFailed && pkUser && (
             <Formik
               initialValues={{
-                service: selectedService ? selectedService.title : '',
+                service: selectedCategory ? selectedCategory.name : '',
                 requirement: '',
                 description: '',
                 address: '',
