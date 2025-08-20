@@ -19,12 +19,21 @@ import MapView, { Marker } from 'react-native-maps';
 import * as Location from 'expo-location';
 import Constants from 'expo-constants';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Picker } from '@react-native-picker/picker'; 
 
 interface Category {
   pkCategory: number;
   name: string;
   description: string;
-  imagePath: string; 
+  imagePath: string;
+}
+
+interface SubCategory {
+  pkSubCategory: number;
+  name: string;
+  description: string;
+  priceFrom: string;
+  priceTo: string;
 }
 
 interface ModalProps {
@@ -48,7 +57,33 @@ const Request: React.FC<ModalProps> = ({ isVisible, onClose, selectedCategory, o
   const [uploadSuccess, setUploadSuccess] = useState(false);
   const [uploadFailed, setUploadFailed] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [subCategories, setSubCategories] = useState<SubCategory[]>([]); 
+  const [selectedSubCategory, setSelectedSubCategory] = useState<number | null>(null); 
+
   const API_URL = Constants.expoConfig?.extra?.API_BASE_URL;
+
+  useEffect(() => {
+    const fetchSubCategories = async () => {
+      if (!selectedCategory) return;
+      setLoading(true);
+      try {
+        const response = await fetch(`${API_URL}/sub_category/by-category/${selectedCategory.pkCategory}`);
+        if (!response.ok) {
+          throw new Error('Error al cargar las subcategorías');
+        }
+        const data = await response.json();
+        setSubCategories(data);
+        if (data.length > 0) {
+          setSelectedSubCategory(data[0].pkSubCategory); 
+        }
+      } catch (error) {
+        console.error('Error al obtener subcategorías:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchSubCategories();
+  }, [selectedCategory, API_URL]);
 
   useEffect(() => {
     const fetchPkUser = async () => {
@@ -112,7 +147,9 @@ const Request: React.FC<ModalProps> = ({ isVisible, onClose, selectedCategory, o
       setUploadFailed(false);
       setUploadSuccess(false);
       setLoading(false);
-      setImages([]); 
+      setImages([]);
+      setSubCategories([]); 
+      setSelectedSubCategory(null);
     }
   }, [isVisible]);
 
@@ -124,7 +161,7 @@ const Request: React.FC<ModalProps> = ({ isVisible, onClose, selectedCategory, o
   const uploadImages = async (serviceRequestId: number) => {
     if (images.length === 0) {
       console.log('No hay imágenes para subir.');
-      return;
+      return true;
     }
 
     setLoading(true);
@@ -143,7 +180,7 @@ const Request: React.FC<ModalProps> = ({ isVisible, onClose, selectedCategory, o
         uri: imageUri,
         name: fileName,
         type: `image/${fileType}`,
-      } as any); 
+      } as any);
     });
 
     try {
@@ -164,7 +201,6 @@ const Request: React.FC<ModalProps> = ({ isVisible, onClose, selectedCategory, o
 
       console.log('Imágenes subidas con éxito:', await response.json());
       return true;
-
     } catch (error) {
       console.error('Error de conexión o al procesar la respuesta al subir imágenes:', error);
       setUploadFailed(true);
@@ -189,6 +225,7 @@ const Request: React.FC<ModalProps> = ({ isVisible, onClose, selectedCategory, o
       address: values.address,
       latitude: latitude !== null ? latitude : 0,
       longitude: longitude !== null ? longitude : 0,
+      subCategory: selectedSubCategory, 
     };
 
     if (!API_URL) {
@@ -222,9 +259,9 @@ const Request: React.FC<ModalProps> = ({ isVisible, onClose, selectedCategory, o
 
       const data = await response.json();
       console.log('Éxito al guardar los datos:', data);
-      serviceRequestId = data.requestId; 
-      console.log("data.requestId "+data.requestId);
-      console.log("serviceRequestId "+serviceRequestId);
+      serviceRequestId = data.requestId;
+      console.log("data.requestId " + data.requestId);
+      console.log("serviceRequestId " + serviceRequestId);
 
       if (serviceRequestId && images.length > 0) {
         const imagesUploaded = await uploadImages(serviceRequestId);
@@ -252,6 +289,8 @@ const Request: React.FC<ModalProps> = ({ isVisible, onClose, selectedCategory, o
     }
   };
 
+  const fullImagePath = `${API_URL}${selectedCategory?.imagePath}`;
+
   return (
     <Modal
       visible={isVisible}
@@ -267,7 +306,7 @@ const Request: React.FC<ModalProps> = ({ isVisible, onClose, selectedCategory, o
 
           {selectedCategory && (
             <View style={styles.iconContainer}>
-              {/*<MaterialIcons name={selectedCategory.icon} size={80} color={selectedService.color} />*/}
+              <Image source={{ uri: fullImagePath }} style={styles.recommendedCardImage} />
               <Text style={styles.titleText}>{selectedCategory.name}</Text>
             </View>
           )}
@@ -305,6 +344,24 @@ const Request: React.FC<ModalProps> = ({ isVisible, onClose, selectedCategory, o
             >
               {({ handleChange, handleBlur, handleSubmit, values, errors, touched }) => (
                 <View>
+                  {subCategories.length > 0 && (
+                    <View style={styles.pickerContainer}>
+                      <Text style={styles.pickerLabel}>Select a subcategory:</Text>
+                      <Picker
+                        selectedValue={selectedSubCategory}
+                        onValueChange={(itemValue) => setSelectedSubCategory(itemValue)}
+                        style={styles.picker}
+                      >
+                        {subCategories.map((sub) => (
+                          <Picker.Item
+                            key={sub.pkSubCategory}
+                            label={`${sub.name}`}
+                            value={sub.pkSubCategory}
+                          />
+                        ))}
+                      </Picker>
+                    </View>
+                  )}
 
                   <TextInput
                     style={styles.descriptionInput}
@@ -407,6 +464,12 @@ const styles = StyleSheet.create({
   iconContainer: {
     alignItems: 'center',
     marginBottom: 20,
+  },
+  recommendedCardImage: {
+    width: 100,
+    height: 100,
+    borderRadius: 30,
+    resizeMode: 'cover',
   },
   titleText: {
     marginTop: 10,
@@ -523,7 +586,23 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     marginBottom: 20,
     alignItems: 'center',
-  }
+  },
+  pickerContainer: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 5,
+    marginBottom: 10,
+  },
+  pickerLabel: {
+    fontSize: 16,
+    paddingLeft: 10,
+    paddingTop: 5,
+    color: '#333',
+  },
+  picker: {
+    height: 50,
+    width: '100%',
+  },
 });
 
 export default Request;
