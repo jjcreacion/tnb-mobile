@@ -21,6 +21,7 @@ import RequestModal from '../(screens)/RequestModal';
 import Constants from 'expo-constants';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { FontAwesome } from '@expo/vector-icons';
+import SideMenu from '../(screens)/SideMenu';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -144,7 +145,7 @@ const CampaignModal: React.FC<CampaignModalProps> = ({ isVisible, onClose, campa
               {campaign.phone && (
                 <TouchableOpacity style={styles.contactButton} onPress={handlePhoneCall}>
                   <Icon name="phone" size={24} color="#fff" />
-                  <Text style={styles.contactButtonText}>Llamar: {campaign.phone}</Text>
+                  <Text style={styles.contactButtonText}>Call: {campaign.phone}</Text>
                 </TouchableOpacity>
               )}
               {campaign.whatsapp && (
@@ -174,6 +175,7 @@ const HomeScreen: React.FC = () => {
   const [loadingCategories, setLoadingCategories] = useState(true);
   const [errorCampaigns, setErrorCampaigns] = useState<string | null>(null);
   const [errorCategories, setErrorCategories] = useState<string | null>(null);
+  const [isMenuVisible, setMenuVisible] = useState(false);
 
   const API_BASE_URL = Constants.expoConfig?.extra?.API_BASE_URL;
   const CATEGORIES_ENDPOINT = '/category/findAll';
@@ -331,8 +333,10 @@ const HomeScreen: React.FC = () => {
         >
           <View style={styles.headerContainer}>
             <View style={styles.leftHeader}>
+              <TouchableOpacity onPress={() => setMenuVisible(true)} style={styles.menuButton}>
+                <Icon name="menu" size={30} color="#fff" />
+              </TouchableOpacity>
               <Image source={tnbLogo} style={styles.companyLogo} />
-              <Text style={styles.companyName}>TNB</Text>
             </View>
             <View style={styles.rightHeader}>
               <Text style={styles.userName}>Hi, {userName} </Text>
@@ -404,6 +408,11 @@ const HomeScreen: React.FC = () => {
         onClose={handleCloseCampaignModal}
         campaign={selectedCampaignData}
       />
+
+      <SideMenu
+        isVisible={isMenuVisible}
+        onClose={() => setMenuVisible(false)}
+      />
     </View>
   );
 };
@@ -417,6 +426,9 @@ const styles = StyleSheet.create({
   backgroundTop: {
     borderBottomWidth: 0,
     backgroundColor: 'transparent',
+  },
+  menuButton: {
+    marginRight: 10,
   },
   linearGradientHeader: {
     width: '100%',

@@ -59,18 +59,27 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="history"
         options={{
-          title: 'History',
+          title: 'Services',
+          tabBarIcon: ({ color }) => <Icon name="history" size={30} color={color} />,
+        }}
+      />
+      
+      <Tabs.Screen
+        name="services"
+        options={{
+          title: 'Services',
           tabBarIcon: ({ color }) => <Icon name="history" size={30} color={color} />,
         }}
       />
 
       <Tabs.Screen
-        name="profile"
+        name="billing"
         options={{
-          title: 'Profile',
-          tabBarIcon: ({ color }) => <Icon name="person" size={30} color={color} />,
+          title: 'Billing',
+          tabBarIcon: ({ color }) => <Icon name="attach-money" size={30} color={color} />,
         }}
       />
+
       <Tabs.Screen
         name="support"
         options={{

@@ -220,7 +220,7 @@ const Request: React.FC<ModalProps> = ({ isVisible, onClose, selectedCategory, o
 
     const serviceRequestData = {
       fkUser: parseInt(pkUser, 10),
-      serviceType: selectedCategory?.pkCategory || 0,
+      category: selectedCategory?.pkCategory || 0,
       serviceDescription: values.description,
       address: values.address,
       latitude: latitude !== null ? latitude : 0,
