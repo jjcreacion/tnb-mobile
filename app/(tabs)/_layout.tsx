@@ -11,7 +11,7 @@ export default function TabsLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: '#88fad1',
+        tabBarActiveTintColor: '#A6230C',
         tabBarInactiveTintColor: '#ffffff',
         headerShown: false,
         tabBarButton: HapticTab,
@@ -60,23 +60,16 @@ export default function TabsLayout() {
         name="history"
         options={{
           title: 'Services',
-          tabBarIcon: ({ color }) => <Icon name="history" size={30} color={color} />,
+          tabBarIcon: ({ color }) => <Icon name="event-note" size={30} color={color} />,
         }}
       />
       
-      <Tabs.Screen
-        name="services"
-        options={{
-          title: 'Services',
-          tabBarIcon: ({ color }) => <Icon name="history" size={30} color={color} />,
-        }}
-      />
-
+    
       <Tabs.Screen
         name="billing"
         options={{
           title: 'Billing',
-          tabBarIcon: ({ color }) => <Icon name="attach-money" size={30} color={color} />,
+          tabBarIcon: ({ color }) => <Icon name="paid" size={30} color={color} />,
         }}
       />
 
@@ -85,6 +78,14 @@ export default function TabsLayout() {
         options={{
           title: 'Support',
           tabBarIcon: ({ color }) => <Icon name="support-agent" size={30} color={color} />,
+        }}
+      />
+
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: 'Profile',
+          tabBarIcon: ({ color }) => <Icon name="badge" size={30} color={color} />,
         }}
       />
     </Tabs>

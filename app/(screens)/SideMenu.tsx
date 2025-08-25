@@ -1,8 +1,10 @@
-// SideMenu.tsx
-
 import React from 'react';
 import { View, Text, StyleSheet, Modal, TouchableOpacity, Dimensions } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import { useRouter } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+
 
 const { width } = Dimensions.get('window');
 
@@ -12,10 +14,27 @@ interface SideMenuProps {
 }
 
 const SideMenu: React.FC<SideMenuProps> = ({ isVisible, onClose }) => {
+
+  const router = useRouter();
+
   const handleItemPress = (item: string) => {
     console.log(`Navigating to: ${item}`);
-    // Add logic here to navigate to the corresponding screen
+     if (item === 'Share and Earn') {
+      router.push('/(screens)/ShareAndEarn');
+     } else if (item === 'Terms and Policies') {
+       router.push('/(screens)/TermsAndPolicies');
+     }
     onClose();
+  };
+
+  const handleLogout = async () => {
+    try {
+      await AsyncStorage.multiRemove(['accessToken', 'userId']);
+      onClose();
+      router.replace('/login');
+    } catch (error) {
+      console.error('Error al cerrar sesión:', error);
+    }
   };
 
   return (
@@ -38,9 +57,9 @@ const SideMenu: React.FC<SideMenuProps> = ({ isVisible, onClose }) => {
             </TouchableOpacity>
           </View>
 
-          <TouchableOpacity style={styles.menuItem} onPress={() => handleItemPress('Terms and Conditions')}>
+          <TouchableOpacity style={styles.menuItem} onPress={() => handleItemPress('Terms and Policies')}>
             <Icon name="gavel" size={24} color="#333" />
-            <Text style={styles.menuItemText}>Terms and Conditions</Text>
+            <Text style={styles.menuItemText}>Terms and Polices</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.menuItem} onPress={() => handleItemPress('Notifications')}>
             <Icon name="notifications" size={24} color="#333" />
@@ -49,6 +68,11 @@ const SideMenu: React.FC<SideMenuProps> = ({ isVisible, onClose }) => {
           <TouchableOpacity style={styles.menuItem} onPress={() => handleItemPress('Share and Earn')}>
             <Icon name="share" size={24} color="#333" />
             <Text style={styles.menuItemText}>Share and Earn</Text>
+          </TouchableOpacity>
+          <View style={styles.separator} />
+          <TouchableOpacity style={styles.menuItem} onPress={handleLogout}>
+            <Icon name="logout" size={24} color="#d9534f" />
+            <Text style={[styles.menuItemText, { color: '#d9534f' }]}>Log Out</Text>
           </TouchableOpacity>
         </View>
       </TouchableOpacity>
@@ -70,6 +94,12 @@ const styles = StyleSheet.create({
     paddingTop: 50,
     borderRightWidth: 1,
     borderRightColor: '#ddd',
+  },
+  separator: {
+    height: 1,
+    backgroundColor: '#f0f0f0',
+    marginVertical: 10,
+    marginHorizontal: 20,
   },
   header: {
     flexDirection: 'row',
