@@ -15,7 +15,7 @@ const PrivacyPolicyScreen = () => {
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.title}>Privacy Policy</Text>
         <Text style={styles.paragraph}>
-          This is a placeholder for the Privacy Policy. This section should inform users about what data you collect, why you collect it, and how you use and protect it. It is a legally important document that builds trust with your users.
+          We are committed to protecting your privacy. This policy outlines how we collect, use, and safeguard your personal information. We collect data you provide, such as your name, address, and contact details, to facilitate service requests and payments. We also collect location data to connect you with local providers and track service progress. Your information is used solely for the purpose of providing and improving our services. We do not sell your personal data to third parties. We employ industry-standard security measures, including encryption and access controls, to protect your information from unauthorized access. By using our app, you consent to the data practices described in this policy.
         </Text>
       </ScrollView>
     </View>
