@@ -1,22 +1,22 @@
 import { FontAwesome, MaterialIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Picker } from '@react-native-picker/picker';
 import Constants from 'expo-constants';
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
 import { Formik } from 'formik';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  Animated,
+  Button,
   Image,
   Modal,
-  Platform,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  View
+  View,
 } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 import * as Yup from 'yup';
@@ -237,7 +237,6 @@ const Request: React.FC<ModalProps> = ({
 
       try {
         console.log('-------API_URL', API_URL);
-        console.log(`Fetching subcategories for category: ${selectedCategory.pkCategory}`);
         const response = await fetch(`${API_URL}/sub_category/by-category/${selectedCategory.pkCategory}`);
         const data = await response.json();
         console.log('Subcategories received:', data);
@@ -940,25 +939,12 @@ const Request: React.FC<ModalProps> = ({
                   </View>
 
                   <View style={styles.buttonContainer}>
-                    <TouchableOpacity 
-                      style={[styles.customButton, styles.uploadButton]} 
-                      onPress={handleImagePicker}
-                      activeOpacity={0.8}
-                    >
-                      <Text style={[styles.buttonText, styles.uploadButtonText]} numberOfLines={1}>Upload Images</Text>
-                    </TouchableOpacity>
-                    
-                    <TouchableOpacity 
-                      ref={saveButtonRef}
-                      style={[styles.customButton, styles.saveButton]} 
-                      onPress={() => handleSubmit()}
-                      activeOpacity={0.8}
-                      accessible={true}
-                      accessibilityLabel="Save service request"
-                      accessibilityHint="Saves your service request with the selected location"
-                    >
-                      <Text style={[styles.buttonText, styles.saveButtonText]}>Save</Text>
-                    </TouchableOpacity>
+                    <View style={styles.button} >
+                      <Button title="Upload Images" color="#f54021" onPress={handleImagePicker} />
+                    </View>
+                    <View style={styles.button}>
+                      <Button title="Save" onPress={() => handleSubmit()} />
+                    </View>
                   </View>
 
                 </View>

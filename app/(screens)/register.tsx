@@ -5,16 +5,11 @@ import Constants from 'expo-constants';
 import * as Location from 'expo-location';
 import { Formik } from 'formik';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
-import { WebView } from 'react-native-webview';
 import * as Yup from 'yup';
 import styles from '../styles'; // Assuming styles are defined here
 import RegisterComplete from './registerComplete';
-
-const API_BASE_URL = Constants.expoConfig?.extra?.API_BASE_URL || 'http://216.246.113.71:8080';
-const RECOVERY_URL = `${API_BASE_URL}/referrals/get-referral-code`; 
-
 
 interface RegisterProps {
   isVisible: boolean;
