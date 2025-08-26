@@ -21,7 +21,8 @@ export default function TabsLayout() {
           borderTopRightRadius: 0,
           overflow: 'hidden',
           borderTopWidth: 0,
-          height: Platform.OS === 'ios' ? 85 : 60,
+          height: Platform.OS === 'ios' ? 70 : 90, 
+          marginTop: Platform.OS === 'ios' ? 30 : 0, 
         },
         tabBarLabelStyle: {
           fontSize: 12, 

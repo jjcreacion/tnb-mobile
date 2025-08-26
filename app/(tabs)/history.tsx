@@ -2,48 +2,20 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import Constants from 'expo-constants';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Platform, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 
-
-// Definición de tipos para los datos de las APIs
-interface ServiceRequest {
-  requestId: number;
+interface Service {
+  requestId: string;
   serviceDescription: string;
   address: string;
-  latitude: string;
-  longitude: string;
-  fkRequestStatus: number | null;
+  status: number;
   createdAt: string;
-  updatedAt: string | null;
-  fkUser: {
-    pkUser: number;
-    email: string;
-    username: string | null;
-    password: string;
-    phone: string | null;
-    validateEmail: number;
-    validatePhone: number;
-    status: number;
-    img_profile: string;
-    roles: string[];
-    createdAt: string;
-    updatedAt: string;
-  };
-}
-
-interface Status {
-  statusId: number;
-  order: number;
-  name: string;
-  color: string;
 }
 
 const HistoryScreen = () => {
-  const [services, setServices] = useState<ServiceRequest[]>([]);
-  const [statusList, setStatusList] = useState<Status[]>([]);
+  const [services, setServices] = useState<Service[]>([]);
   const [selectedStatus, setSelectedStatus] = useState('All');
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
@@ -51,19 +23,6 @@ const HistoryScreen = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const router = useRouter();
 
-  // Función para obtener la lista de estados de la API
-  const fetchStatusList = useCallback(async () => {
-    try {
-      const response = await axios.get<Status[]>(`${API_URL}/status-list`);
-      if (response.status === 200) {
-        setStatusList(response.data);
-      }
-    } catch (error) {
-      console.error('Error fetching status list:', error);
-    }
-  }, []);
-
-  // Función para obtener las solicitudes de servicio del usuario
   const fetchServices = useCallback(async (currentUserId: string) => {
     setIsRefreshing(true);
     setLoading(true);
@@ -116,27 +75,23 @@ const HistoryScreen = () => {
     }
   }, [fetchServices, fetchStatusList]);
 
-  const handleCardPress = (service: ServiceRequest) => {
-    const statusInfo = getStatusTextAndColor(service.fkRequestStatus);
-    const serviceWithStatus = { ...service, statusInfo };
-    router.push({
-      pathname: '/(screens)/ServiceRequestDetail',
-      params: { service: JSON.stringify(serviceWithStatus) },
-    });
+  const getStatusTextAndColor = (status: number) => {
+    switch (status) {
+      case 1:
+        return { text: 'Finish', color: '#FFC107' };
+      case 2:
+        return { text: 'Approved', color: '#4CAF50' };
+      case 3:
+        return { text: 'In Progress', color: '#2196F3' };
+      case 4:
+        return { text: 'Closed', color: '#9E9E9E' };
+      default:
+        return { text: 'Pending', color: 'gray' };
+    }
   };
 
-  const getStatusTextAndColor = (fkRequestStatus: number | null) => {
-    const statusId = fkRequestStatus === null ? 1 : fkRequestStatus;
-    const statusObject = statusList.find(status => status.statusId === statusId);
-  
-    const statusColor = statusObject ? statusObject.color : 'gray'; 
-    const statusName = statusObject ? statusObject.name : 'Unknown';
-  
-    return { text: statusName, color: statusColor };
-  };
-
-  const renderServiceCard = (service: ServiceRequest) => {
-    const statusInfo = getStatusTextAndColor(service.fkRequestStatus);
+  const renderServiceCard = (service: Service) => {
+    const statusInfo = getStatusTextAndColor(service.status);
 
     return (
       <TouchableOpacity key={service.requestId} style={styles.card} onPress={() => handleCardPress(service)}>

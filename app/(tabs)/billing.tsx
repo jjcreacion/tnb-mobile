@@ -1,6 +1,6 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
-import { Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { FlatList, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 
 interface Transaction {
@@ -17,6 +17,17 @@ const transactions: Transaction[] = [
 ];
 
 export default function BillingScreen() {
+  const renderTransactionItem = ({ item }: { item: Transaction }) => (
+    <View style={styles.transactionItem}>
+      <Icon name="attach-money" size={24} color="#4CAF50" />
+      <View style={styles.transactionDetails}>
+        <Text style={styles.serviceName}>{item.service}</Text>
+        <Text style={styles.transactionDate}>{item.date}</Text>
+      </View>
+      <Text style={styles.amountText}>${item.amount.toFixed(2)}</Text>
+    </View>
+  );
+
   return (
     <ScrollView style={styles.container}>
        <View style={styles.backgroundTop}>
