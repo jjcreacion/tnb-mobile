@@ -61,16 +61,14 @@ const Request: React.FC<ModalProps> = ({ isVisible, onClose, selectedCategory, o
   const [selectedSubCategory, setSelectedSubCategory] = useState<number | null>(null); 
 
   const API_URL = Constants.expoConfig?.extra?.API_BASE_URL;
-
+  
   useEffect(() => {
     const fetchSubCategories = async () => {
       if (!selectedCategory) return;
       setLoading(true);
+
       try {
         const response = await fetch(`${API_URL}/sub_category/by-category/${selectedCategory.pkCategory}`);
-        if (!response.ok) {
-          throw new Error('Error al cargar las subcategorías');
-        }
         const data = await response.json();
         setSubCategories(data);
         if (data.length > 0) {
@@ -220,13 +218,14 @@ const Request: React.FC<ModalProps> = ({ isVisible, onClose, selectedCategory, o
 
     const serviceRequestData = {
       fkUser: parseInt(pkUser, 10),
-      category: selectedCategory?.pkCategory || 0,
+      fkCategory: selectedCategory?.pkCategory || 0,
+      fkSubCategory: selectedSubCategory, 
       serviceDescription: values.description,
       address: values.address,
       latitude: latitude !== null ? latitude : 0,
       longitude: longitude !== null ? longitude : 0,
-      subCategory: selectedSubCategory, 
     };
+    console.log('Datos de la solicitud de servicio:', serviceRequestData);
 
     if (!API_URL) {
       console.error('La URL de la API no está configurada.');
@@ -240,6 +239,7 @@ const Request: React.FC<ModalProps> = ({ isVisible, onClose, selectedCategory, o
 
     let serviceRequestId = null;
 
+    
     try {
       const response = await fetch(`${API_URL}/service_request`, {
         method: 'POST',
@@ -313,13 +313,13 @@ const Request: React.FC<ModalProps> = ({ isVisible, onClose, selectedCategory, o
 
           {uploadSuccess && (
             <View style={styles.successMessage}>
-              <Text style={styles.successText}>Datos y/o imágenes cargados con éxito!</Text>
+              <Text style={styles.successText}>Service requested successfully</Text>
             </View>
           )}
 
           {uploadFailed && (
             <View style={styles.errorMessage}>
-              <Text style={styles.errorText}>Error al cargar los datos y/o imágenes. Inténtalo de nuevo.</Text>
+              <Text style={styles.errorText}>Error loading data and/or images. Please try again.</Text>
             </View>
           )}
 
