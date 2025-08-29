@@ -200,7 +200,9 @@ const AddressModal: React.FC<AddressModalProps> = ({ isVisible, onClose, address
           </View>
           
           <ScrollView style={styles.addressList}>
-            {addresses.length > 0 ? addresses.map((address: Address) => (
+            {addresses.length > 0 ? addresses
+              .sort((a, b) => b.isPrimary - a.isPrimary)
+              .map((address: Address) => (
               <TouchableOpacity
                 key={address.pkAddress}
                 style={[
