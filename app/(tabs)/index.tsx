@@ -271,7 +271,12 @@ const AddressModal: React.FC<AddressModalProps> = ({
             </TouchableOpacity>
           </View>
 
-          <ScrollView style={styles.addressList}>
+          <ScrollView 
+            style={styles.addressList}
+            contentContainerStyle={{ paddingBottom: 20 }}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
             {addresses.length > 0 ? (
               addresses
                 .sort((a, b) => b.isPrimary - a.isPrimary)
@@ -320,6 +325,8 @@ const AddressModal: React.FC<AddressModalProps> = ({
             <TouchableOpacity 
               style={styles.addAddressButton}
               onPress={onAddNewAddress}
+              activeOpacity={0.7}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
               <Icon name="add" size={24} color="#007AFF" />
               <Text style={styles.addAddressText}>
@@ -925,7 +932,9 @@ const HomeScreen: React.FC = () => {
         onAddressSelect={handleAddressSelect}
         primaryAddress={primaryAddress}
         onAddNewAddress={() => {
-          console.log('onAddNewAddress called')
+          console.log('onAddNewAddress called - iOS debug')
+          // Cerrar modal de selección y abrir form de nueva dirección
+          setAddressModalVisible(false)
           setAddNewAddressModalVisible(true)
         }}
       />
@@ -935,6 +944,7 @@ const HomeScreen: React.FC = () => {
         animationType="slide"
         transparent={false}
         visible={isAddNewAddressModalVisible}
+        presentationStyle="pageSheet"
         onRequestClose={() => {
           console.log('Closing new address modal')
           setAddNewAddressModalVisible(false)
@@ -1469,8 +1479,11 @@ const styles = StyleSheet.create({
   addAddressButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 15,
+    paddingVertical: 20,
+    paddingHorizontal: 10,
     marginTop: 10,
+    backgroundColor: 'transparent',
+    borderRadius: 8,
   },
   addAddressText: {
     fontSize: 16,
