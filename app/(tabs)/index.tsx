@@ -376,6 +376,7 @@ const HomeScreen: React.FC = () => {
   const [filteredCities, setFilteredCities] = useState<City[]>([])
   const [citySearchText, setCitySearchText] = useState('')
   const [stateSearchText, setStateSearchText] = useState('')
+  const [countryId, setCountryId] = useState<number>(1) // Default to 1, will be loaded from API
   
   // Form data
   const [newAddressForm, setNewAddressForm] = useState({
@@ -441,6 +442,33 @@ const HomeScreen: React.FC = () => {
 
   const loadCitiesAndStates = async () => {
     try {
+      // Load countries first to get USA ID
+      const countriesResponse = await fetch(`${API_BASE_URL}/country/findAll`)
+      if (countriesResponse.ok) {
+        const countriesData = await countriesResponse.json()
+        console.log('Countries loaded:', countriesData.length)
+        console.log('First country sample:', countriesData[0])
+        
+        // Find USA or United States (assuming it's in the data)
+        const usa = countriesData.find((country: any) => 
+          country.name?.toLowerCase().includes('united states') ||
+          country.name?.toLowerCase().includes('usa') ||
+          country.code === 'US' ||
+          country.internalCode === 'US'
+        )
+        
+        if (usa) {
+          console.log('USA country found:', usa)
+          setCountryId(usa.pkCountry || usa.id || 1)
+        } else {
+          console.log('USA not found, using default country ID 1')
+          setCountryId(1)
+        }
+      } else {
+        console.error('Error loading countries:', countriesResponse.status)
+        setCountryId(1) // Fallback to default
+      }
+
       // Load cities
       const citiesResponse = await fetch(`${API_BASE_URL}/country_city/findAll`)
       if (citiesResponse.ok) {
@@ -464,7 +492,8 @@ const HomeScreen: React.FC = () => {
         console.error('Error loading states:', statesResponse.status)
       }
     } catch (error) {
-      console.error('Error al cargar ciudades y estados:', error)
+      console.error('Error al cargar países, ciudades y estados:', error)
+      setCountryId(1) // Fallback to default
     }
   }
 
@@ -676,6 +705,11 @@ const HomeScreen: React.FC = () => {
           fkPerson: fkPerson,
           address: fullAddress,
           isPrimary: userAddresses.length === 0 ? 1 : 0,
+          latitude: 0,
+          longitude: 0,
+          country: countryId, // Using dynamic country ID from API
+          state: newAddressForm.stateId,
+          city: newAddressForm.cityId,
         }),
       })
 
@@ -1072,7 +1106,8 @@ const HomeScreen: React.FC = () => {
                     placeholder="e.g 12345"
                     value={newAddressForm.zipCode}
                     onChangeText={(text) => setNewAddressForm(prev => ({ ...prev, zipCode: text }))}
-                    keyboardType="numeric"
+                    keyboardType="default"
+                    maxLength={10}
                   />
                 </View>
               </View>
