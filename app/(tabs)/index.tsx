@@ -55,15 +55,20 @@ interface Address {
 interface City {
   pkCity: number
   name: string
-  state: {
-    pkState: number
-    name: string
-  }
+  fkState: number
+  status: number
+  createdAt: string
+  updatedAt: string
 }
 
 interface State {
   pkState: number
   name: string
+  fkCountry: number
+  internalCode: string
+  status: number
+  createdAt: string
+  updatedAt: string
 }
 
 const tnbLogo = require('@/assets/images/icon-tnb.png')
@@ -365,8 +370,7 @@ const HomeScreen: React.FC = () => {
   
   // New address form states
   const [isAddNewAddressModalVisible, setAddNewAddressModalVisible] = useState(false)
-  const [isCityModalVisible, setCityModalVisible] = useState(false)
-  const [isStateModalVisible, setStateModalVisible] = useState(false)
+  const [currentModalScreen, setCurrentModalScreen] = useState<'form' | 'city' | 'state'>('form')
   const [cities, setCities] = useState<City[]>([])
   const [states, setStates] = useState<State[]>([])
   const [filteredCities, setFilteredCities] = useState<City[]>([])
@@ -441,15 +445,23 @@ const HomeScreen: React.FC = () => {
       const citiesResponse = await fetch(`${API_BASE_URL}/country_city/findAll`)
       if (citiesResponse.ok) {
         const citiesData = await citiesResponse.json()
+        console.log('Cities loaded:', citiesData.length) // Debug log
+        console.log('First city sample:', citiesData[0]) // Ver estructura de datos
         setCities(citiesData)
         setFilteredCities(citiesData)
+      } else {
+        console.error('Error loading cities:', citiesResponse.status)
       }
 
       // Load states
       const statesResponse = await fetch(`${API_BASE_URL}/state/findAll`)
       if (statesResponse.ok) {
         const statesData = await statesResponse.json()
+        console.log('States loaded:', statesData.length) // Debug log
+        console.log('First state sample:', statesData[0]) // Ver estructura de datos
         setStates(statesData)
+      } else {
+        console.error('Error loading states:', statesResponse.status)
       }
     } catch (error) {
       console.error('Error al cargar ciudades y estados:', error)
@@ -555,19 +567,24 @@ const HomeScreen: React.FC = () => {
 
   // New address form handlers
   const handleCitySelect = (city: City) => {
+    // Buscar el estado correspondiente por fkState
+    const cityState = states.find(state => state.pkState === city.fkState)
+    
     setNewAddressForm(prev => ({
       ...prev,
       city: city.name,
       cityId: city.pkCity,
-      state: city.state.name,
-      stateId: city.state.pkState
+      state: cityState?.name ?? '',
+      stateId: cityState?.pkState ?? null
     }))
-    setCityModalVisible(false)
     setCitySearchText('')
+    // Volver al formulario principal
+    setCurrentModalScreen('form')
   }
 
   const handleStateSelect = (state: State) => {
-    const stateCities = cities.filter(city => city.state.pkState === state.pkState)
+    // Filtrar ciudades por fkState
+    const stateCities = cities.filter(city => city.fkState === state.pkState)
     setFilteredCities(stateCities)
     setNewAddressForm(prev => ({
       ...prev,
@@ -576,25 +593,42 @@ const HomeScreen: React.FC = () => {
       city: '',
       cityId: null
     }))
-    setStateModalVisible(false)
     setStateSearchText('')
+    // Volver al formulario principal
+    setCurrentModalScreen('form')
   }
 
   const handleCitySearch = (text: string) => {
+    console.log('=== CITY SEARCH DEBUG ===')
+    console.log('Search text:', text)
+    console.log('Total cities available:', cities.length)
+    console.log('Current state ID:', newAddressForm.stateId)
+    
     setCitySearchText(text)
+    let filtered: City[] = []
+    
     if (text === '') {
-      // Si el estado está seleccionado, filtrar por estado, sino mostrar todas
-      const filtered = newAddressForm.stateId 
-        ? cities.filter(city => city.state.pkState === newAddressForm.stateId)
+      // Sin texto: listar por estado si existe, sino todas
+      filtered = newAddressForm.stateId
+        ? cities.filter(city => city.fkState === newAddressForm.stateId)
         : cities
-      setFilteredCities(filtered)
+      console.log('Empty search - filtered by state:', filtered.length)
     } else {
-      // Siempre buscar en todas las ciudades
-      const filtered = cities.filter(city =>
-        city.name.toLowerCase().includes(text.toLowerCase())
-      )
-      setFilteredCities(filtered)
+      // Con texto: filtrar nombre y estado si aplica
+      const searchLower = text.toLowerCase()
+      filtered = newAddressForm.stateId
+        ? cities.filter(city =>
+            city.fkState === newAddressForm.stateId &&
+            city.name.toLowerCase().includes(searchLower)
+          )
+        : cities.filter(city =>
+            city.name.toLowerCase().includes(searchLower)
+          )
+      console.log('Text search - filtered results:', filtered.length)
     }
+    
+    console.log('Setting filtered cities:', filtered.length)
+    setFilteredCities(filtered)
   }
 
   const resetNewAddressForm = () => {
@@ -610,6 +644,7 @@ const HomeScreen: React.FC = () => {
     setFilteredCities(cities)
     setCitySearchText('')
     setStateSearchText('')
+    setCurrentModalScreen('form')
   }
 
   const handleSaveNewAddress = async () => {
@@ -669,6 +704,22 @@ const HomeScreen: React.FC = () => {
   useEffect(() => {
     console.log('New Address Modal state changed:', isAddNewAddressModalVisible)
   }, [isAddNewAddressModalVisible])
+
+  // Effect para inicializar las ciudades filtradas cuando se abre el modal de ciudad
+  useEffect(() => {
+    if (currentModalScreen === 'city' && cities.length > 0) {
+      console.log('=== CITY SCREEN DEBUG ===')
+      console.log('Cities available:', cities.length)
+      console.log('Current state ID:', newAddressForm.stateId)
+      
+      // Inicializar las ciudades filtradas
+      const initialCities = newAddressForm.stateId
+        ? cities.filter(city => city.fkState === newAddressForm.stateId)
+        : cities
+      console.log('Setting initial cities:', initialCities.length)
+      setFilteredCities(initialCities)
+    }
+  }, [currentModalScreen, cities.length, newAddressForm.stateId])
 
   useEffect(() => {
     const fetchCampaigns = async () => {
@@ -939,181 +990,243 @@ const HomeScreen: React.FC = () => {
         }}
       />
 
-      {/* New Address Modal */}
+      {/* New Address Modal with Internal Navigation */}
       <Modal
         animationType="slide"
         transparent={false}
         visible={isAddNewAddressModalVisible}
-        presentationStyle="pageSheet"
         onRequestClose={() => {
           console.log('Closing new address modal')
           setAddNewAddressModalVisible(false)
+          setCurrentModalScreen('form')
         }}
       >
-        <View style={styles.newAddressContainer}>
-          <View style={styles.newAddressHeader}>
-            <TouchableOpacity
-              onPress={() => {
-                setAddNewAddressModalVisible(false)
-                resetNewAddressForm()
-              }}
-            >
-              <Icon name="close" size={24} color="#333" />
-            </TouchableOpacity>
-            <Text style={styles.newAddressTitle}>Add a new address</Text>
-            <View style={{ width: 24 }} />
-          </View>
-
-          <ScrollView style={styles.newAddressForm}>
-            <Text style={styles.formLabel}>Address</Text>
-            <TextInput
-              style={styles.formInput}
-              placeholder="e.g 108 Jackson St"
-              value={newAddressForm.address}
-              onChangeText={(text) => setNewAddressForm(prev => ({ ...prev, address: text }))}
-            />
-
-            <TextInput
-              style={[styles.formInput, styles.formInputSecondary]}
-              placeholder="Apt, suite, unit, building, floor, etc."
-              value={newAddressForm.addressLine2}
-              onChangeText={(text) => setNewAddressForm(prev => ({ ...prev, addressLine2: text }))}
-            />
-
-            <Text style={styles.formLabel}>City</Text>
-            <TouchableOpacity
-              style={styles.formInput}
-              onPress={() => setCityModalVisible(true)}
-            >
-              <Text style={[styles.formInputText, !newAddressForm.city && styles.placeholderText]}>
-                {newAddressForm.city || 'e.g Jacksonville'}
-              </Text>
-            </TouchableOpacity>
-
-            <View style={styles.formRow}>
-              <View style={styles.formColumn}>
-                <Text style={styles.formLabel}>State</Text>
-                <TouchableOpacity
-                  style={styles.formInput}
-                  onPress={() => setStateModalVisible(true)}
-                >
-                  <Text style={[styles.formInputText, !newAddressForm.state && styles.placeholderText]}>
-                    {newAddressForm.state || 'e.g FL'}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-
-              <View style={styles.formColumn}>
-                <Text style={styles.formLabel}>Zip Code</Text>
-                <TextInput
-                  style={styles.formInput}
-                  placeholder="e.g 12345"
-                  value={newAddressForm.zipCode}
-                  onChangeText={(text) => setNewAddressForm(prev => ({ ...prev, zipCode: text }))}
-                  keyboardType="numeric"
-                />
-              </View>
+        {currentModalScreen === 'form' && (
+          <View style={styles.newAddressContainer}>
+            <View style={styles.newAddressHeader}>
+              <TouchableOpacity
+                onPress={() => {
+                  setAddNewAddressModalVisible(false)
+                  resetNewAddressForm()
+                }}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                activeOpacity={0.7}
+              >
+                <Icon name="close" size={24} color="#333" />
+              </TouchableOpacity>
+              <Text style={styles.newAddressTitle}>Add a new address</Text>
+              <View style={{ width: 24 }} />
             </View>
 
-            <TouchableOpacity
-              style={styles.saveAddressButton}
-              onPress={handleSaveNewAddress}
+            <ScrollView 
+              style={styles.newAddressForm}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
             >
-              <Text style={styles.saveAddressButtonText}>Save Address</Text>
-            </TouchableOpacity>
-          </ScrollView>
-        </View>
-      </Modal>
+              <Text style={styles.formLabel}>Address</Text>
+              <TextInput
+                style={styles.formInput}
+                placeholder="e.g 108 Jackson St"
+                value={newAddressForm.address}
+                onChangeText={(text) => setNewAddressForm(prev => ({ ...prev, address: text }))}
+              />
 
-      {/* City Selector Modal */}
-      <Modal
-        animationType="slide"
-        transparent={false}
-        visible={isCityModalVisible}
-        onRequestClose={() => setCityModalVisible(false)}
-      >
-        <View style={styles.selectorContainer}>
-          <View style={styles.selectorHeader}>
-            <TouchableOpacity onPress={() => setCityModalVisible(false)}>
-              <Icon name="arrow-back" size={24} color="#333" />
-            </TouchableOpacity>
-            <Text style={styles.selectorTitle}>Search City</Text>
-            <TouchableOpacity onPress={() => setCityModalVisible(false)}>
-              <Icon name="search" size={24} color="#333" />
-            </TouchableOpacity>
-          </View>
+              <TextInput
+                style={[styles.formInput, styles.formInputSecondary]}
+                placeholder="Apt, suite, unit, building, floor, etc."
+                value={newAddressForm.addressLine2}
+                onChangeText={(text) => setNewAddressForm(prev => ({ ...prev, addressLine2: text }))}
+              />
 
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search for a city"
-            value={citySearchText}
-            onChangeText={handleCitySearch}
-            autoFocus
-          />
-
-          <Text style={styles.selectorSubtitle}>All cities</Text>
-
-          <FlatList
-            data={filteredCities}
-            keyExtractor={(item) => item.pkCity.toString()}
-            renderItem={({ item }) => (
+              <Text style={styles.formLabel}>City</Text>
               <TouchableOpacity
-                style={styles.selectorItem}
-                onPress={() => handleCitySelect(item)}
+                style={styles.formInput}
+                onPress={() => setCurrentModalScreen('city')}
+                activeOpacity={0.7}
+                hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
               >
-                <Text style={styles.selectorItemText}>{item.name}</Text>
-                <Text style={styles.selectorItemSubText}>{item.state.name}</Text>
+                <Text style={[styles.formInputText, !newAddressForm.city && styles.placeholderText]}>
+                  {newAddressForm.city || 'e.g Jacksonville'}
+                </Text>
               </TouchableOpacity>
-            )}
-            showsVerticalScrollIndicator={false}
-          />
-        </View>
-      </Modal>
 
-      {/* State Selector Modal */}
-      <Modal
-        animationType="slide"
-        transparent={false}
-        visible={isStateModalVisible}
-        onRequestClose={() => setStateModalVisible(false)}
-      >
-        <View style={styles.selectorContainer}>
-          <View style={styles.selectorHeader}>
-            <TouchableOpacity onPress={() => setStateModalVisible(false)}>
-              <Icon name="arrow-back" size={24} color="#333" />
-            </TouchableOpacity>
-            <Text style={styles.selectorTitle}>Search State</Text>
-            <TouchableOpacity onPress={() => setStateModalVisible(false)}>
-              <Icon name="search" size={24} color="#333" />
-            </TouchableOpacity>
-          </View>
+              <View style={styles.formRow}>
+                <View style={styles.formColumn}>
+                  <Text style={styles.formLabel}>State</Text>
+                  <TouchableOpacity
+                    style={styles.formInput}
+                    onPress={() => setCurrentModalScreen('state')}
+                    activeOpacity={0.7}
+                    hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
+                  >
+                    <Text style={[styles.formInputText, !newAddressForm.state && styles.placeholderText]}>
+                      {newAddressForm.state || 'e.g FL'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
 
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search for a state"
-            value={stateSearchText}
-            onChangeText={setStateSearchText}
-            autoFocus
-          />
+                <View style={styles.formColumn}>
+                  <Text style={styles.formLabel}>Zip Code</Text>
+                  <TextInput
+                    style={styles.formInput}
+                    placeholder="e.g 12345"
+                    value={newAddressForm.zipCode}
+                    onChangeText={(text) => setNewAddressForm(prev => ({ ...prev, zipCode: text }))}
+                    keyboardType="numeric"
+                  />
+                </View>
+              </View>
 
-          <Text style={styles.selectorSubtitle}>All states</Text>
-
-          <FlatList
-            data={states.filter(state =>
-              state.name.toLowerCase().includes(stateSearchText.toLowerCase())
-            )}
-            keyExtractor={(item) => item.pkState.toString()}
-            renderItem={({ item }) => (
               <TouchableOpacity
-                style={styles.selectorItem}
-                onPress={() => handleStateSelect(item)}
+                style={styles.saveAddressButton}
+                onPress={handleSaveNewAddress}
+                activeOpacity={0.7}
               >
-                <Text style={styles.selectorItemText}>{item.name}</Text>
+                <Text style={styles.saveAddressButtonText}>Save Address</Text>
               </TouchableOpacity>
+            </ScrollView>
+          </View>
+        )}
+
+        {currentModalScreen === 'city' && (
+          <View style={styles.selectorContainer}>
+            <View style={styles.selectorHeader}>
+              <TouchableOpacity 
+                onPress={() => setCurrentModalScreen('form')}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                activeOpacity={0.7}
+              >
+                <Icon name="arrow-back" size={24} color="#333" />
+              </TouchableOpacity>
+              <Text style={styles.selectorTitle}>Search City ({filteredCities.length})</Text>
+              <View style={{ width: 24 }} />
+            </View>
+
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search for a city"
+              value={citySearchText}
+              onChangeText={(text) => {
+                console.log('Search text changed:', text)
+                handleCitySearch(text)
+              }}
+              autoFocus={Platform.OS === 'android'}
+            />
+
+            <Text style={styles.selectorSubtitle}>All cities ({filteredCities.length})</Text>
+
+            {/* Debug info */}
+            {__DEV__ && (
+              <View style={{ padding: 10, backgroundColor: '#f0f0f0' }}>
+                <Text>Debug: Cities: {cities.length}, Filtered: {filteredCities.length}</Text>
+                <Text>Platform: {Platform.OS}</Text>
+                <Text>Current Screen: {currentModalScreen}</Text>
+              </View>
             )}
-            showsVerticalScrollIndicator={false}
-          />
-        </View>
+
+            <View style={{ flex: 1 }}>
+              <FlatList
+                data={filteredCities}
+                keyExtractor={(item) => `city-${item.pkCity}`}
+                renderItem={({ item, index }) => {
+                  console.log(`Rendering city item ${index}:`, item.name)
+                  // Buscar el estado correspondiente
+                  const cityState = states.find(state => state.pkState === item.fkState)
+                  return (
+                    <TouchableOpacity
+                      style={styles.selectorItem}
+                      onPress={() => {
+                        console.log('City selected:', item.name)
+                        handleCitySelect(item)
+                      }}
+                      activeOpacity={0.7}
+                      hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
+                    >
+                      <Text style={styles.selectorItemText}>{item.name}</Text>
+                      <Text style={styles.selectorItemSubText}>{cityState?.name ?? 'Unknown State'}</Text>
+                    </TouchableOpacity>
+                  )
+                }}
+                showsVerticalScrollIndicator={true}
+                keyboardShouldPersistTaps="handled"
+                ListEmptyComponent={() => {
+                  console.log('FlatList is empty - showing empty component')
+                  return (
+                    <View style={{ padding: 20, alignItems: 'center' }}>
+                      <Text>No cities found</Text>
+                      <Text>Total cities: {cities.length}</Text>
+                      <Text>Filtered: {filteredCities.length}</Text>
+                    </View>
+                  )
+                }}
+                onLayout={(event) => {
+                  console.log('FlatList onLayout:', event.nativeEvent.layout)
+                }}
+                initialNumToRender={10}
+                removeClippedSubviews={false}
+                contentContainerStyle={{ 
+                  flexGrow: 1,
+                  minHeight: 200,
+                  paddingBottom: 20
+                }}
+                style={{ flex: 1 }}
+              />
+            </View>
+          </View>
+        )}
+
+        {currentModalScreen === 'state' && (
+          <View style={styles.selectorContainer}>
+            <View style={styles.selectorHeader}>
+              <TouchableOpacity 
+                onPress={() => setCurrentModalScreen('form')}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                activeOpacity={0.7}
+              >
+                <Icon name="arrow-back" size={24} color="#333" />
+              </TouchableOpacity>
+              <Text style={styles.selectorTitle}>Search State</Text>
+              <View style={{ width: 24 }} />
+            </View>
+
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search for a state"
+              value={stateSearchText}
+              onChangeText={setStateSearchText}
+              autoFocus={Platform.OS === 'android'}
+            />
+
+            <Text style={styles.selectorSubtitle}>All states</Text>
+
+            <View style={{ flex: 1 }}>
+              <FlatList
+                data={states.filter(state =>
+                  state.name.toLowerCase().includes(stateSearchText.toLowerCase())
+                )}
+                keyExtractor={(item) => item.pkState.toString()}
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    style={styles.selectorItem}
+                    onPress={() => handleStateSelect(item)}
+                    activeOpacity={0.7}
+                    hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
+                  >
+                    <Text style={styles.selectorItemText}>{item.name}</Text>
+                    <Text style={styles.selectorItemSubText}>{item.internalCode}</Text>
+                  </TouchableOpacity>
+                )}
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+                contentContainerStyle={{ 
+                  flexGrow: 1,
+                  paddingBottom: 20
+                }}
+                style={{ flex: 1 }}
+              />
+            </View>
+          </View>
+        )}
       </Modal>
     </View>
   )
@@ -1600,7 +1713,18 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderBottomWidth: 1,
     borderBottomColor: '#e0e0e0',
-    paddingTop: 50,
+    paddingTop: Platform.OS === 'ios' ? 50 : 30,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
   },
   selectorTitle: {
     fontSize: 18,
@@ -1616,18 +1740,39 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     backgroundColor: '#f8f8f8',
     fontSize: 16,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.05,
+        shadowRadius: 1,
+      },
+      android: {
+        elevation: 1,
+      },
+    }),
   },
   selectorSubtitle: {
     fontSize: 14,
     color: '#666',
     paddingHorizontal: 20,
     marginBottom: 10,
+    fontWeight: '500',
   },
   selectorItem: {
     paddingHorizontal: 20,
     paddingVertical: 15,
     borderBottomWidth: 1,
     borderBottomColor: '#f0f0f0',
+    backgroundColor: '#fff',
+    ...Platform.select({
+      ios: {
+        minHeight: 50,
+      },
+      android: {
+        minHeight: 48,
+      },
+    }),
   },
   selectorItemText: {
     fontSize: 16,
