@@ -15,6 +15,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native'
@@ -49,8 +50,20 @@ interface Address {
   pkAddress: number
   address: string
   isPrimary: number
-  createdAt: string
-  updatedAt: string
+}
+
+interface City {
+  pkCity: number
+  name: string
+  state: {
+    pkState: number
+    name: string
+  }
+}
+
+interface State {
+  pkState: number
+  name: string
 }
 
 const tnbLogo = require('@/assets/images/icon-tnb.png')
@@ -226,6 +239,7 @@ interface AddressModalProps {
   addresses: Address[]
   onAddressSelect: (address: Address) => void
   primaryAddress: Address | null
+  onAddNewAddress: () => void
 }
 
 const AddressModal: React.FC<AddressModalProps> = ({
@@ -234,6 +248,7 @@ const AddressModal: React.FC<AddressModalProps> = ({
   addresses,
   onAddressSelect,
   primaryAddress,
+  onAddNewAddress,
 }) => {
   return (
     <Modal
@@ -302,7 +317,10 @@ const AddressModal: React.FC<AddressModalProps> = ({
               </View>
             )}
 
-            <TouchableOpacity style={styles.addAddressButton}>
+            <TouchableOpacity 
+              style={styles.addAddressButton}
+              onPress={onAddNewAddress}
+            >
               <Icon name="add" size={24} color="#007AFF" />
               <Text style={styles.addAddressText}>
                 Add a new property address
@@ -337,6 +355,27 @@ const HomeScreen: React.FC = () => {
   const [userAddresses, setUserAddresses] = useState<Address[]>([])
   const [isAddressModalVisible, setAddressModalVisible] = useState(false)
   const [loadingAddresses, setLoadingAddresses] = useState(false)
+  
+  // New address form states
+  const [isAddNewAddressModalVisible, setAddNewAddressModalVisible] = useState(false)
+  const [isCityModalVisible, setCityModalVisible] = useState(false)
+  const [isStateModalVisible, setStateModalVisible] = useState(false)
+  const [cities, setCities] = useState<City[]>([])
+  const [states, setStates] = useState<State[]>([])
+  const [filteredCities, setFilteredCities] = useState<City[]>([])
+  const [citySearchText, setCitySearchText] = useState('')
+  const [stateSearchText, setStateSearchText] = useState('')
+  
+  // Form data
+  const [newAddressForm, setNewAddressForm] = useState({
+    address: '',
+    addressLine2: '',
+    city: '',
+    cityId: null as number | null,
+    state: '',
+    stateId: null as number | null,
+    zipCode: ''
+  })
 
   const API_BASE_URL = Constants.expoConfig?.extra?.API_BASE_URL
   const CATEGORIES_ENDPOINT = '/category/findAll'
@@ -386,6 +425,27 @@ const HomeScreen: React.FC = () => {
     } catch (error) {
       console.error('Error al cargar los datos del usuario:', error)
       setUserName('User')
+    }
+  }
+
+  const loadCitiesAndStates = async () => {
+    try {
+      // Load cities
+      const citiesResponse = await fetch(`${API_BASE_URL}/country_city/findAll`)
+      if (citiesResponse.ok) {
+        const citiesData = await citiesResponse.json()
+        setCities(citiesData)
+        setFilteredCities(citiesData)
+      }
+
+      // Load states
+      const statesResponse = await fetch(`${API_BASE_URL}/state/findAll`)
+      if (statesResponse.ok) {
+        const statesData = await statesResponse.json()
+        setStates(statesData)
+      }
+    } catch (error) {
+      console.error('Error al cargar ciudades y estados:', error)
     }
   }
 
@@ -486,10 +546,125 @@ const HomeScreen: React.FC = () => {
     setAddressModalVisible(false)
   }
 
+  // New address form handlers
+  const handleCitySelect = (city: City) => {
+    setNewAddressForm(prev => ({
+      ...prev,
+      city: city.name,
+      cityId: city.pkCity,
+      state: city.state.name,
+      stateId: city.state.pkState
+    }))
+    setCityModalVisible(false)
+    setCitySearchText('')
+  }
+
+  const handleStateSelect = (state: State) => {
+    const stateCities = cities.filter(city => city.state.pkState === state.pkState)
+    setFilteredCities(stateCities)
+    setNewAddressForm(prev => ({
+      ...prev,
+      state: state.name,
+      stateId: state.pkState,
+      city: '',
+      cityId: null
+    }))
+    setStateModalVisible(false)
+    setStateSearchText('')
+  }
+
+  const handleCitySearch = (text: string) => {
+    setCitySearchText(text)
+    if (text === '') {
+      // Si el estado está seleccionado, filtrar por estado, sino mostrar todas
+      const filtered = newAddressForm.stateId 
+        ? cities.filter(city => city.state.pkState === newAddressForm.stateId)
+        : cities
+      setFilteredCities(filtered)
+    } else {
+      // Siempre buscar en todas las ciudades
+      const filtered = cities.filter(city =>
+        city.name.toLowerCase().includes(text.toLowerCase())
+      )
+      setFilteredCities(filtered)
+    }
+  }
+
+  const resetNewAddressForm = () => {
+    setNewAddressForm({
+      address: '',
+      addressLine2: '',
+      city: '',
+      cityId: null,
+      state: '',
+      stateId: null,
+      zipCode: ''
+    })
+    setFilteredCities(cities)
+    setCitySearchText('')
+    setStateSearchText('')
+  }
+
+  const handleSaveNewAddress = async () => {
+    if (!newAddressForm.address || !newAddressForm.cityId || !newAddressForm.stateId) {
+      Alert.alert('Error', 'Please fill in all required fields')
+      return
+    }
+
+    try {
+      const userId = await AsyncStorage.getItem('userId')
+      if (!userId) return
+
+      const userResponse = await fetch(`${API_BASE_URL}/user/findOne/${userId}`)
+      if (!userResponse.ok) return
+
+      const userData = await userResponse.json()
+      const fkPerson = userData?.person?.pkPerson
+
+      const fullAddress = newAddressForm.addressLine2 
+        ? `${newAddressForm.address}, ${newAddressForm.addressLine2}, ${newAddressForm.city}, ${newAddressForm.state} ${newAddressForm.zipCode}`
+        : `${newAddressForm.address}, ${newAddressForm.city}, ${newAddressForm.state} ${newAddressForm.zipCode}`
+
+      const response = await fetch(`${API_BASE_URL}/person-address`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          fkPerson: fkPerson,
+          address: fullAddress,
+          isPrimary: userAddresses.length === 0 ? 1 : 0,
+        }),
+      })
+
+      if (response.ok) {
+        setAddNewAddressModalVisible(false)
+        resetNewAddressForm()
+        // Recargar datos del usuario para actualizar las direcciones
+        await loadUserData()
+        Alert.alert('Success', 'Address added successfully')
+      } else {
+        const errorData = await response.text()
+        console.error('Error creating address:', errorData)
+        Alert.alert('Error', 'Failed to add address')
+      }
+    } catch (error) {
+      console.error('Error creating address:', error)
+      Alert.alert('Error', 'An error occurred while adding the address')
+    }
+  }
+
   useEffect(() => {
     loadUserData()
+    loadCitiesAndStates()
   }, [API_BASE_URL])
 
+  useEffect(() => {
+    console.log('New Address Modal state changed:', isAddNewAddressModalVisible)
+  }, [isAddNewAddressModalVisible])
+
+  useEffect(() => {
+    const fetchCampaigns = async () => {
       try {
         setLoadingCampaigns(true)
         const response = await fetch(`${API_BASE_URL}${CAMPAIGNS_ENDPOINT}`)
@@ -749,7 +924,187 @@ const HomeScreen: React.FC = () => {
         addresses={userAddresses}
         onAddressSelect={handleAddressSelect}
         primaryAddress={primaryAddress}
+        onAddNewAddress={() => {
+          console.log('onAddNewAddress called')
+          setAddNewAddressModalVisible(true)
+        }}
       />
+
+      {/* New Address Modal */}
+      <Modal
+        animationType="slide"
+        transparent={false}
+        visible={isAddNewAddressModalVisible}
+        onRequestClose={() => {
+          console.log('Closing new address modal')
+          setAddNewAddressModalVisible(false)
+        }}
+      >
+        <View style={styles.newAddressContainer}>
+          <View style={styles.newAddressHeader}>
+            <TouchableOpacity
+              onPress={() => {
+                setAddNewAddressModalVisible(false)
+                resetNewAddressForm()
+              }}
+            >
+              <Icon name="close" size={24} color="#333" />
+            </TouchableOpacity>
+            <Text style={styles.newAddressTitle}>Add a new address</Text>
+            <View style={{ width: 24 }} />
+          </View>
+
+          <ScrollView style={styles.newAddressForm}>
+            <Text style={styles.formLabel}>Address</Text>
+            <TextInput
+              style={styles.formInput}
+              placeholder="e.g 108 Jackson St"
+              value={newAddressForm.address}
+              onChangeText={(text) => setNewAddressForm(prev => ({ ...prev, address: text }))}
+            />
+
+            <TextInput
+              style={[styles.formInput, styles.formInputSecondary]}
+              placeholder="Apt, suite, unit, building, floor, etc."
+              value={newAddressForm.addressLine2}
+              onChangeText={(text) => setNewAddressForm(prev => ({ ...prev, addressLine2: text }))}
+            />
+
+            <Text style={styles.formLabel}>City</Text>
+            <TouchableOpacity
+              style={styles.formInput}
+              onPress={() => setCityModalVisible(true)}
+            >
+              <Text style={[styles.formInputText, !newAddressForm.city && styles.placeholderText]}>
+                {newAddressForm.city || 'e.g Jacksonville'}
+              </Text>
+            </TouchableOpacity>
+
+            <View style={styles.formRow}>
+              <View style={styles.formColumn}>
+                <Text style={styles.formLabel}>State</Text>
+                <TouchableOpacity
+                  style={styles.formInput}
+                  onPress={() => setStateModalVisible(true)}
+                >
+                  <Text style={[styles.formInputText, !newAddressForm.state && styles.placeholderText]}>
+                    {newAddressForm.state || 'e.g FL'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.formColumn}>
+                <Text style={styles.formLabel}>Zip Code</Text>
+                <TextInput
+                  style={styles.formInput}
+                  placeholder="e.g 12345"
+                  value={newAddressForm.zipCode}
+                  onChangeText={(text) => setNewAddressForm(prev => ({ ...prev, zipCode: text }))}
+                  keyboardType="numeric"
+                />
+              </View>
+            </View>
+
+            <TouchableOpacity
+              style={styles.saveAddressButton}
+              onPress={handleSaveNewAddress}
+            >
+              <Text style={styles.saveAddressButtonText}>Save Address</Text>
+            </TouchableOpacity>
+          </ScrollView>
+        </View>
+      </Modal>
+
+      {/* City Selector Modal */}
+      <Modal
+        animationType="slide"
+        transparent={false}
+        visible={isCityModalVisible}
+        onRequestClose={() => setCityModalVisible(false)}
+      >
+        <View style={styles.selectorContainer}>
+          <View style={styles.selectorHeader}>
+            <TouchableOpacity onPress={() => setCityModalVisible(false)}>
+              <Icon name="arrow-back" size={24} color="#333" />
+            </TouchableOpacity>
+            <Text style={styles.selectorTitle}>Search City</Text>
+            <TouchableOpacity onPress={() => setCityModalVisible(false)}>
+              <Icon name="search" size={24} color="#333" />
+            </TouchableOpacity>
+          </View>
+
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search for a city"
+            value={citySearchText}
+            onChangeText={handleCitySearch}
+            autoFocus
+          />
+
+          <Text style={styles.selectorSubtitle}>All cities</Text>
+
+          <FlatList
+            data={filteredCities}
+            keyExtractor={(item) => item.pkCity.toString()}
+            renderItem={({ item }) => (
+              <TouchableOpacity
+                style={styles.selectorItem}
+                onPress={() => handleCitySelect(item)}
+              >
+                <Text style={styles.selectorItemText}>{item.name}</Text>
+                <Text style={styles.selectorItemSubText}>{item.state.name}</Text>
+              </TouchableOpacity>
+            )}
+            showsVerticalScrollIndicator={false}
+          />
+        </View>
+      </Modal>
+
+      {/* State Selector Modal */}
+      <Modal
+        animationType="slide"
+        transparent={false}
+        visible={isStateModalVisible}
+        onRequestClose={() => setStateModalVisible(false)}
+      >
+        <View style={styles.selectorContainer}>
+          <View style={styles.selectorHeader}>
+            <TouchableOpacity onPress={() => setStateModalVisible(false)}>
+              <Icon name="arrow-back" size={24} color="#333" />
+            </TouchableOpacity>
+            <Text style={styles.selectorTitle}>Search State</Text>
+            <TouchableOpacity onPress={() => setStateModalVisible(false)}>
+              <Icon name="search" size={24} color="#333" />
+            </TouchableOpacity>
+          </View>
+
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search for a state"
+            value={stateSearchText}
+            onChangeText={setStateSearchText}
+            autoFocus
+          />
+
+          <Text style={styles.selectorSubtitle}>All states</Text>
+
+          <FlatList
+            data={states.filter(state =>
+              state.name.toLowerCase().includes(stateSearchText.toLowerCase())
+            )}
+            keyExtractor={(item) => item.pkState.toString()}
+            renderItem={({ item }) => (
+              <TouchableOpacity
+                style={styles.selectorItem}
+                onPress={() => handleStateSelect(item)}
+              >
+                <Text style={styles.selectorItemText}>{item.name}</Text>
+              </TouchableOpacity>
+            )}
+            showsVerticalScrollIndicator={false}
+          />
+        </View>
+      </Modal>
     </View>
   )
 }
@@ -1141,6 +1496,135 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 20,
     marginBottom: 20,
+  },
+
+  // New Address Modal Styles
+  newAddressContainer: {
+    flex: 1,
+    backgroundColor: '#f8f8f8',
+  },
+  newAddressHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 15,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+    paddingTop: 50,
+  },
+  newAddressTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#333',
+  },
+  newAddressForm: {
+    flex: 1,
+    paddingHorizontal: 20,
+    paddingTop: 20,
+  },
+  formLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 8,
+    marginTop: 16,
+  },
+  formInput: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    paddingHorizontal: 15,
+    paddingVertical: 12,
+    backgroundColor: '#fff',
+    fontSize: 16,
+    color: '#333',
+  },
+  formInputSecondary: {
+    marginTop: 10,
+  },
+  formInputText: {
+    fontSize: 16,
+    color: '#333',
+  },
+  placeholderText: {
+    color: '#999',
+  },
+  formRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
+  formColumn: {
+    flex: 1,
+  },
+  saveAddressButton: {
+    backgroundColor: '#ea0e08',
+    paddingVertical: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 30,
+    marginBottom: 40,
+  },
+  saveAddressButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+
+  // City/State Selector Modal Styles
+  selectorContainer: {
+    flex: 1,
+    backgroundColor: '#fff',
+  },
+  selectorHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 15,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+    paddingTop: 50,
+  },
+  selectorTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#333',
+  },
+  searchInput: {
+    margin: 20,
+    paddingHorizontal: 15,
+    paddingVertical: 12,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    backgroundColor: '#f8f8f8',
+    fontSize: 16,
+  },
+  selectorSubtitle: {
+    fontSize: 14,
+    color: '#666',
+    paddingHorizontal: 20,
+    marginBottom: 10,
+  },
+  selectorItem: {
+    paddingHorizontal: 20,
+    paddingVertical: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  selectorItemText: {
+    fontSize: 16,
+    color: '#333',
+    fontWeight: '500',
+  },
+  selectorItemSubText: {
+    fontSize: 14,
+    color: '#666',
+    marginTop: 2,
   },
 })
 
