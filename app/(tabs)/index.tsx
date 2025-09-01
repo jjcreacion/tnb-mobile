@@ -389,6 +389,9 @@ const HomeScreen: React.FC = () => {
     zipCode: ''
   })
 
+  {/* Add a modalKey state for forcing re-render */}
+  const [modalKey, setModalKey] = useState(0)
+
   const API_BASE_URL = Constants.expoConfig?.extra?.API_BASE_URL
   const CATEGORIES_ENDPOINT = '/category/findAll'
   const CAMPAIGNS_ENDPOINT = '/mobile-campaigns/active'
@@ -661,6 +664,8 @@ const HomeScreen: React.FC = () => {
   }
 
   const resetNewAddressForm = () => {
+    console.log('=== RESETTING FORM ===')
+    console.log('Before reset - zipCode:', newAddressForm.zipCode)
     setNewAddressForm({
       address: '',
       addressLine2: '',
@@ -674,6 +679,9 @@ const HomeScreen: React.FC = () => {
     setCitySearchText('')
     setStateSearchText('')
     setCurrentModalScreen('form')
+    // Force re-render of the modal inputs
+    setModalKey(prev => prev + 1)
+    console.log('Form reset completed')
   }
 
   const handleSaveNewAddress = async () => {
@@ -738,6 +746,14 @@ const HomeScreen: React.FC = () => {
   useEffect(() => {
     console.log('New Address Modal state changed:', isAddNewAddressModalVisible)
   }, [isAddNewAddressModalVisible])
+
+  // Debug effect for form changes
+  useEffect(() => {
+    console.log('=== FORM STATE CHANGED ===')
+    console.log('zipCode:', newAddressForm.zipCode)
+    console.log('address:', newAddressForm.address)
+    console.log('city:', newAddressForm.city)
+  }, [newAddressForm])
 
   // Effect para inicializar las ciudades filtradas cuando se abre el modal de ciudad
   useEffect(() => {
@@ -1033,6 +1049,7 @@ const HomeScreen: React.FC = () => {
           console.log('Closing new address modal')
           setAddNewAddressModalVisible(false)
           setCurrentModalScreen('form')
+          resetNewAddressForm() // Reset form on modal close
         }}
       >
         {currentModalScreen === 'form' && (
@@ -1102,8 +1119,9 @@ const HomeScreen: React.FC = () => {
                 <View style={styles.formColumn}>
                   <Text style={styles.formLabel}>Zip Code</Text>
                   <TextInput
+                    key={`zipcode-${modalKey}`}  // Add this key prop
                     style={styles.formInput}
-                    placeholder="e.g 12345"
+                    placeholder="e.g 12345 or 12345-6789"
                     value={newAddressForm.zipCode}
                     onChangeText={(text) => setNewAddressForm(prev => ({ ...prev, zipCode: text }))}
                     keyboardType="default"
