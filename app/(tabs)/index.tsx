@@ -142,9 +142,10 @@ const HomeScreen: React.FC = () => {
   const [userAddresses, setUserAddresses] = useState<Address[]>([])
   const [isAddressModalVisible, setAddressModalVisible] = useState(false)
   const [loadingAddresses, setLoadingAddresses] = useState(false)
-  
+
   // New address modal state
-  const [isAddNewAddressModalVisible, setAddNewAddressModalVisible] = useState(false)
+  const [isAddNewAddressModalVisible, setAddNewAddressModalVisible] =
+    useState(false)
 
   const API_BASE_URL = Constants.expoConfig?.extra?.API_BASE_URL
   const CATEGORIES_ENDPOINT = '/category/findAll'
@@ -204,52 +205,59 @@ const HomeScreen: React.FC = () => {
   const handleAddressSelect = async (address: Address) => {
     // Si la dirección seleccionada ya es la primaria, solo cerrar el modal
     if (address.pkAddress === primaryAddress?.pkAddress) {
-      setAddressModalVisible(false);
-      return;
+      setAddressModalVisible(false)
+      return
     }
 
     try {
-      const userId = await AsyncStorage.getItem('userId');
+      const userId = await AsyncStorage.getItem('userId')
       if (!userId) {
-        console.error('Usuario no encontrado');
-        return;
+        console.error('Usuario no encontrado')
+        return
       }
 
       // Obtener los datos del usuario para conseguir fkPerson
-      const userResponse = await fetch(`${API_BASE_URL}/user/findOne/${userId}`);
+      const userResponse = await fetch(`${API_BASE_URL}/user/findOne/${userId}`)
       if (!userResponse.ok) {
-        console.error('Error al obtener datos del usuario');
-        return;
+        console.error('Error al obtener datos del usuario')
+        return
       }
-      
-      const userData = await userResponse.json();
-      const fkPerson = userData?.person?.pkPerson;
-      
+
+      const userData = await userResponse.json()
+      const fkPerson = userData?.person?.pkPerson
+
       if (!fkPerson) {
-        console.error('No se pudo obtener fkPerson del usuario');
-        return;
+        console.error('No se pudo obtener fkPerson del usuario')
+        return
       }
 
       // Actualizar la dirección anterior como secundaria (si existe una primaria actual)
       if (primaryAddress) {
-        const updatePreviousPrimary = await fetch(`${API_BASE_URL}/person-address`, {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            pkAddress: primaryAddress.pkAddress,
-            // fkPerson: fkPerson,
-            // address: primaryAddress.address,
-            isPrimary: 0,
-          }),
-        });
+        const updatePreviousPrimary = await fetch(
+          `${API_BASE_URL}/person-address`,
+          {
+            method: 'PATCH',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              pkAddress: primaryAddress.pkAddress,
+              // fkPerson: fkPerson,
+              // address: primaryAddress.address,
+              isPrimary: 0,
+            }),
+          }
+        )
 
         if (!updatePreviousPrimary.ok) {
-          const errorData = await updatePreviousPrimary.text();
-          console.error('Error al actualizar dirección anterior:', updatePreviousPrimary.status, errorData);
-          Alert.alert('Error', 'No se pudo actualizar la dirección anterior.');
-          return;
+          const errorData = await updatePreviousPrimary.text()
+          console.error(
+            'Error al actualizar dirección anterior:',
+            updatePreviousPrimary.status,
+            errorData
+          )
+          Alert.alert('Error', 'No se pudo actualizar la dirección anterior.')
+          return
         }
       }
 
@@ -265,30 +273,39 @@ const HomeScreen: React.FC = () => {
           // address: address.address,
           isPrimary: 1,
         }),
-      });
+      })
 
       if (!updateNewPrimary.ok) {
-        const errorData = await updateNewPrimary.text();
-        console.error('Error al actualizar nueva dirección primaria:', updateNewPrimary.status, errorData);
-        Alert.alert('Error', 'No se pudo establecer la nueva dirección primaria.');
-        return;
+        const errorData = await updateNewPrimary.text()
+        console.error(
+          'Error al actualizar nueva dirección primaria:',
+          updateNewPrimary.status,
+          errorData
+        )
+        Alert.alert(
+          'Error',
+          'No se pudo establecer la nueva dirección primaria.'
+        )
+        return
       }
 
       // Actualizar el estado local
-      const updatedAddresses = userAddresses.map(addr => ({
+      const updatedAddresses = userAddresses.map((addr) => ({
         ...addr,
         isPrimary: addr.pkAddress === address.pkAddress ? 1 : 0,
-      }));
+      }))
 
-      setUserAddresses(updatedAddresses);
-      setPrimaryAddress({ ...address, isPrimary: 1 });
-      setAddressModalVisible(false);
-      
+      setUserAddresses(updatedAddresses)
+      setPrimaryAddress({ ...address, isPrimary: 1 })
+      setAddressModalVisible(false)
     } catch (error) {
-      console.error('Error al actualizar dirección primaria:', error);
-      Alert.alert('Error', 'Ocurrió un error al actualizar la dirección. Por favor intenta de nuevo.');
+      console.error('Error al actualizar dirección primaria:', error)
+      Alert.alert(
+        'Error',
+        'Ocurrió un error al actualizar la dirección. Por favor intenta de nuevo.'
+      )
     }
-  };
+  }
 
   const handleCloseAddressModal = () => {
     setAddressModalVisible(false)

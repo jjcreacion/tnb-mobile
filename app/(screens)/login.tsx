@@ -94,8 +94,7 @@ export default function LoginScreen() {
           <View style={[styles.card, { backgroundColor: cardBackgroundColor }]}>
             <Text style={[styles.title, { color: textColorPrimary }]}>Sign In</Text>
             <Formik
-              // initialValues={{ email: '', password: '' }}
-              initialValues={{ email: 'rudy.rs1@gmail.com', password: 'Qwerty.123' }}
+              initialValues={{ email: '', password: '' }}
               validationSchema={validationSchema}
               onSubmit={handleLogin}
             >

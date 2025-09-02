@@ -53,7 +53,9 @@ const AddNewAddressModal: React.FC<AddNewAddressModalProps> = ({
   userAddresses,
   onAddressAdded,
 }) => {
-  const [currentModalScreen, setCurrentModalScreen] = useState<'form' | 'city' | 'state'>('form')
+  const [currentModalScreen, setCurrentModalScreen] = useState<
+    'form' | 'city' | 'state'
+  >('form')
   const [cities, setCities] = useState<City[]>([])
   const [states, setStates] = useState<State[]>([])
   const [filteredCities, setFilteredCities] = useState<City[]>([])
@@ -70,7 +72,7 @@ const AddNewAddressModal: React.FC<AddNewAddressModalProps> = ({
     cityId: null as number | null,
     state: '',
     stateId: null as number | null,
-    zipCode: ''
+    zipCode: '',
   })
 
   const API_BASE_URL = Constants.expoConfig?.extra?.API_BASE_URL
@@ -81,15 +83,16 @@ const AddNewAddressModal: React.FC<AddNewAddressModalProps> = ({
       const countriesResponse = await fetch(`${API_BASE_URL}/country/findAll`)
       if (countriesResponse.ok) {
         const countriesData = await countriesResponse.json()
-        
+
         // Find USA or United States (assuming it's in the data)
-        const usa = countriesData.find((country: any) => 
-          country.name?.toLowerCase().includes('united states') ||
-          country.name?.toLowerCase().includes('usa') ||
-          country.code === 'US' ||
-          country.internalCode === 'US'
+        const usa = countriesData.find(
+          (country: any) =>
+            country.name?.toLowerCase().includes('united states') ||
+            country.name?.toLowerCase().includes('usa') ||
+            country.code === 'US' ||
+            country.internalCode === 'US'
         )
-        
+
         if (usa) {
           setCountryId(usa.pkCountry || usa.id || 1)
         } else {
@@ -126,14 +129,14 @@ const AddNewAddressModal: React.FC<AddNewAddressModalProps> = ({
 
   const handleCitySelect = (city: City) => {
     // Buscar el estado correspondiente por fkState
-    const cityState = states.find(state => state.pkState === city.fkState)
-    
-    setNewAddressForm(prev => ({
+    const cityState = states.find((state) => state.pkState === city.fkState)
+
+    setNewAddressForm((prev) => ({
       ...prev,
       city: city.name,
       cityId: city.pkCity,
       state: cityState?.name ?? '',
-      stateId: cityState?.pkState ?? null
+      stateId: cityState?.pkState ?? null,
     }))
     setCitySearchText('')
     // Volver al formulario principal
@@ -142,14 +145,14 @@ const AddNewAddressModal: React.FC<AddNewAddressModalProps> = ({
 
   const handleStateSelect = (state: State) => {
     // Filtrar ciudades por fkState
-    const stateCities = cities.filter(city => city.fkState === state.pkState)
+    const stateCities = cities.filter((city) => city.fkState === state.pkState)
     setFilteredCities(stateCities)
-    setNewAddressForm(prev => ({
+    setNewAddressForm((prev) => ({
       ...prev,
       state: state.name,
       stateId: state.pkState,
       city: '',
-      cityId: null
+      cityId: null,
     }))
     setStateSearchText('')
     // Volver al formulario principal
@@ -159,25 +162,20 @@ const AddNewAddressModal: React.FC<AddNewAddressModalProps> = ({
   const handleCitySearch = (text: string) => {
     setCitySearchText(text)
     let filtered: City[] = []
-    
+
     if (text === '') {
-      // Sin texto: listar por estado si existe, sino todas
+      // Sin texto de búsqueda: mostrar ciudades filtradas por estado si hay uno seleccionado
       filtered = newAddressForm.stateId
-        ? cities.filter(city => city.fkState === newAddressForm.stateId)
+        ? cities.filter((city) => city.fkState === newAddressForm.stateId)
         : cities
     } else {
-      // Con texto: filtrar nombre y estado si aplica
+      // Con texto de búsqueda: buscar en TODAS las ciudades del país, ignorando el estado seleccionado
       const searchLower = text.toLowerCase()
-      filtered = newAddressForm.stateId
-        ? cities.filter(city =>
-            city.fkState === newAddressForm.stateId &&
-            city.name.toLowerCase().includes(searchLower)
-          )
-        : cities.filter(city =>
-            city.name.toLowerCase().includes(searchLower)
-          )
+      filtered = cities.filter((city) =>
+        city.name.toLowerCase().includes(searchLower)
+      )
     }
-    
+
     setFilteredCities(filtered)
   }
 
@@ -189,18 +187,22 @@ const AddNewAddressModal: React.FC<AddNewAddressModalProps> = ({
       cityId: null,
       state: '',
       stateId: null,
-      zipCode: ''
+      zipCode: '',
     })
     setFilteredCities(cities)
     setCitySearchText('')
     setStateSearchText('')
     setCurrentModalScreen('form')
     // Force re-render of the modal inputs
-    setModalKey(prev => prev + 1)
+    setModalKey((prev) => prev + 1)
   }
 
   const handleSaveNewAddress = async () => {
-    if (!newAddressForm.address || !newAddressForm.cityId || !newAddressForm.stateId) {
+    if (
+      !newAddressForm.address ||
+      !newAddressForm.cityId ||
+      !newAddressForm.stateId
+    ) {
       Alert.alert('Error', 'Please fill in all required fields')
       return
     }
@@ -215,7 +217,7 @@ const AddNewAddressModal: React.FC<AddNewAddressModalProps> = ({
       const userData = await userResponse.json()
       const fkPerson = userData?.person?.pkPerson
 
-      const fullAddress = newAddressForm.addressLine2 
+      const fullAddress = newAddressForm.addressLine2
         ? `${newAddressForm.address}, ${newAddressForm.addressLine2}, ${newAddressForm.city}, ${newAddressForm.state} ${newAddressForm.zipCode}`
         : `${newAddressForm.address}, ${newAddressForm.city}, ${newAddressForm.state} ${newAddressForm.zipCode}`
 
@@ -269,7 +271,7 @@ const AddNewAddressModal: React.FC<AddNewAddressModalProps> = ({
     if (currentModalScreen === 'city' && cities.length > 0) {
       // Inicializar las ciudades filtradas
       const initialCities = newAddressForm.stateId
-        ? cities.filter(city => city.fkState === newAddressForm.stateId)
+        ? cities.filter((city) => city.fkState === newAddressForm.stateId)
         : cities
       setFilteredCities(initialCities)
     }
@@ -296,7 +298,7 @@ const AddNewAddressModal: React.FC<AddNewAddressModalProps> = ({
             <View style={{ width: 24 }} />
           </View>
 
-          <ScrollView 
+          <ScrollView
             style={styles.newAddressForm}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
@@ -306,14 +308,18 @@ const AddNewAddressModal: React.FC<AddNewAddressModalProps> = ({
               style={styles.formInput}
               placeholder="e.g 108 Jackson St"
               value={newAddressForm.address}
-              onChangeText={(text) => setNewAddressForm(prev => ({ ...prev, address: text }))}
+              onChangeText={(text) =>
+                setNewAddressForm((prev) => ({ ...prev, address: text }))
+              }
             />
 
             <TextInput
               style={[styles.formInput, styles.formInputSecondary]}
               placeholder="Apt, suite, unit, building, floor, etc."
               value={newAddressForm.addressLine2}
-              onChangeText={(text) => setNewAddressForm(prev => ({ ...prev, addressLine2: text }))}
+              onChangeText={(text) =>
+                setNewAddressForm((prev) => ({ ...prev, addressLine2: text }))
+              }
             />
 
             <Text style={styles.formLabel}>City</Text>
@@ -323,7 +329,12 @@ const AddNewAddressModal: React.FC<AddNewAddressModalProps> = ({
               activeOpacity={0.7}
               hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
             >
-              <Text style={[styles.formInputText, !newAddressForm.city && styles.placeholderText]}>
+              <Text
+                style={[
+                  styles.formInputText,
+                  !newAddressForm.city && styles.placeholderText,
+                ]}
+              >
                 {newAddressForm.city || 'e.g Jacksonville'}
               </Text>
             </TouchableOpacity>
@@ -337,7 +348,12 @@ const AddNewAddressModal: React.FC<AddNewAddressModalProps> = ({
                   activeOpacity={0.7}
                   hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
                 >
-                  <Text style={[styles.formInputText, !newAddressForm.state && styles.placeholderText]}>
+                  <Text
+                    style={[
+                      styles.formInputText,
+                      !newAddressForm.state && styles.placeholderText,
+                    ]}
+                  >
                     {newAddressForm.state || 'e.g FL'}
                   </Text>
                 </TouchableOpacity>
@@ -348,9 +364,11 @@ const AddNewAddressModal: React.FC<AddNewAddressModalProps> = ({
                 <TextInput
                   key={`zipcode-${modalKey}`}
                   style={styles.formInput}
-                  placeholder="e.g 12345 or 12345-6789"
+                  placeholder="e.g 12345"
                   value={newAddressForm.zipCode}
-                  onChangeText={(text) => setNewAddressForm(prev => ({ ...prev, zipCode: text }))}
+                  onChangeText={(text) =>
+                    setNewAddressForm((prev) => ({ ...prev, zipCode: text }))
+                  }
                   keyboardType="default"
                   maxLength={10}
                 />
@@ -371,26 +389,30 @@ const AddNewAddressModal: React.FC<AddNewAddressModalProps> = ({
       {currentModalScreen === 'city' && (
         <View style={styles.selectorContainer}>
           <View style={styles.selectorHeader}>
-            <TouchableOpacity 
+            <TouchableOpacity
               onPress={() => setCurrentModalScreen('form')}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               activeOpacity={0.7}
             >
               <Icon name="arrow-back" size={24} color="#333" />
             </TouchableOpacity>
-            <Text style={styles.selectorTitle}>Search City ({filteredCities.length})</Text>
+            <Text style={styles.selectorTitle}>
+              Search City ({filteredCities.length})
+            </Text>
             <View style={{ width: 24 }} />
           </View>
 
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Search for a city"
-              value={citySearchText}
-              onChangeText={handleCitySearch}
-              autoFocus={Platform.OS === 'android'}
-            />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search for a city"
+            value={citySearchText}
+            onChangeText={handleCitySearch}
+            autoFocus={Platform.OS === 'android'}
+          />
 
-            <Text style={styles.selectorSubtitle}>All cities ({filteredCities.length})</Text>
+          <Text style={styles.selectorSubtitle}>
+            All cities ({filteredCities.length})
+          </Text>
 
           <View style={{ flex: 1 }}>
             <FlatList
@@ -398,7 +420,9 @@ const AddNewAddressModal: React.FC<AddNewAddressModalProps> = ({
               keyExtractor={(item) => `city-${item.pkCity}`}
               renderItem={({ item }) => {
                 // Buscar el estado correspondiente
-                const cityState = states.find(state => state.pkState === item.fkState)
+                const cityState = states.find(
+                  (state) => state.pkState === item.fkState
+                )
                 return (
                   <TouchableOpacity
                     style={styles.selectorItem}
@@ -407,7 +431,9 @@ const AddNewAddressModal: React.FC<AddNewAddressModalProps> = ({
                     hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
                   >
                     <Text style={styles.selectorItemText}>{item.name}</Text>
-                    <Text style={styles.selectorItemSubText}>{cityState?.name ?? 'Unknown State'}</Text>
+                    <Text style={styles.selectorItemSubText}>
+                      {cityState?.name ?? 'Unknown State'}
+                    </Text>
                   </TouchableOpacity>
                 )
               }}
@@ -420,10 +446,10 @@ const AddNewAddressModal: React.FC<AddNewAddressModalProps> = ({
               )}
               initialNumToRender={10}
               removeClippedSubviews={false}
-              contentContainerStyle={{ 
+              contentContainerStyle={{
                 flexGrow: 1,
                 minHeight: 200,
-                paddingBottom: 20
+                paddingBottom: 20,
               }}
               style={{ flex: 1 }}
             />
@@ -434,7 +460,7 @@ const AddNewAddressModal: React.FC<AddNewAddressModalProps> = ({
       {currentModalScreen === 'state' && (
         <View style={styles.selectorContainer}>
           <View style={styles.selectorHeader}>
-            <TouchableOpacity 
+            <TouchableOpacity
               onPress={() => setCurrentModalScreen('form')}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               activeOpacity={0.7}
@@ -457,7 +483,7 @@ const AddNewAddressModal: React.FC<AddNewAddressModalProps> = ({
 
           <View style={{ flex: 1 }}>
             <FlatList
-              data={states.filter(state =>
+              data={states.filter((state) =>
                 state.name.toLowerCase().includes(stateSearchText.toLowerCase())
               )}
               keyExtractor={(item) => item.pkState.toString()}
@@ -469,14 +495,16 @@ const AddNewAddressModal: React.FC<AddNewAddressModalProps> = ({
                   hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
                 >
                   <Text style={styles.selectorItemText}>{item.name}</Text>
-                  <Text style={styles.selectorItemSubText}>{item.internalCode}</Text>
+                  <Text style={styles.selectorItemSubText}>
+                    {item.internalCode}
+                  </Text>
                 </TouchableOpacity>
               )}
               showsVerticalScrollIndicator={false}
               keyboardShouldPersistTaps="handled"
-              contentContainerStyle={{ 
+              contentContainerStyle={{
                 flexGrow: 1,
-                paddingBottom: 20
+                paddingBottom: 20,
               }}
               style={{ flex: 1 }}
             />
