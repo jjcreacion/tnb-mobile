@@ -134,6 +134,8 @@ const AddressModal: React.FC<AddressModalProps> = ({
               onAddNewAddress={handleAddNewAddress}
               onEditAddress={(address) => handleEditAddress(address)}
               onDeleteAddress={(address) => handleDeleteAddress(address, onAddressAdded)}
+              cities={cities}
+              states={states}
             />
           </Animated.View>
           

@@ -2,7 +2,7 @@ import React from 'react'
 import { Alert, ScrollView, Text, TouchableOpacity, View } from 'react-native'
 import Icon from 'react-native-vector-icons/MaterialIcons'
 import { addressStyles } from './styles'
-import { Address } from './types'
+import { Address, City, State } from './types'
 
 interface AddressListProps {
   addresses: Address[]
@@ -11,6 +11,8 @@ interface AddressListProps {
   onAddNewAddress: () => void
   onEditAddress?: (address: Address) => void
   onDeleteAddress?: (address: Address) => void
+  cities?: City[]
+  states?: State[]
 }
 
 export const AddressList: React.FC<AddressListProps> = ({
@@ -20,6 +22,8 @@ export const AddressList: React.FC<AddressListProps> = ({
   onAddNewAddress,
   onEditAddress,
   onDeleteAddress,
+  cities = [],
+  states = [],
 }) => {
   const handleDeletePress = (address: Address) => {
     Alert.alert(
@@ -37,6 +41,43 @@ export const AddressList: React.FC<AddressListProps> = ({
         },
       ]
     )
+  }
+
+  const buildFullAddressDescription = (address: Address): string => {
+    const parts: string[] = []
+    
+    // 1. address
+    if (address.address) {
+      parts.push(address.address.trim())
+    }
+    
+    // 2. addressLine2
+    if (address.addressLine2) {
+      parts.push(address.addressLine2.trim())
+    }
+    
+    // 3. City (buscar el nombre por ID)
+    if (address.city && cities.length > 0) {
+      const city = cities.find(c => c.pkCity === address.city)
+      if (city) {
+        parts.push(city.name.trim())
+      }
+    }
+    
+    // 4. State (buscar el nombre por ID)
+    if (address.state && states.length > 0) {
+      const state = states.find(s => s.pkState === address.state)
+      if (state) {
+        parts.push(state.name.trim())
+      }
+    }
+    
+    // 5. zipCode
+    if (address.zipCode) {
+      parts.push(address.zipCode.trim())
+    }
+    
+    return parts.join(', ')
   }
   return (
     <ScrollView 
@@ -70,20 +111,12 @@ export const AddressList: React.FC<AddressListProps> = ({
                 />
               </View>
               <View style={addressStyles.addressTextContainer}>
-                <Text style={addressStyles.addressText}>{address.address}</Text>
-                {address.addressLine2 && (
-                  <Text style={addressStyles.addressSubText}>
-                    {address.addressLine2}
-                  </Text>
-                )}
+                <Text style={addressStyles.addressText}>
+                  {buildFullAddressDescription(address)}
+                </Text>
                 {address.isPrimary === 1 && (
                   <Text style={[addressStyles.addressSubText, { color: '#4CAF50', fontWeight: '600' }]}>
                     Primary Address
-                  </Text>
-                )}
-                {address.zipCode && (
-                  <Text style={addressStyles.addressSubText}>
-                    ZIP: {address.zipCode}
                   </Text>
                 )}
               </View>
