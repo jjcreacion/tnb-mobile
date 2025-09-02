@@ -16,10 +16,10 @@ import {
     View,
 } from 'react-native'
 import Icon from 'react-native-vector-icons/MaterialIcons'
-import AddressModal from '../(screens)/AddressModal'
 import CampaignModal from '../(screens)/CampaignModal'
 import RequestModal from '../(screens)/RequestModal'
 import SideMenu from '../(screens)/SideMenu'
+import { AddressModal } from '../../components/person-address'
 
 const { width: screenWidth } = Dimensions.get('window')
 

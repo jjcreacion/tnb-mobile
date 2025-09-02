@@ -54,18 +54,18 @@ export class AddressService {
     formData: AddressFormData, 
     countryId: number, 
     isFirstAddress: boolean
-  ): Promise<{ success: boolean; addressId?: number }> {
+  ): Promise<boolean> {
     try {
       const userId = await AsyncStorage.getItem('userId')
       if (!userId) {
         console.error('User ID not found')
-        return { success: false }
+        return false
       }
 
       const userResponse = await fetch(`${API_BASE_URL}/user/findOne/${userId}`)
       if (!userResponse.ok) {
         console.error('Error fetching user data:', userResponse.status)
-        return { success: false }
+        return false
       }
 
       const userData = await userResponse.json()
@@ -73,7 +73,7 @@ export class AddressService {
 
       if (!fkPerson) {
         console.error('Person ID not found')
-        return { success: false }
+        return false
       }
 
       const response = await fetch(`${API_BASE_URL}/person-address`, {
@@ -87,26 +87,18 @@ export class AddressService {
           addressLine2: formData.addressLine2,
           zipCode: formData.zipCode,
           isPrimary: isFirstAddress ? 1 : 0,
-          latitude: formData.latitude?.toString() || '0',
-          longitude: formData.longitude?.toString() || '0',
+          latitude: 0,
+          longitude: 0,
           country: countryId,
           state: formData.stateId,
           city: formData.cityId,
         }),
       })
 
-      if (response.ok) {
-        const result = await response.json()
-        return { 
-          success: true, 
-          addressId: result?.pkAddress || result?.id || result?.pkPersonAddress 
-        }
-      } else {
-        return { success: false }
-      }
+      return response.ok
     } catch (error) {
       console.error('Error saving address:', error)
-      return { success: false }
+      return false
     }
   }
 
@@ -136,92 +128,11 @@ export class AddressService {
     if (!searchText) return states
     const searchLower = searchText.toLowerCase()
     return states.filter((state) =>
-      state.name.toLowerCase().includes(searchLower) ||
-      state.internalCode.toLowerCase().includes(searchLower)
+      state.name.toLowerCase().includes(searchLower)
     )
   }
 
   static findStateByCity(states: State[], city: City): State | undefined {
     return states.find((state) => state.pkState === city.fkState)
-  }
-
-  static async updateAddress(
-    pkAddress: number,
-    updateData: Partial<AddressFormData & { isPrimary?: number }>
-  ): Promise<{ success: boolean; address?: any; message?: string }> {
-    try {
-      const requestBody: any = { pkAddress }
-      
-      // Solo incluir campos que se han modificado - ahora soportados por el UpdatePersonAddressDto
-      if (updateData.address !== undefined) requestBody.address = updateData.address
-      if (updateData.addressLine2 !== undefined) requestBody.addressLine2 = updateData.addressLine2
-      if (updateData.zipCode !== undefined) requestBody.zipCode = updateData.zipCode
-      if (updateData.isPrimary !== undefined) requestBody.isPrimary = updateData.isPrimary
-      if (updateData.cityId !== undefined) requestBody.city = updateData.cityId
-      if (updateData.stateId !== undefined) requestBody.state = updateData.stateId
-      if (updateData.latitude !== undefined) requestBody.latitude = updateData.latitude?.toString() || '0'
-      if (updateData.longitude !== undefined) requestBody.longitude = updateData.longitude?.toString() || '0'
-
-      const response = await fetch(`${API_BASE_URL}/person-address`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestBody),
-      })
-
-      if (response.ok) {
-        const result = await response.json()
-        return {
-          success: true,
-          address: result.address,
-          message: result.message || 'Address updated successfully'
-        }
-      } else {
-        const errorData = await response.text()
-        console.error('🔧 [AddressService.updateAddress] Error del backend:', {
-          status: response.status,
-          statusText: response.statusText,
-          errorData
-        })
-        return {
-          success: false,
-          message: 'Failed to update address'
-        }
-      }
-    } catch (error) {
-      console.error('🔧 [AddressService.updateAddress] Error de red:', error)
-      return {
-        success: false,
-        message: 'Network error occurred'
-      }
-    }
-  }
-
-  static async deleteAddress(pkAddress: number): Promise<{ success: boolean; message?: string }> {
-    try {
-      const response = await fetch(`${API_BASE_URL}/person-address/${pkAddress}`, {
-        method: 'DELETE',
-      })
-
-      if (response.ok) {
-        return {
-          success: true,
-          message: 'Address deleted successfully'
-        }
-      } else {
-        console.error('Error deleting address:', response.status)
-        return {
-          success: false,
-          message: 'Failed to delete address'
-        }
-      }
-    } catch (error) {
-      console.error('Error deleting address:', error)
-      return {
-        success: false,
-        message: 'Network error occurred'
-      }
-    }
   }
 }
