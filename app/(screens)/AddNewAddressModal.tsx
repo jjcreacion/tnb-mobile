@@ -2,16 +2,16 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 import Constants from 'expo-constants'
 import React, { useEffect, useState } from 'react'
 import {
-    Alert,
-    FlatList,
-    Modal,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Alert,
+  FlatList,
+  Modal,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native'
 import Icon from 'react-native-vector-icons/MaterialIcons'
 
@@ -217,10 +217,6 @@ const AddNewAddressModal: React.FC<AddNewAddressModalProps> = ({
       const userData = await userResponse.json()
       const fkPerson = userData?.person?.pkPerson
 
-      const fullAddress = newAddressForm.addressLine2
-        ? `${newAddressForm.address}, ${newAddressForm.addressLine2}, ${newAddressForm.city}, ${newAddressForm.state} ${newAddressForm.zipCode}`
-        : `${newAddressForm.address}, ${newAddressForm.city}, ${newAddressForm.state} ${newAddressForm.zipCode}`
-
       const response = await fetch(`${API_BASE_URL}/person-address`, {
         method: 'POST',
         headers: {
@@ -228,7 +224,9 @@ const AddNewAddressModal: React.FC<AddNewAddressModalProps> = ({
         },
         body: JSON.stringify({
           fkPerson: fkPerson,
-          address: fullAddress,
+          address: newAddressForm.address,
+          addressLine2: newAddressForm.addressLine2,
+          zipCode: newAddressForm.zipCode,
           isPrimary: userAddresses.length === 0 ? 1 : 0,
           latitude: 0,
           longitude: 0,
