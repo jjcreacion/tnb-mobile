@@ -98,25 +98,41 @@ export const useAddressModal = (isVisible: boolean, addresses: any[]) => {
   }
 
   const handleCitySelect = (city: City) => {
-    const cityState = AddressService.findStateByCity(states, city)
+    console.log('=== DEBUG: handleCitySelect ===')
+    console.log('Selected city:', city)
+    console.log('editingAddress exists:', !!editingAddress)
     
-    if (currentScreen === 'edit-form' && editingAddress) {
-      setEditAddressForm((prev) => ({
-        ...prev,
-        city: city.name,
-        cityId: city.pkCity,
-        state: cityState?.name ?? '',
-        stateId: cityState?.pkState ?? null,
-      }))
+    const cityState = AddressService.findStateByCity(states, city)
+    console.log('Found state for city:', cityState)
+    
+    // Determinar si estamos editando basándose en si hay una dirección siendo editada
+    if (editingAddress) {
+      console.log('🔄 Updating EDIT form with city data')
+      setEditAddressForm((prev) => {
+        const newForm = {
+          ...prev,
+          city: city.name,
+          cityId: city.pkCity,
+          state: cityState?.name ?? '',
+          stateId: cityState?.pkState ?? null,
+        }
+        console.log('Updated editAddressForm:', newForm)
+        return newForm
+      })
       animateToScreen('edit-form')
     } else {
-      setNewAddressForm((prev) => ({
-        ...prev,
-        city: city.name,
-        cityId: city.pkCity,
-        state: cityState?.name ?? '',
-        stateId: cityState?.pkState ?? null,
-      }))
+      console.log('🆕 Updating NEW form with city data')
+      setNewAddressForm((prev) => {
+        const newForm = {
+          ...prev,
+          city: city.name,
+          cityId: city.pkCity,
+          state: cityState?.name ?? '',
+          stateId: cityState?.pkState ?? null,
+        }
+        console.log('Updated newAddressForm:', newForm)
+        return newForm
+      })
       animateToScreen('add-form')
     }
     
@@ -124,26 +140,42 @@ export const useAddressModal = (isVisible: boolean, addresses: any[]) => {
   }
 
   const handleStateSelect = (state: State) => {
+    console.log('=== DEBUG: handleStateSelect ===')
+    console.log('Selected state:', state)
+    console.log('editingAddress exists:', !!editingAddress)
+    
     const stateCities = AddressService.filterCitiesByState(cities, state.pkState)
     setFilteredCities(stateCities)
+    console.log('Filtered cities for state:', stateCities.length, 'cities')
     
-    if (currentScreen === 'edit-form' && editingAddress) {
-      setEditAddressForm((prev) => ({
-        ...prev,
-        state: state.name,
-        stateId: state.pkState,
-        city: '',
-        cityId: null,
-      }))
+    // Determinar si estamos editando basándose en si hay una dirección siendo editada
+    if (editingAddress) {
+      console.log('🔄 Updating EDIT form with state data (clearing city)')
+      setEditAddressForm((prev) => {
+        const newForm = {
+          ...prev,
+          state: state.name,
+          stateId: state.pkState,
+          city: '',
+          cityId: null,
+        }
+        console.log('Updated editAddressForm:', newForm)
+        return newForm
+      })
       animateToScreen('edit-form')
     } else {
-      setNewAddressForm((prev) => ({
-        ...prev,
-        state: state.name,
-        stateId: state.pkState,
-        city: '',
-        cityId: null,
-      }))
+      console.log('🆕 Updating NEW form with state data (clearing city)')
+      setNewAddressForm((prev) => {
+        const newForm = {
+          ...prev,
+          state: state.name,
+          stateId: state.pkState,
+          city: '',
+          cityId: null,
+        }
+        console.log('Updated newAddressForm:', newForm)
+        return newForm
+      })
       animateToScreen('add-form')
     }
     
@@ -154,7 +186,8 @@ export const useAddressModal = (isVisible: boolean, addresses: any[]) => {
     setCitySearchText(text)
     let filtered: City[] = []
     
-    const currentForm = currentScreen === 'edit-form' ? editAddressForm : newAddressForm
+    // Determinar el formulario actual basándose en si hay una dirección siendo editada
+    const currentForm = editingAddress ? editAddressForm : newAddressForm
 
     if (text === '') {
       filtered = currentForm.stateId
@@ -213,21 +246,36 @@ export const useAddressModal = (isVisible: boolean, addresses: any[]) => {
   }
 
   const handleEditAddress = (address: Address) => {
+    console.log('=== DEBUG: handleEditAddress ===')
+    console.log('Address to edit:', address)
+    
     setEditingAddress(address)
-    setEditAddressForm({
+    
+    // Initialize form with basic data, city and state names will be loaded by EditAddressForm
+    const initialFormData = {
       address: address.address || '',
       addressLine2: address.addressLine2 || '',
-      city: '',
+      city: '', // Will be loaded from cities array in EditAddressForm
       cityId: address.city || null,
-      state: '',
+      state: '', // Will be loaded from states array in EditAddressForm  
       stateId: address.state || null,
       zipCode: address.zipCode || '',
-    })
+    }
+    
+    console.log('Initial editAddressForm data:', initialFormData)
+    setEditAddressForm(initialFormData)
+    
     animateToScreen('edit-form')
   }
 
   const handleUpdateAddress = async (isPrimaryChanged?: boolean, onAddressUpdated?: () => void) => {
+    console.log('=== DEBUG: handleUpdateAddress START ===')
+    console.log('editingAddress:', editingAddress)
+    console.log('editAddressForm:', editAddressForm)
+    console.log('isPrimaryChanged:', isPrimaryChanged)
+    
     if (!editingAddress) {
+      console.log('❌ No address selected for editing')
       Alert.alert('Error', 'No address selected for editing')
       return
     }
@@ -237,6 +285,10 @@ export const useAddressModal = (isVisible: boolean, addresses: any[]) => {
       !editAddressForm.cityId ||
       !editAddressForm.stateId
     ) {
+      console.log('❌ Missing required fields:')
+      console.log('  - address:', editAddressForm.address)
+      console.log('  - cityId:', editAddressForm.cityId)
+      console.log('  - stateId:', editAddressForm.stateId)
       Alert.alert('Error', 'Please fill in all required fields')
       return
     }
@@ -245,24 +297,34 @@ export const useAddressModal = (isVisible: boolean, addresses: any[]) => {
       address: editAddressForm.address,
       addressLine2: editAddressForm.addressLine2,
       zipCode: editAddressForm.zipCode,
-      city: editAddressForm.cityId,
-      state: editAddressForm.stateId,
+      cityId: editAddressForm.cityId,
+      stateId: editAddressForm.stateId,
     }
 
     if (isPrimaryChanged) {
       updateData.isPrimary = editingAddress.isPrimary === 1 ? 0 : 1
+      console.log('🔄 Primary status changing from', editingAddress.isPrimary, 'to', updateData.isPrimary)
     }
+
+    console.log('📤 Final updateData being sent to backend:', updateData)
+    console.log('🎯 Address ID (pkAddress):', editingAddress.pkAddress)
 
     const result = await AddressService.updateAddress(editingAddress.pkAddress, updateData)
 
+    console.log('📥 Backend response:', result)
+
     if (result.success) {
+      console.log('✅ Address updated successfully')
       Alert.alert('Success', result.message || 'Address updated successfully')
       setEditingAddress(null)
       animateToScreen('list')
       onAddressUpdated?.()
     } else {
+      console.log('❌ Failed to update address:', result.message)
       Alert.alert('Error', result.message || 'Failed to update address')
     }
+    
+    console.log('=== DEBUG: handleUpdateAddress END ===')
   }
 
   const handleDeleteAddress = async (address: Address, onAddressDeleted?: () => void) => {
@@ -302,6 +364,7 @@ export const useAddressModal = (isVisible: boolean, addresses: any[]) => {
   // Effect to initialize filtered cities when entering city screen
   useEffect(() => {
     if (currentScreen === 'city' && cities.length > 0) {
+      // Determinar el formulario actual basándose en si hay una dirección siendo editada
       const currentForm = editingAddress ? editAddressForm : newAddressForm
       const initialCities = currentForm.stateId
         ? AddressService.filterCitiesByState(cities, currentForm.stateId)

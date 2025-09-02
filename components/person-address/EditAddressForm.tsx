@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { ScrollView, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native'
 import { addressStyles } from './styles'
 import { Address, AddressFormData, City, Country, ScreenType, State } from './types'
@@ -26,50 +26,81 @@ export const EditAddressForm: React.FC<EditAddressFormProps> = ({
   onUpdateAddress,
   onCancel,
 }) => {
-  const [formData, setFormData] = useState<AddressFormData>(externalFormData)
   const [isPrimary, setIsPrimary] = useState(address.isPrimary === 1)
+  const hasInitialized = useRef(false)
 
-  // Sync with external form data changes (from city/state selectors)
+  // Initialize form data with address data when component mounts or address changes
   useEffect(() => {
-    setFormData(externalFormData)
-  }, [externalFormData])
-
-  useEffect(() => {
-    // Inicializar datos del formulario con la información de la dirección
-    if (address.city && cities.length > 0) {
-      const cityData = cities.find(c => c.pkCity === address.city)
-      if (cityData) {
-        setFormData(prev => ({
-          ...prev,
-          city: cityData.name,
-          cityId: cityData.pkCity
-        }))
-      }
+    // Reset initialization flag when address changes
+    if (address.pkAddress) {
+      hasInitialized.current = false
     }
-
-    if (address.state && states.length > 0) {
-      const stateData = states.find(s => s.pkState === address.state)
-      if (stateData) {
-        setFormData(prev => ({
-          ...prev,
-          state: stateData.name,
-          stateId: stateData.pkState
-        }))
-      }
-    }
-  }, [address, cities, states])
+  }, [address.pkAddress])
 
   useEffect(() => {
-    onFormDataChange(formData)
-  }, [formData, onFormDataChange])
+    if (!hasInitialized.current && cities.length > 0 && states.length > 0 && address.pkAddress) {
+      console.log('=== DEBUG: EditAddressForm initialization ===')
+      console.log('Address:', address)
+      console.log('Cities available:', cities.length)
+      console.log('States available:', states.length)
+      
+      let initialData = {
+        address: address.address || '',
+        addressLine2: address.addressLine2 || '',
+        city: '',
+        cityId: address.city || null,
+        state: '',
+        stateId: address.state || null,
+        zipCode: address.zipCode || '',
+      }
+
+      // Find city name if cityId exists
+      if (address.city && cities.length > 0) {
+        const cityData = cities.find(c => c.pkCity === address.city)
+        console.log('Looking for city with ID:', address.city)
+        console.log('Found city data:', cityData)
+        if (cityData) {
+          initialData.city = cityData.name
+        }
+      }
+
+      // Find state name if stateId exists
+      if (address.state && states.length > 0) {
+        const stateData = states.find(s => s.pkState === address.state)
+        console.log('Looking for state with ID:', address.state)
+        console.log('Found state data:', stateData)
+        if (stateData) {
+          initialData.state = stateData.name
+        }
+      }
+
+      console.log('Final initialData:', initialData)
+      onFormDataChange(initialData)
+      hasInitialized.current = true
+      console.log('=== EditAddressForm initialization complete ===')
+    }
+  }, [address, cities, states, onFormDataChange])
 
   const handleUpdate = () => {
+    console.log('=== DEBUG: EditAddressForm handleUpdate ===')
+    console.log('Current externalFormData:', externalFormData)
+    console.log('Current isPrimary:', isPrimary)
+    console.log('Original address isPrimary:', address.isPrimary)
+    
     const isPrimaryChanged = isPrimary !== (address.isPrimary === 1)
+    console.log('isPrimaryChanged:', isPrimaryChanged)
+    
     onUpdateAddress(isPrimaryChanged)
   }
 
   const handleFormChange = (field: keyof AddressFormData, value: string | number | null) => {
-    setFormData(prev => ({ ...prev, [field]: value }))
+    console.log(`=== DEBUG: handleFormChange ===`)
+    console.log(`Field: ${field}, Value:`, value)
+    onFormDataChange(prev => {
+      const updated = { ...prev, [field]: value }
+      console.log('Updated form data:', updated)
+      return updated
+    })
   }
 
   return (
@@ -82,14 +113,14 @@ export const EditAddressForm: React.FC<EditAddressFormProps> = ({
       <TextInput
         style={addressStyles.formInput}
         placeholder="e.g 108 Jackson St"
-        value={formData.address}
+        value={externalFormData.address}
         onChangeText={(text) => handleFormChange('address', text)}
       />
 
       <TextInput
         style={[addressStyles.formInput, addressStyles.formInputSecondary]}
         placeholder="Apt, suite, unit, building, floor, etc."
-        value={formData.addressLine2}
+        value={externalFormData.addressLine2}
         onChangeText={(text) => handleFormChange('addressLine2', text)}
       />
 
@@ -103,10 +134,10 @@ export const EditAddressForm: React.FC<EditAddressFormProps> = ({
         <Text
           style={[
             addressStyles.formInputText,
-            !formData.city && addressStyles.placeholderText,
+            !externalFormData.city && addressStyles.placeholderText,
           ]}
         >
-          {formData.city || 'e.g Jacksonville'}
+          {externalFormData.city || 'e.g Jacksonville'}
         </Text>
       </TouchableOpacity>
 
@@ -122,10 +153,10 @@ export const EditAddressForm: React.FC<EditAddressFormProps> = ({
             <Text
               style={[
                 addressStyles.formInputText,
-                !formData.state && addressStyles.placeholderText,
+                !externalFormData.state && addressStyles.placeholderText,
               ]}
             >
-              {formData.state || 'e.g FL'}
+              {externalFormData.state || 'e.g FL'}
             </Text>
           </TouchableOpacity>
         </View>
@@ -135,7 +166,7 @@ export const EditAddressForm: React.FC<EditAddressFormProps> = ({
           <TextInput
             style={addressStyles.formInput}
             placeholder="e.g 12345"
-            value={formData.zipCode}
+            value={externalFormData.zipCode}
             onChangeText={(text) => handleFormChange('zipCode', text)}
             keyboardType="default"
             maxLength={10}

@@ -141,15 +141,22 @@ export class AddressService {
     updateData: Partial<AddressFormData & { isPrimary?: number }>
   ): Promise<{ success: boolean; address?: any; message?: string }> {
     try {
+      console.log('🔧 [AddressService.updateAddress] Iniciando actualización con:', {
+        pkAddress,
+        updateData
+      })
+
       const requestBody: any = { pkAddress }
       
-      // Solo incluir campos que se han modificado
+      // Solo incluir campos que se han modificado - ahora soportados por el UpdatePersonAddressDto
       if (updateData.address !== undefined) requestBody.address = updateData.address
       if (updateData.addressLine2 !== undefined) requestBody.addressLine2 = updateData.addressLine2
       if (updateData.zipCode !== undefined) requestBody.zipCode = updateData.zipCode
       if (updateData.isPrimary !== undefined) requestBody.isPrimary = updateData.isPrimary
       if (updateData.cityId !== undefined) requestBody.city = updateData.cityId
       if (updateData.stateId !== undefined) requestBody.state = updateData.stateId
+
+      console.log('🔧 [AddressService.updateAddress] Request body completo:', requestBody)
 
       const response = await fetch(`${API_BASE_URL}/person-address`, {
         method: 'PATCH',
@@ -161,20 +168,26 @@ export class AddressService {
 
       if (response.ok) {
         const result = await response.json()
+        console.log('🔧 [AddressService.updateAddress] Respuesta exitosa del backend:', result)
         return {
           success: true,
           address: result.address,
           message: result.message || 'Address updated successfully'
         }
       } else {
-        console.error('Error updating address:', response.status)
+        const errorData = await response.text()
+        console.error('🔧 [AddressService.updateAddress] Error del backend:', {
+          status: response.status,
+          statusText: response.statusText,
+          errorData
+        })
         return {
           success: false,
           message: 'Failed to update address'
         }
       }
     } catch (error) {
-      console.error('Error updating address:', error)
+      console.error('🔧 [AddressService.updateAddress] Error de red:', error)
       return {
         success: false,
         message: 'Network error occurred'
