@@ -101,12 +101,16 @@ export const AddressList: React.FC<AddressListProps> = ({
             >
               <View style={addressStyles.addressIconContainer}>
                 <Icon
-                  name="home"
+                  name={
+                    address.pkAddress === primaryAddress?.pkAddress
+                      ? "radio-button-checked"
+                      : "radio-button-unchecked"
+                  }
                   size={24}
                   color={
                     address.pkAddress === primaryAddress?.pkAddress
                       ? '#4CAF50'
-                      : '#666'
+                      : '#ccc'
                   }
                 />
               </View>

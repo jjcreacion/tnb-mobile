@@ -53,11 +53,16 @@ export const addressStyles = StyleSheet.create({
     borderColor: '#e0e0e0',
   },
   selectedAddressItem: {
-    backgroundColor: '#f0f8ff',
+    backgroundColor: '#f8fff8',
     borderColor: '#4CAF50',
+    borderWidth: 1.5,
   },
   addressIconContainer: {
     marginRight: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 32,
+    height: 32,
   },
   addressTextContainer: {
     flex: 1,
