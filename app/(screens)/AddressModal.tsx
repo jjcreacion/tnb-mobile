@@ -263,7 +263,6 @@ const AddressModal: React.FC<AddressModalProps> = ({
     setFilteredCities(cities)
     setCitySearchText('')
     setStateSearchText('')
-    animateToScreen('add-form')
     // Force re-render of the modal inputs
     setModalKey((prev) => prev + 1)
   }
@@ -309,8 +308,19 @@ const AddressModal: React.FC<AddressModalProps> = ({
 
       if (response.ok) {
         Alert.alert('Success', 'Address added successfully')
-        animateBackToList()
-        resetNewAddressForm()
+        // Reset form first
+        setNewAddressForm({
+          address: '',
+          addressLine2: '',
+          city: '',
+          cityId: null,
+          state: '',
+          stateId: null,
+          zipCode: '',
+        })
+        // Animate back to address list
+        animateToScreen('list')
+        // Refresh addresses
         onAddressAdded?.()
       } else {
         Alert.alert('Error', 'Failed to add address')
