@@ -144,6 +144,7 @@ const AddressModal: React.FC<AddressModalProps> = ({
             style={[
               addressStyles.absoluteScreen,
               {
+                opacity: currentScreen === 'add-form' ? 1 : 0,
                 transform: [{
                   translateX: slideAnim.interpolate({
                     inputRange: [0, 1, 2],
@@ -153,6 +154,7 @@ const AddressModal: React.FC<AddressModalProps> = ({
                 }]
               }
             ]}
+            pointerEvents={currentScreen === 'add-form' ? 'auto' : 'none'}
           >
             <AddressForm
               formData={newAddressForm}
@@ -167,6 +169,7 @@ const AddressModal: React.FC<AddressModalProps> = ({
             style={[
               addressStyles.absoluteScreen,
               {
+                opacity: currentScreen === 'edit-form' ? 1 : 0,
                 transform: [{
                   translateX: slideAnim.interpolate({
                     inputRange: [0, 1, 2],
