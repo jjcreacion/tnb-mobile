@@ -3,20 +3,19 @@ import Constants from 'expo-constants'
 import { LinearGradient } from 'expo-linear-gradient'
 import React, { useEffect, useRef, useState } from 'react'
 import {
-  ActivityIndicator,
-  Alert,
-  Dimensions,
-  FlatList,
-  Image,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    Dimensions,
+    FlatList,
+    Image,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native'
 import Icon from 'react-native-vector-icons/MaterialIcons'
-import AddNewAddressModal from '../(screens)/AddNewAddressModal'
 import AddressModal from '../(screens)/AddressModal'
 import CampaignModal from '../(screens)/CampaignModal'
 import RequestModal from '../(screens)/RequestModal'
@@ -142,10 +141,6 @@ const HomeScreen: React.FC = () => {
   const [userAddresses, setUserAddresses] = useState<Address[]>([])
   const [isAddressModalVisible, setAddressModalVisible] = useState(false)
   const [loadingAddresses, setLoadingAddresses] = useState(false)
-
-  // New address modal state
-  const [isAddNewAddressModalVisible, setAddNewAddressModalVisible] =
-    useState(false)
 
   const API_BASE_URL = Constants.expoConfig?.extra?.API_BASE_URL
   const CATEGORIES_ENDPOINT = '/category/findAll'
@@ -577,16 +572,8 @@ const HomeScreen: React.FC = () => {
         onAddressSelect={handleAddressSelect}
         primaryAddress={primaryAddress}
         onAddNewAddress={() => {
-          // Cerrar modal de selección y abrir form de nueva dirección
-          setAddressModalVisible(false)
-          setAddNewAddressModalVisible(true)
+          // Solo una función vacía ya que la lógica está dentro del modal
         }}
-      />
-
-      <AddNewAddressModal
-        isVisible={isAddNewAddressModalVisible}
-        onClose={() => setAddNewAddressModalVisible(false)}
-        userAddresses={userAddresses}
         onAddressAdded={loadUserData}
       />
     </View>
