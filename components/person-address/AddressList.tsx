@@ -1,5 +1,5 @@
 import React from 'react'
-import { ScrollView, Text, TouchableOpacity, View } from 'react-native'
+import { Alert, ScrollView, Text, TouchableOpacity, View } from 'react-native'
 import Icon from 'react-native-vector-icons/MaterialIcons'
 import { addressStyles } from './styles'
 import { Address } from './types'
@@ -9,6 +9,8 @@ interface AddressListProps {
   primaryAddress: Address | null
   onAddressSelect: (address: Address) => void
   onAddNewAddress: () => void
+  onEditAddress?: (address: Address) => void
+  onDeleteAddress?: (address: Address) => void
 }
 
 export const AddressList: React.FC<AddressListProps> = ({
@@ -16,7 +18,26 @@ export const AddressList: React.FC<AddressListProps> = ({
   primaryAddress,
   onAddressSelect,
   onAddNewAddress,
+  onEditAddress,
+  onDeleteAddress,
 }) => {
+  const handleDeletePress = (address: Address) => {
+    Alert.alert(
+      'Delete Address',
+      `Are you sure you want to delete this address?\n\n${address.address}`,
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => onDeleteAddress?.(address),
+        },
+      ]
+    )
+  }
   return (
     <ScrollView 
       style={addressStyles.addressList}
@@ -50,10 +71,40 @@ export const AddressList: React.FC<AddressListProps> = ({
               </View>
               <View style={addressStyles.addressTextContainer}>
                 <Text style={addressStyles.addressText}>{address.address}</Text>
-                {address.isPrimary === 1 && (
+                {address.addressLine2 && (
                   <Text style={addressStyles.addressSubText}>
+                    {address.addressLine2}
+                  </Text>
+                )}
+                {address.isPrimary === 1 && (
+                  <Text style={[addressStyles.addressSubText, { color: '#4CAF50', fontWeight: '600' }]}>
                     Primary Address
                   </Text>
+                )}
+                {address.zipCode && (
+                  <Text style={addressStyles.addressSubText}>
+                    ZIP: {address.zipCode}
+                  </Text>
+                )}
+              </View>
+              <View style={addressStyles.addressActionsContainer}>
+                {onEditAddress && (
+                  <TouchableOpacity
+                    style={addressStyles.actionButton}
+                    onPress={() => onEditAddress(address)}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  >
+                    <Icon name="edit" size={20} color="#007AFF" />
+                  </TouchableOpacity>
+                )}
+                {onDeleteAddress && (
+                  <TouchableOpacity
+                    style={addressStyles.actionButton}
+                    onPress={() => handleDeletePress(address)}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  >
+                    <Icon name="delete" size={20} color="#FF3B30" />
+                  </TouchableOpacity>
                 )}
               </View>
             </TouchableOpacity>

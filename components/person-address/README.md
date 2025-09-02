@@ -1,6 +1,19 @@
 # Person Address Module
 
-Este módulo contiene toda la funcionalidad relacionada con la gestión de direcciones de personas en la aplicación TNB.
+Este módulo contiene toda la funcionalidad relacionada con la gestión de direcciones de personas en la aplicación TNB, incluyendo **CRUD completo** (Create, Read, Update, Delete).
+
+## 🚀 Nuevas Funcionalidades
+
+### ✏️ **Editar Direcciones**
+- Formulario pre-poblado con datos existentes
+- Switch para cambiar estado de dirección principal
+- Validación completa de campos
+- Actualización en tiempo real
+
+### 🗑️ **Eliminar Direcciones**
+- Confirmación antes de eliminar
+- Eliminación segura con feedback
+- Actualización automática de la lista
 
 ## Estructura de Archivos
 

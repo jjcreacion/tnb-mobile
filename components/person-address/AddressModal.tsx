@@ -5,6 +5,7 @@ import Icon from 'react-native-vector-icons/MaterialIcons'
 import { AddressForm } from './AddressForm'
 import { AddressList } from './AddressList'
 import { CitySelector } from './CitySelector'
+import { EditAddressForm } from './EditAddressForm'
 import { StateSelector } from './StateSelector'
 import { addressStyles } from './styles'
 import { AddressModalProps } from './types'
@@ -26,6 +27,10 @@ const AddressModal: React.FC<AddressModalProps> = ({
     slideAnim,
     newAddressForm,
     setNewAddressForm,
+    editAddressForm,
+    setEditAddressForm,
+    editingAddress,
+    countries,
     cities,
     states,
     filteredCities,
@@ -37,6 +42,10 @@ const AddressModal: React.FC<AddressModalProps> = ({
     handleCitySearch,
     handleStateSearch,
     handleSaveAddress,
+    handleEditAddress,
+    handleUpdateAddress,
+    handleDeleteAddress,
+    handleCancelEdit,
   } = useAddressModal(isVisible, addresses)
 
   const handleAddNewAddress = () => {
@@ -45,9 +54,10 @@ const AddressModal: React.FC<AddressModalProps> = ({
   }
 
   const handleClose = () => {
-    if (currentScreen === 'add-form' || currentScreen === 'city' || currentScreen === 'state') {
+    if (currentScreen === 'add-form' || currentScreen === 'edit-form' || currentScreen === 'city' || currentScreen === 'state') {
       if (currentScreen === 'city' || currentScreen === 'state') {
-        animateToScreen('add-form')
+        const targetScreen = editingAddress ? 'edit-form' : 'add-form'
+        animateToScreen(targetScreen)
       } else {
         animateToScreen('list')
       }
@@ -62,6 +72,8 @@ const AddressModal: React.FC<AddressModalProps> = ({
         return 'Select a property address'
       case 'add-form':
         return 'Add a new address'
+      case 'edit-form':
+        return 'Edit address'
       case 'city':
         return `Search City (${filteredCities.length})`
       case 'state':
@@ -120,6 +132,8 @@ const AddressModal: React.FC<AddressModalProps> = ({
               primaryAddress={primaryAddress}
               onAddressSelect={onAddressSelect}
               onAddNewAddress={handleAddNewAddress}
+              onEditAddress={(address) => handleEditAddress(address)}
+              onDeleteAddress={(address) => handleDeleteAddress(address, onAddressAdded)}
             />
           </Animated.View>
           
@@ -144,6 +158,37 @@ const AddressModal: React.FC<AddressModalProps> = ({
               onNavigateToScreen={animateToScreen}
               onSaveAddress={() => handleSaveAddress(onAddressAdded)}
             />
+          </Animated.View>
+          
+          {/* Edit Address Form Screen */}
+          <Animated.View
+            style={[
+              addressStyles.absoluteScreen,
+              {
+                transform: [{
+                  translateX: slideAnim.interpolate({
+                    inputRange: [0, 1, 2],
+                    outputRange: [screenWidth, 0, -screenWidth],
+                    extrapolate: 'clamp',
+                  })
+                }]
+              }
+            ]}
+            pointerEvents={currentScreen === 'edit-form' ? 'auto' : 'none'}
+          >
+            {editingAddress && (
+              <EditAddressForm
+                address={editingAddress}
+                countries={countries}
+                cities={cities}
+                states={states}
+                formData={editAddressForm}
+                onFormDataChange={setEditAddressForm}
+                onNavigateToScreen={animateToScreen}
+                onUpdateAddress={(isPrimaryChanged) => handleUpdateAddress(isPrimaryChanged, onAddressAdded)}
+                onCancel={handleCancelEdit}
+              />
+            )}
           </Animated.View>
           
           {/* City Selection Screen */}

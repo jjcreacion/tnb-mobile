@@ -63,6 +63,18 @@ export const addressStyles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
   },
+  addressActionsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  actionButton: {
+    padding: 8,
+    borderRadius: 6,
+    backgroundColor: '#f8f8f8',
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
   addressText: {
     fontSize: 16,
     fontWeight: '500',
@@ -163,6 +175,30 @@ export const addressStyles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  primarySwitchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 20,
+    paddingVertical: 10,
+  },
+  formButtonsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 15,
+    marginTop: 30,
+    marginBottom: 40,
+  },
+  cancelButton: {
+    backgroundColor: '#f0f0f0',
+    flex: 1,
+  },
+  cancelButtonText: {
+    color: '#666',
+  },
+  updateButton: {
+    flex: 1,
   },
 
   // City/State Selector Styles

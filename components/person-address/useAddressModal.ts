@@ -1,14 +1,27 @@
 import { useEffect, useRef, useState } from 'react'
 import { Alert, Animated } from 'react-native'
 import { AddressService } from './AddressService'
-import { AddressFormData, City, ScreenType, State } from './types'
+import { Address, AddressFormData, City, Country, ScreenType, State } from './types'
 
 export const useAddressModal = (isVisible: boolean, addresses: any[]) => {
   const [currentScreen, setCurrentScreen] = useState<ScreenType>('list')
+  const [editingAddress, setEditingAddress] = useState<Address | null>(null)
+  const [countries, setCountries] = useState<Country[]>([])
   const slideAnim = useRef(new Animated.Value(0)).current
   
   // Form data for new address
   const [newAddressForm, setNewAddressForm] = useState<AddressFormData>({
+    address: '',
+    addressLine2: '',
+    city: '',
+    cityId: null,
+    state: '',
+    stateId: null,
+    zipCode: '',
+  })
+
+  // Form data for editing address
+  const [editAddressForm, setEditAddressForm] = useState<AddressFormData>({
     address: '',
     addressLine2: '',
     city: '',
@@ -36,6 +49,9 @@ export const useAddressModal = (isVisible: boolean, addresses: any[]) => {
       case 'add-form':
         animValue = 1
         break
+      case 'edit-form':
+        animValue = 1
+        break
       case 'city':
       case 'state':
         animValue = 2
@@ -56,8 +72,9 @@ export const useAddressModal = (isVisible: boolean, addresses: any[]) => {
   const loadCitiesAndStates = async () => {
     try {
       // Load countries first to get USA ID
-      const countries = await AddressService.loadCountries()
-      const usa = AddressService.findUSACountry(countries)
+      const countriesData = await AddressService.loadCountries()
+      setCountries(countriesData)
+      const usa = AddressService.findUSACountry(countriesData)
       
       if (usa) {
         setCountryId(usa.pkCountry || 1)
@@ -82,40 +99,66 @@ export const useAddressModal = (isVisible: boolean, addresses: any[]) => {
 
   const handleCitySelect = (city: City) => {
     const cityState = AddressService.findStateByCity(states, city)
-
-    setNewAddressForm((prev) => ({
-      ...prev,
-      city: city.name,
-      cityId: city.pkCity,
-      state: cityState?.name ?? '',
-      stateId: cityState?.pkState ?? null,
-    }))
+    
+    if (currentScreen === 'edit-form' && editingAddress) {
+      setEditAddressForm((prev) => ({
+        ...prev,
+        city: city.name,
+        cityId: city.pkCity,
+        state: cityState?.name ?? '',
+        stateId: cityState?.pkState ?? null,
+      }))
+      animateToScreen('edit-form')
+    } else {
+      setNewAddressForm((prev) => ({
+        ...prev,
+        city: city.name,
+        cityId: city.pkCity,
+        state: cityState?.name ?? '',
+        stateId: cityState?.pkState ?? null,
+      }))
+      animateToScreen('add-form')
+    }
+    
     setCitySearchText('')
-    animateToScreen('add-form')
   }
 
   const handleStateSelect = (state: State) => {
     const stateCities = AddressService.filterCitiesByState(cities, state.pkState)
     setFilteredCities(stateCities)
     
-    setNewAddressForm((prev) => ({
-      ...prev,
-      state: state.name,
-      stateId: state.pkState,
-      city: '',
-      cityId: null,
-    }))
+    if (currentScreen === 'edit-form' && editingAddress) {
+      setEditAddressForm((prev) => ({
+        ...prev,
+        state: state.name,
+        stateId: state.pkState,
+        city: '',
+        cityId: null,
+      }))
+      animateToScreen('edit-form')
+    } else {
+      setNewAddressForm((prev) => ({
+        ...prev,
+        state: state.name,
+        stateId: state.pkState,
+        city: '',
+        cityId: null,
+      }))
+      animateToScreen('add-form')
+    }
+    
     setStateSearchText('')
-    animateToScreen('add-form')
   }
 
   const handleCitySearch = (text: string) => {
     setCitySearchText(text)
     let filtered: City[] = []
+    
+    const currentForm = currentScreen === 'edit-form' ? editAddressForm : newAddressForm
 
     if (text === '') {
-      filtered = newAddressForm.stateId
-        ? AddressService.filterCitiesByState(cities, newAddressForm.stateId)
+      filtered = currentForm.stateId
+        ? AddressService.filterCitiesByState(cities, currentForm.stateId)
         : cities
     } else {
       filtered = AddressService.filterCitiesBySearch(cities, text)
@@ -169,6 +212,84 @@ export const useAddressModal = (isVisible: boolean, addresses: any[]) => {
     }
   }
 
+  const handleEditAddress = (address: Address) => {
+    setEditingAddress(address)
+    setEditAddressForm({
+      address: address.address || '',
+      addressLine2: address.addressLine2 || '',
+      city: '',
+      cityId: address.city || null,
+      state: '',
+      stateId: address.state || null,
+      zipCode: address.zipCode || '',
+    })
+    animateToScreen('edit-form')
+  }
+
+  const handleUpdateAddress = async (isPrimaryChanged?: boolean, onAddressUpdated?: () => void) => {
+    if (!editingAddress) {
+      Alert.alert('Error', 'No address selected for editing')
+      return
+    }
+
+    if (
+      !editAddressForm.address ||
+      !editAddressForm.cityId ||
+      !editAddressForm.stateId
+    ) {
+      Alert.alert('Error', 'Please fill in all required fields')
+      return
+    }
+
+    const updateData: any = {
+      address: editAddressForm.address,
+      addressLine2: editAddressForm.addressLine2,
+      zipCode: editAddressForm.zipCode,
+      city: editAddressForm.cityId,
+      state: editAddressForm.stateId,
+    }
+
+    if (isPrimaryChanged) {
+      updateData.isPrimary = editingAddress.isPrimary === 1 ? 0 : 1
+    }
+
+    const result = await AddressService.updateAddress(editingAddress.pkAddress, updateData)
+
+    if (result.success) {
+      Alert.alert('Success', result.message || 'Address updated successfully')
+      setEditingAddress(null)
+      animateToScreen('list')
+      onAddressUpdated?.()
+    } else {
+      Alert.alert('Error', result.message || 'Failed to update address')
+    }
+  }
+
+  const handleDeleteAddress = async (address: Address, onAddressDeleted?: () => void) => {
+    const result = await AddressService.deleteAddress(address.pkAddress)
+
+    if (result.success) {
+      Alert.alert('Success', result.message || 'Address deleted successfully')
+      onAddressDeleted?.()
+    } else {
+      Alert.alert('Error', result.message || 'Failed to delete address')
+    }
+  }
+
+  const handleCancelEdit = () => {
+    setEditingAddress(null)
+    setEditAddressForm({
+      address: '',
+      addressLine2: '',
+      city: '',
+      cityId: null,
+      state: '',
+      stateId: null,
+      zipCode: '',
+    })
+    animateToScreen('list')
+  }
+
   // Reset to list view when modal opens
   useEffect(() => {
     if (isVisible) {
@@ -181,21 +302,26 @@ export const useAddressModal = (isVisible: boolean, addresses: any[]) => {
   // Effect to initialize filtered cities when entering city screen
   useEffect(() => {
     if (currentScreen === 'city' && cities.length > 0) {
-      const initialCities = newAddressForm.stateId
-        ? AddressService.filterCitiesByState(cities, newAddressForm.stateId)
+      const currentForm = editingAddress ? editAddressForm : newAddressForm
+      const initialCities = currentForm.stateId
+        ? AddressService.filterCitiesByState(cities, currentForm.stateId)
         : cities
       setFilteredCities(initialCities)
       setCitySearchText('')
     } else if (currentScreen === 'state') {
       setStateSearchText('')
     }
-  }, [currentScreen, cities.length, newAddressForm.stateId])
+  }, [currentScreen, cities.length, newAddressForm.stateId, editAddressForm.stateId, editingAddress])
 
   return {
     currentScreen,
     slideAnim,
     newAddressForm,
     setNewAddressForm,
+    editAddressForm,
+    setEditAddressForm,
+    editingAddress,
+    countries,
     cities,
     states,
     filteredCities,
@@ -207,6 +333,10 @@ export const useAddressModal = (isVisible: boolean, addresses: any[]) => {
     handleCitySearch,
     handleStateSearch,
     handleSaveAddress,
+    handleEditAddress,
+    handleUpdateAddress,
+    handleDeleteAddress,
+    handleCancelEdit,
     resetForm,
   }
 }

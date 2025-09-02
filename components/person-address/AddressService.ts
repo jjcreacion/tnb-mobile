@@ -135,4 +135,77 @@ export class AddressService {
   static findStateByCity(states: State[], city: City): State | undefined {
     return states.find((state) => state.pkState === city.fkState)
   }
+
+  static async updateAddress(
+    pkAddress: number,
+    updateData: Partial<AddressFormData & { isPrimary?: number }>
+  ): Promise<{ success: boolean; address?: any; message?: string }> {
+    try {
+      const requestBody: any = { pkAddress }
+      
+      // Solo incluir campos que se han modificado
+      if (updateData.address !== undefined) requestBody.address = updateData.address
+      if (updateData.addressLine2 !== undefined) requestBody.addressLine2 = updateData.addressLine2
+      if (updateData.zipCode !== undefined) requestBody.zipCode = updateData.zipCode
+      if (updateData.isPrimary !== undefined) requestBody.isPrimary = updateData.isPrimary
+      if (updateData.cityId !== undefined) requestBody.city = updateData.cityId
+      if (updateData.stateId !== undefined) requestBody.state = updateData.stateId
+
+      const response = await fetch(`${API_BASE_URL}/person-address`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+      })
+
+      if (response.ok) {
+        const result = await response.json()
+        return {
+          success: true,
+          address: result.address,
+          message: result.message || 'Address updated successfully'
+        }
+      } else {
+        console.error('Error updating address:', response.status)
+        return {
+          success: false,
+          message: 'Failed to update address'
+        }
+      }
+    } catch (error) {
+      console.error('Error updating address:', error)
+      return {
+        success: false,
+        message: 'Network error occurred'
+      }
+    }
+  }
+
+  static async deleteAddress(pkAddress: number): Promise<{ success: boolean; message?: string }> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/person-address/${pkAddress}`, {
+        method: 'DELETE',
+      })
+
+      if (response.ok) {
+        return {
+          success: true,
+          message: 'Address deleted successfully'
+        }
+      } else {
+        console.error('Error deleting address:', response.status)
+        return {
+          success: false,
+          message: 'Failed to delete address'
+        }
+      }
+    } catch (error) {
+      console.error('Error deleting address:', error)
+      return {
+        success: false,
+        message: 'Network error occurred'
+      }
+    }
+  }
 }

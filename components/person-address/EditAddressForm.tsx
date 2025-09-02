@@ -1,9 +1,5 @@
-import React, { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react'
-import { ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native'
-import { AddressAutocomplete } from './AddressAutocomplete'
-import { AddressMappingService } from './AddressMappingService'
-import type { ParsedMapboxAddress } from './mapbox'
-import { isMapboxAvailable, MAPBOX_CONFIG } from './mapbox'
+import React, { useEffect, useState } from 'react'
+import { ScrollView, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native'
 import { addressStyles } from './styles'
 import { Address, AddressFormData, City, Country, ScreenType, State } from './types'
 
@@ -17,14 +13,9 @@ interface EditAddressFormProps {
   onNavigateToScreen: (screen: ScreenType) => void
   onUpdateAddress: (isPrimaryChanged?: boolean) => void
   onCancel: () => void
-  onEntitiesUpdated?: (createdEntities: { state?: State; city?: City }) => void
 }
 
-export interface EditAddressFormRef {
-  focusZipCode: () => void
-}
-
-export const EditAddressForm = forwardRef<EditAddressFormRef, EditAddressFormProps>(({
+export const EditAddressForm: React.FC<EditAddressFormProps> = ({
   address,
   countries,
   cities,
@@ -34,212 +25,71 @@ export const EditAddressForm = forwardRef<EditAddressFormRef, EditAddressFormPro
   onNavigateToScreen,
   onUpdateAddress,
   onCancel,
-  onEntitiesUpdated,
-}, ref) => {
-  const hasInitialized = useRef(false)
-  const zipCodeRef = useRef<TextInput>(null)
-  const addressLine2Ref = useRef<TextInput>(null)
-  const [useManualEntry, setUseManualEntry] = useState(false)
-  const [mappingWarnings, setMappingWarnings] = useState<string[]>([])
+}) => {
+  const [formData, setFormData] = useState<AddressFormData>(externalFormData)
+  const [isPrimary, setIsPrimary] = useState(address.isPrimary === 1)
 
-  useImperativeHandle(ref, () => ({
-    focusZipCode: () => {
-      zipCodeRef.current?.focus()
-    }
-  }), [])
-
-  // Initialize form data with address data when component mounts or address changes
+  // Sync with external form data changes (from city/state selectors)
   useEffect(() => {
-    // Reset initialization flag when address changes
-    if (address.pkAddress) {
-      hasInitialized.current = false
-    }
-  }, [address.pkAddress])
+    setFormData(externalFormData)
+  }, [externalFormData])
 
   useEffect(() => {
-    if (!hasInitialized.current && cities.length > 0 && states.length > 0 && address.pkAddress) {
-      let initialData = {
-        address: address.address || '',
-        addressLine2: address.addressLine2 || '',
-        city: '',
-        cityId: address.city || null,
-        state: '',
-        stateId: address.state || null,
-        zipCode: address.zipCode || '',
-        latitude: address.latitude ? parseFloat(address.latitude) : undefined,
-        longitude: address.longitude ? parseFloat(address.longitude) : undefined,
-        isMapboxResult: false, // Existing addresses are not from Mapbox
+    // Inicializar datos del formulario con la información de la dirección
+    if (address.city && cities.length > 0) {
+      const cityData = cities.find(c => c.pkCity === address.city)
+      if (cityData) {
+        setFormData(prev => ({
+          ...prev,
+          city: cityData.name,
+          cityId: cityData.pkCity
+        }))
       }
-
-      // Find city name if cityId exists
-      if (address.city && cities.length > 0) {
-        const cityData = cities.find(c => c.pkCity === address.city)
-        if (cityData) {
-          initialData.city = cityData.name
-        }
-      }
-
-      // Find state name if stateId exists
-      if (address.state && states.length > 0) {
-        const stateData = states.find(s => s.pkState === address.state)
-        if (stateData) {
-          initialData.state = stateData.name
-        }
-      }
-
-      onFormDataChange(initialData)
-      hasInitialized.current = true
     }
-  }, [address, cities, states, onFormDataChange])
+
+    if (address.state && states.length > 0) {
+      const stateData = states.find(s => s.pkState === address.state)
+      if (stateData) {
+        setFormData(prev => ({
+          ...prev,
+          state: stateData.name,
+          stateId: stateData.pkState
+        }))
+      }
+    }
+  }, [address, cities, states])
+
+  useEffect(() => {
+    onFormDataChange(formData)
+  }, [formData, onFormDataChange])
 
   const handleUpdate = () => {
-    // No longer checking for primary changes since we removed the primary switch
-    onUpdateAddress(false)
+    const isPrimaryChanged = isPrimary !== (address.isPrimary === 1)
+    onUpdateAddress(isPrimaryChanged)
   }
 
   const handleFormChange = (field: keyof AddressFormData, value: string | number | null) => {
-    onFormDataChange(prev => {
-      const updated = { ...prev, [field]: value }
-      return updated
-    })
+    setFormData(prev => ({ ...prev, [field]: value }))
   }
-
-  // Handle Mapbox address selection
-  const handleAddressSelect = async (mapboxAddress: ParsedMapboxAddress) => {
-    if (MAPBOX_CONFIG.enabled && !MAPBOX_CONFIG.useLocalDatabaseMapping) {
-      // When Mapbox is enabled WITHOUT local DB mapping, use Mapbox data directly
-      const directFormData: AddressFormData = {
-        address: mapboxAddress.houseNumber && mapboxAddress.street 
-          ? `${mapboxAddress.houseNumber} ${mapboxAddress.street}`
-          : mapboxAddress.street || mapboxAddress.fullAddress,
-        addressLine2: externalFormData.addressLine2, // Keep existing addressLine2
-        city: mapboxAddress.city || '',
-        cityId: null, // Don't map to local DB when useLocalDatabaseMapping is false
-        state: mapboxAddress.stateCode || mapboxAddress.state || '', // Use state code (abbreviation) first
-        stateId: null, // Don't map to local DB when useLocalDatabaseMapping is false
-        zipCode: mapboxAddress.zipCode || '',
-        latitude: mapboxAddress.latitude,
-        longitude: mapboxAddress.longitude,
-        isMapboxResult: true
-      }
-      
-      // Update form with Mapbox data directly
-      onFormDataChange(directFormData)
-      
-      // Clear any existing warnings since we're not doing local mapping
-      setMappingWarnings([])
-      
-
-    } else {
-      // When Mapbox is disabled OR local DB mapping is enabled, use local database mapping with auto-creation
-      try {
-        const mappingResult = await AddressMappingService.mapToFormDataWithAutoCreation(mapboxAddress, cities, states)
-
-        // Update form with mapped data
-        onFormDataChange(mappingResult.formData)
-
-        // Store warnings for user feedback (should be minimal with auto-creation)
-        setMappingWarnings(mappingResult.warnings)
-
-        // Update local cache if new entities were created
-        if (mappingResult.createdEntities && onEntitiesUpdated) {
-          onEntitiesUpdated(mappingResult.createdEntities)
-        }
-
-        // With auto-creation, mapping should be complete most of the time
-      } catch (error) {
-        console.error('Auto-creation mapping failed:', error)
-        // Fallback to original mapping
-        const mappingResult = AddressMappingService.mapToFormData(mapboxAddress, cities, states)
-        onFormDataChange(mappingResult.formData)
-        setMappingWarnings(mappingResult.warnings)
-      }
-    }
-  }
-
-  // Handle fallback to manual entry
-  const handleFallbackToManual = () => {
-    setUseManualEntry(true)
-    setMappingWarnings([])
-    // Keep current address text but clear Mapbox-specific data
-    onFormDataChange(prev => ({
-      ...prev,
-      latitude: undefined,
-      longitude: undefined,
-      isMapboxResult: false
-    }))
-  }
-
-  // Handle manual address text changes
-  const handleManualAddressChange = (text: string) => {
-    handleFormChange('address', text)
-    // Clear Mapbox-specific data when manually editing
-    onFormDataChange(prev => ({
-      ...prev,
-      latitude: undefined,
-      longitude: undefined,
-      isMapboxResult: false
-    }))
-  }
-
-  // Reset to autocomplete when address is cleared
-  useEffect(() => {
-    if (externalFormData.address === '' && useManualEntry) {
-      setUseManualEntry(false)
-      setMappingWarnings([])
-    }
-  }, [externalFormData.address, useManualEntry])
 
   return (
-    <View style={addressStyles.newAddressFormContainer}>
-      <ScrollView
-        style={addressStyles.newAddressForm}
-        contentContainerStyle={{ paddingBottom: 40 }}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-      >
+    <ScrollView
+      style={addressStyles.newAddressForm}
+      keyboardShouldPersistTaps="handled"
+      showsVerticalScrollIndicator={false}
+    >
       <Text style={addressStyles.formLabel}>Address</Text>
-      
-      {/* Address Input - Use autocomplete if available and not in manual mode */}
-      {isMapboxAvailable() && !useManualEntry ? (
-        <AddressAutocomplete
-          value={externalFormData.address}
-          onChangeText={handleManualAddressChange}
-          onAddressSelect={handleAddressSelect}
-          onFallbackToManual={handleFallbackToManual}
-          placeholder="e.g 108 Jackson St"
-          style={addressStyles.formInput}
-          addressLine2Ref={addressLine2Ref}
-          addressLine2Value={externalFormData.addressLine2}
-        />
-      ) : (
-        <TextInput
-          style={addressStyles.formInput}
-          placeholder="e.g 108 Jackson St"
-          value={externalFormData.address}
-          onChangeText={handleManualAddressChange}
-        />
-      )}
-
-      {/* Show mapping warnings if any (should be rare with auto-creation) */}
-      {mappingWarnings.length > 0 && (
-        <View style={addressStyles.warningContainer}>
-          <Text style={addressStyles.warningText}>
-            Note: Please verify address details
-          </Text>
-          {mappingWarnings.map((warning, index) => (
-            <Text key={index} style={addressStyles.warningDetailText}>
-              • {warning}
-            </Text>
-          ))}
-        </View>
-      )}
+      <TextInput
+        style={addressStyles.formInput}
+        placeholder="e.g 108 Jackson St"
+        value={formData.address}
+        onChangeText={(text) => handleFormChange('address', text)}
+      />
 
       <TextInput
-        ref={addressLine2Ref}
         style={[addressStyles.formInput, addressStyles.formInputSecondary]}
         placeholder="Apt, suite, unit, building, floor, etc."
-        value={externalFormData.addressLine2}
+        value={formData.addressLine2}
         onChangeText={(text) => handleFormChange('addressLine2', text)}
       />
 
@@ -253,10 +103,10 @@ export const EditAddressForm = forwardRef<EditAddressFormRef, EditAddressFormPro
         <Text
           style={[
             addressStyles.formInputText,
-            !externalFormData.city && addressStyles.placeholderText,
+            !formData.city && addressStyles.placeholderText,
           ]}
         >
-          {externalFormData.city || 'e.g Jacksonville'}
+          {formData.city || 'e.g Jacksonville'}
         </Text>
       </TouchableOpacity>
 
@@ -272,10 +122,10 @@ export const EditAddressForm = forwardRef<EditAddressFormRef, EditAddressFormPro
             <Text
               style={[
                 addressStyles.formInputText,
-                !externalFormData.state && addressStyles.placeholderText,
+                !formData.state && addressStyles.placeholderText,
               ]}
             >
-              {externalFormData.state || 'e.g FL'}
+              {formData.state || 'e.g FL'}
             </Text>
           </TouchableOpacity>
         </View>
@@ -283,15 +133,25 @@ export const EditAddressForm = forwardRef<EditAddressFormRef, EditAddressFormPro
         <View style={addressStyles.formColumn}>
           <Text style={addressStyles.formLabel}>Zip Code</Text>
           <TextInput
-            ref={zipCodeRef}
             style={addressStyles.formInput}
             placeholder="e.g 12345"
-            value={externalFormData.zipCode}
+            value={formData.zipCode}
             onChangeText={(text) => handleFormChange('zipCode', text)}
             keyboardType="default"
             maxLength={10}
           />
         </View>
+      </View>
+
+      <View style={addressStyles.primarySwitchContainer}>
+        <Text style={addressStyles.formLabel}>Primary Address</Text>
+        <Switch
+          value={isPrimary}
+          onValueChange={setIsPrimary}
+          trackColor={{ false: '#e0e0e0', true: '#4CAF50' }}
+          thumbColor={isPrimary ? '#fff' : '#fff'}
+          ios_backgroundColor="#e0e0e0"
+        />
       </View>
 
       <View style={addressStyles.formButtonsContainer}>
@@ -314,8 +174,5 @@ export const EditAddressForm = forwardRef<EditAddressFormRef, EditAddressFormPro
         </TouchableOpacity>
       </View>
     </ScrollView>
-    </View>
   )
-})
-
-EditAddressForm.displayName = 'EditAddressForm'
+}

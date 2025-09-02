@@ -1,7 +1,17 @@
 export interface Address {
   pkAddress: number
   address: string
+  addressLine2?: string
+  zipCode?: string
   isPrimary: number
+  status?: number
+  latitude?: string
+  longitude?: string
+  country?: number
+  state?: number
+  city?: number
+  createdAt?: string
+  updatedAt?: string
 }
 
 export interface City {
@@ -50,4 +60,4 @@ export interface AddressModalProps {
   onAddressAdded?: () => void
 }
 
-export type ScreenType = 'list' | 'add-form' | 'city' | 'state'
+export type ScreenType = 'list' | 'add-form' | 'edit-form' | 'city' | 'state'
