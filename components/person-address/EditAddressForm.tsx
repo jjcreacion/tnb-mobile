@@ -1,5 +1,5 @@
-import React, { useEffect, useRef, useState } from 'react'
-import { ScrollView, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native'
+import React, { useEffect, useRef } from 'react'
+import { ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native'
 import { addressStyles } from './styles'
 import { Address, AddressFormData, City, Country, ScreenType, State } from './types'
 
@@ -26,7 +26,6 @@ export const EditAddressForm: React.FC<EditAddressFormProps> = ({
   onUpdateAddress,
   onCancel,
 }) => {
-  const [isPrimary, setIsPrimary] = useState(address.isPrimary === 1)
   const hasInitialized = useRef(false)
 
   // Initialize form data with address data when component mounts or address changes
@@ -84,13 +83,9 @@ export const EditAddressForm: React.FC<EditAddressFormProps> = ({
   const handleUpdate = () => {
     console.log('=== DEBUG: EditAddressForm handleUpdate ===')
     console.log('Current externalFormData:', externalFormData)
-    console.log('Current isPrimary:', isPrimary)
-    console.log('Original address isPrimary:', address.isPrimary)
     
-    const isPrimaryChanged = isPrimary !== (address.isPrimary === 1)
-    console.log('isPrimaryChanged:', isPrimaryChanged)
-    
-    onUpdateAddress(isPrimaryChanged)
+    // No longer checking for primary changes since we removed the primary switch
+    onUpdateAddress(false)
   }
 
   const handleFormChange = (field: keyof AddressFormData, value: string | number | null) => {
@@ -172,17 +167,6 @@ export const EditAddressForm: React.FC<EditAddressFormProps> = ({
             maxLength={10}
           />
         </View>
-      </View>
-
-      <View style={addressStyles.primarySwitchContainer}>
-        <Text style={addressStyles.formLabel}>Primary Address</Text>
-        <Switch
-          value={isPrimary}
-          onValueChange={setIsPrimary}
-          trackColor={{ false: '#e0e0e0', true: '#4CAF50' }}
-          thumbColor={isPrimary ? '#fff' : '#fff'}
-          ios_backgroundColor="#e0e0e0"
-        />
       </View>
 
       <View style={addressStyles.formButtonsContainer}>

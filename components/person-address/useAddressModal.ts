@@ -272,7 +272,6 @@ export const useAddressModal = (isVisible: boolean, addresses: any[]) => {
     console.log('=== DEBUG: handleUpdateAddress START ===')
     console.log('editingAddress:', editingAddress)
     console.log('editAddressForm:', editAddressForm)
-    console.log('isPrimaryChanged:', isPrimaryChanged)
     
     if (!editingAddress) {
       console.log('❌ No address selected for editing')
@@ -301,11 +300,7 @@ export const useAddressModal = (isVisible: boolean, addresses: any[]) => {
       stateId: editAddressForm.stateId,
     }
 
-    if (isPrimaryChanged) {
-      updateData.isPrimary = editingAddress.isPrimary === 1 ? 0 : 1
-      console.log('🔄 Primary status changing from', editingAddress.isPrimary, 'to', updateData.isPrimary)
-    }
-
+    // Remove isPrimary logic since we no longer allow changing it in edit mode
     console.log('📤 Final updateData being sent to backend:', updateData)
     console.log('🎯 Address ID (pkAddress):', editingAddress.pkAddress)
 
