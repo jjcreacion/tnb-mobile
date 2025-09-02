@@ -560,7 +560,6 @@ const HomeScreen: React.FC = () => {
         onAddressSelect={handleAddressSelect}
         primaryAddress={primaryAddress}
         onAddNewAddress={() => {
-          console.log('onAddNewAddress called - iOS debug')
           // Cerrar modal de selección y abrir form de nueva dirección
           setAddressModalVisible(false)
           setAddNewAddressModalVisible(true)

@@ -81,8 +81,6 @@ const AddNewAddressModal: React.FC<AddNewAddressModalProps> = ({
       const countriesResponse = await fetch(`${API_BASE_URL}/country/findAll`)
       if (countriesResponse.ok) {
         const countriesData = await countriesResponse.json()
-        console.log('Countries loaded:', countriesData.length)
-        console.log('First country sample:', countriesData[0])
         
         // Find USA or United States (assuming it's in the data)
         const usa = countriesData.find((country: any) => 
@@ -93,10 +91,8 @@ const AddNewAddressModal: React.FC<AddNewAddressModalProps> = ({
         )
         
         if (usa) {
-          console.log('USA country found:', usa)
           setCountryId(usa.pkCountry || usa.id || 1)
         } else {
-          console.log('USA not found, using default country ID 1')
           setCountryId(1)
         }
       } else {
@@ -108,8 +104,6 @@ const AddNewAddressModal: React.FC<AddNewAddressModalProps> = ({
       const citiesResponse = await fetch(`${API_BASE_URL}/country_city/findAll`)
       if (citiesResponse.ok) {
         const citiesData = await citiesResponse.json()
-        console.log('Cities loaded:', citiesData.length)
-        console.log('First city sample:', citiesData[0])
         setCities(citiesData)
         setFilteredCities(citiesData)
       } else {
@@ -120,8 +114,6 @@ const AddNewAddressModal: React.FC<AddNewAddressModalProps> = ({
       const statesResponse = await fetch(`${API_BASE_URL}/state/findAll`)
       if (statesResponse.ok) {
         const statesData = await statesResponse.json()
-        console.log('States loaded:', statesData.length)
-        console.log('First state sample:', statesData[0])
         setStates(statesData)
       } else {
         console.error('Error loading states:', statesResponse.status)
@@ -165,11 +157,6 @@ const AddNewAddressModal: React.FC<AddNewAddressModalProps> = ({
   }
 
   const handleCitySearch = (text: string) => {
-    console.log('=== CITY SEARCH DEBUG ===')
-    console.log('Search text:', text)
-    console.log('Total cities available:', cities.length)
-    console.log('Current state ID:', newAddressForm.stateId)
-    
     setCitySearchText(text)
     let filtered: City[] = []
     
@@ -178,7 +165,6 @@ const AddNewAddressModal: React.FC<AddNewAddressModalProps> = ({
       filtered = newAddressForm.stateId
         ? cities.filter(city => city.fkState === newAddressForm.stateId)
         : cities
-      console.log('Empty search - filtered by state:', filtered.length)
     } else {
       // Con texto: filtrar nombre y estado si aplica
       const searchLower = text.toLowerCase()
@@ -190,16 +176,12 @@ const AddNewAddressModal: React.FC<AddNewAddressModalProps> = ({
         : cities.filter(city =>
             city.name.toLowerCase().includes(searchLower)
           )
-      console.log('Text search - filtered results:', filtered.length)
     }
     
-    console.log('Setting filtered cities:', filtered.length)
     setFilteredCities(filtered)
   }
 
   const resetNewAddressForm = () => {
-    console.log('=== RESETTING FORM ===')
-    console.log('Before reset - zipCode:', newAddressForm.zipCode)
     setNewAddressForm({
       address: '',
       addressLine2: '',
@@ -215,7 +197,6 @@ const AddNewAddressModal: React.FC<AddNewAddressModalProps> = ({
     setCurrentModalScreen('form')
     // Force re-render of the modal inputs
     setModalKey(prev => prev + 1)
-    console.log('Form reset completed')
   }
 
   const handleSaveNewAddress = async () => {
@@ -272,7 +253,6 @@ const AddNewAddressModal: React.FC<AddNewAddressModalProps> = ({
   }
 
   const handleClose = () => {
-    console.log('Closing new address modal')
     onClose()
     setCurrentModalScreen('form')
     resetNewAddressForm()
@@ -287,15 +267,10 @@ const AddNewAddressModal: React.FC<AddNewAddressModalProps> = ({
   // Effect para inicializar las ciudades filtradas cuando se abre el modal de ciudad
   useEffect(() => {
     if (currentModalScreen === 'city' && cities.length > 0) {
-      console.log('=== CITY SCREEN DEBUG ===')
-      console.log('Cities available:', cities.length)
-      console.log('Current state ID:', newAddressForm.stateId)
-      
       // Inicializar las ciudades filtradas
       const initialCities = newAddressForm.stateId
         ? cities.filter(city => city.fkState === newAddressForm.stateId)
         : cities
-      console.log('Setting initial cities:', initialCities.length)
       setFilteredCities(initialCities)
     }
   }, [currentModalScreen, cities.length, newAddressForm.stateId])
@@ -407,43 +382,27 @@ const AddNewAddressModal: React.FC<AddNewAddressModalProps> = ({
             <View style={{ width: 24 }} />
           </View>
 
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search for a city"
-            value={citySearchText}
-            onChangeText={(text) => {
-              console.log('Search text changed:', text)
-              handleCitySearch(text)
-            }}
-            autoFocus={Platform.OS === 'android'}
-          />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search for a city"
+              value={citySearchText}
+              onChangeText={handleCitySearch}
+              autoFocus={Platform.OS === 'android'}
+            />
 
-          <Text style={styles.selectorSubtitle}>All cities ({filteredCities.length})</Text>
-
-          {/* Debug info */}
-          {__DEV__ && (
-            <View style={{ padding: 10, backgroundColor: '#f0f0f0' }}>
-              <Text>Debug: Cities: {cities.length}, Filtered: {filteredCities.length}</Text>
-              <Text>Platform: {Platform.OS}</Text>
-              <Text>Current Screen: {currentModalScreen}</Text>
-            </View>
-          )}
+            <Text style={styles.selectorSubtitle}>All cities ({filteredCities.length})</Text>
 
           <View style={{ flex: 1 }}>
             <FlatList
               data={filteredCities}
               keyExtractor={(item) => `city-${item.pkCity}`}
-              renderItem={({ item, index }) => {
-                console.log(`Rendering city item ${index}:`, item.name)
+              renderItem={({ item }) => {
                 // Buscar el estado correspondiente
                 const cityState = states.find(state => state.pkState === item.fkState)
                 return (
                   <TouchableOpacity
                     style={styles.selectorItem}
-                    onPress={() => {
-                      console.log('City selected:', item.name)
-                      handleCitySelect(item)
-                    }}
+                    onPress={() => handleCitySelect(item)}
                     activeOpacity={0.7}
                     hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
                   >
@@ -454,19 +413,11 @@ const AddNewAddressModal: React.FC<AddNewAddressModalProps> = ({
               }}
               showsVerticalScrollIndicator={true}
               keyboardShouldPersistTaps="handled"
-              ListEmptyComponent={() => {
-                console.log('FlatList is empty - showing empty component')
-                return (
-                  <View style={{ padding: 20, alignItems: 'center' }}>
-                    <Text>No cities found</Text>
-                    <Text>Total cities: {cities.length}</Text>
-                    <Text>Filtered: {filteredCities.length}</Text>
-                  </View>
-                )
-              }}
-              onLayout={(event) => {
-                console.log('FlatList onLayout:', event.nativeEvent.layout)
-              }}
+              ListEmptyComponent={() => (
+                <View style={{ padding: 20, alignItems: 'center' }}>
+                  <Text>No cities found</Text>
+                </View>
+              )}
               initialNumToRender={10}
               removeClippedSubviews={false}
               contentContainerStyle={{ 
