@@ -34,31 +34,30 @@ const AddressModal: React.FC<AddressModalProps> = ({
 }) => {
   return (
     <Modal
-      animationType="fade"
-      transparent={true}
+      animationType="slide"
+      transparent={false}
       visible={isVisible}
       onRequestClose={onClose}
     >
-      <View style={styles.addressModalOverlay}>
-        <View style={styles.addressModalContent}>
-          <View style={styles.addressModalHeader}>
-            <Text style={styles.addressModalTitle}>
-              Select a property address
-            </Text>
-            <TouchableOpacity
-              onPress={onClose}
-              style={styles.addressCloseButton}
-            >
-              <Icon name="close" size={24} color="#333" />
-            </TouchableOpacity>
-          </View>
-
-          <ScrollView 
-            style={styles.addressList}
-            contentContainerStyle={{ paddingBottom: 20 }}
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
+      <View style={styles.addressContainer}>
+        <View style={styles.addressHeader}>
+          <TouchableOpacity
+            onPress={onClose}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            activeOpacity={0.7}
           >
+            <Icon name="close" size={24} color="#333" />
+          </TouchableOpacity>
+          <Text style={styles.addressTitle}>Select a property address</Text>
+          <View style={{ width: 24 }} />
+        </View>
+
+        <ScrollView 
+          style={styles.addressList}
+          contentContainerStyle={{ paddingBottom: 20 }}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
             {addresses.length > 0 ? (
               addresses
                 .sort((a, b) => b.isPrimary - a.isPrimary)
@@ -116,58 +115,52 @@ const AddressModal: React.FC<AddressModalProps> = ({
               </Text>
             </TouchableOpacity>
           </ScrollView>
-        </View>
       </View>
     </Modal>
   )
 }
 
 const styles = StyleSheet.create({
-  addressModalOverlay: {
+  // Full screen container styles (like AddNewAddressModal)
+  addressContainer: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 20,
+    backgroundColor: '#f8f8f8',
   },
-  addressModalContent: {
-    backgroundColor: '#fff',
-    borderRadius: 20,
-    paddingTop: 20,
-    width: '100%',
-    maxHeight: '70%',
-    marginTop: -100,
-  },
-  addressModalHeader: {
+  addressHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingBottom: 20,
+    paddingVertical: 15,
+    backgroundColor: '#fff',
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: '#e0e0e0',
+    paddingTop: 50,
   },
-  addressModalTitle: {
+  addressTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: '600',
     color: '#333',
   },
-  addressCloseButton: {
-    padding: 5,
-  },
   addressList: {
+    flex: 1,
     paddingHorizontal: 20,
-    paddingTop: 10,
+    paddingTop: 20,
   },
   addressItem: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    paddingHorizontal: 15,
+    marginBottom: 10,
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
   },
   selectedAddressItem: {
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#f0f8ff',
+    borderColor: '#4CAF50',
   },
   addressIconContainer: {
     marginRight: 15,
@@ -190,10 +183,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 20,
-    paddingHorizontal: 10,
+    paddingHorizontal: 15,
     marginTop: 10,
-    backgroundColor: 'transparent',
-    borderRadius: 8,
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    borderStyle: 'dashed',
   },
   addAddressText: {
     fontSize: 16,
