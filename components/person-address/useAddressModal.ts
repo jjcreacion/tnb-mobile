@@ -259,7 +259,7 @@ export const useAddressModal = (isVisible: boolean, addresses: any[], focusCallb
     )
 
     if (result.success) {
-      Alert.alert('Success', 'Address added successfully')
+      // Alert.alert('Success', 'Address added successfully')
       // Force reset form with additional delay for iOS
       setTimeout(() => {
         resetForm()
@@ -317,7 +317,7 @@ export const useAddressModal = (isVisible: boolean, addresses: any[], focusCallb
     const result = await AddressService.updateAddress(editingAddress.pkAddress, updateData)
 
     if (result.success) {
-      Alert.alert('Success', result.message || 'Address updated successfully')
+      // Alert.alert('Success', result.message || 'Address updated successfully')
       setEditingAddress(null)
       animateToScreen('list')
       onAddressUpdated?.()
