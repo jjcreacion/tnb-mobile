@@ -128,7 +128,8 @@ export class AddressService {
     if (!searchText) return states
     const searchLower = searchText.toLowerCase()
     return states.filter((state) =>
-      state.name.toLowerCase().includes(searchLower)
+      state.name.toLowerCase().includes(searchLower) ||
+      state.internalCode.toLowerCase().includes(searchLower)
     )
   }
 

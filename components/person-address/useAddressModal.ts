@@ -3,7 +3,12 @@ import { Alert, Animated } from 'react-native'
 import { AddressService } from './AddressService'
 import { Address, AddressFormData, City, Country, ScreenType, State } from './types'
 
-export const useAddressModal = (isVisible: boolean, addresses: any[]) => {
+interface FocusCallbacks {
+  focusAddFormZipCode: () => void
+  focusEditFormZipCode: () => void
+}
+
+export const useAddressModal = (isVisible: boolean, addresses: any[], focusCallbacks?: FocusCallbacks) => {
   const [currentScreen, setCurrentScreen] = useState<ScreenType>('list')
   const [editingAddress, setEditingAddress] = useState<Address | null>(null)
   const [countries, setCountries] = useState<Country[]>([])
@@ -113,13 +118,18 @@ export const useAddressModal = (isVisible: boolean, addresses: any[]) => {
           ...prev,
           city: city.name,
           cityId: city.pkCity,
-          state: cityState?.name ?? '',
+          state: cityState?.internalCode ?? '',
           stateId: cityState?.pkState ?? null,
         }
         console.log('Updated editAddressForm:', newForm)
         return newForm
       })
       animateToScreen('edit-form')
+      
+      // Focus zip code field after animation completes
+      setTimeout(() => {
+        focusCallbacks?.focusEditFormZipCode()
+      }, 300)
     } else {
       console.log('🆕 Updating NEW form with city data')
       setNewAddressForm((prev) => {
@@ -127,13 +137,18 @@ export const useAddressModal = (isVisible: boolean, addresses: any[]) => {
           ...prev,
           city: city.name,
           cityId: city.pkCity,
-          state: cityState?.name ?? '',
+          state: cityState?.internalCode ?? '',
           stateId: cityState?.pkState ?? null,
         }
         console.log('Updated newAddressForm:', newForm)
         return newForm
       })
       animateToScreen('add-form')
+      
+      // Focus zip code field after animation completes
+      setTimeout(() => {
+        focusCallbacks?.focusAddFormZipCode()
+      }, 300)
     }
     
     setCitySearchText('')
@@ -154,7 +169,7 @@ export const useAddressModal = (isVisible: boolean, addresses: any[]) => {
       setEditAddressForm((prev) => {
         const newForm = {
           ...prev,
-          state: state.name,
+          state: state.internalCode,
           stateId: state.pkState,
           city: '',
           cityId: null,
@@ -168,7 +183,7 @@ export const useAddressModal = (isVisible: boolean, addresses: any[]) => {
       setNewAddressForm((prev) => {
         const newForm = {
           ...prev,
-          state: state.name,
+          state: state.internalCode,
           stateId: state.pkState,
           city: '',
           cityId: null,
@@ -190,11 +205,28 @@ export const useAddressModal = (isVisible: boolean, addresses: any[]) => {
     const currentForm = editingAddress ? editAddressForm : newAddressForm
 
     if (text === '') {
-      filtered = currentForm.stateId
-        ? AddressService.filterCitiesByState(cities, currentForm.stateId)
-        : cities
+      if (currentForm.stateId) {
+        // Si hay un estado seleccionado, mostrar primero las ciudades de ese estado
+        // y después las ciudades de los demás estados
+        const selectedStateCities = AddressService.filterCitiesByState(cities, currentForm.stateId)
+        const otherStateCities = cities.filter(city => city.fkState !== currentForm.stateId)
+        filtered = [...selectedStateCities, ...otherStateCities]
+      } else {
+        // Si no hay estado seleccionado, mostrar todas las ciudades
+        filtered = cities
+      }
     } else {
-      filtered = AddressService.filterCitiesBySearch(cities, text)
+      // Cuando hay texto de búsqueda, aplicar filtro de búsqueda
+      const searchFiltered = AddressService.filterCitiesBySearch(cities, text)
+      
+      if (currentForm.stateId) {
+        // Si hay un estado seleccionado, ordenar poniendo primero las ciudades de ese estado
+        const selectedStateCities = searchFiltered.filter(city => city.fkState === currentForm.stateId)
+        const otherStateCities = searchFiltered.filter(city => city.fkState !== currentForm.stateId)
+        filtered = [...selectedStateCities, ...otherStateCities]
+      } else {
+        filtered = searchFiltered
+      }
     }
 
     setFilteredCities(filtered)
@@ -361,9 +393,19 @@ export const useAddressModal = (isVisible: boolean, addresses: any[]) => {
     if (currentScreen === 'city' && cities.length > 0) {
       // Determinar el formulario actual basándose en si hay una dirección siendo editada
       const currentForm = editingAddress ? editAddressForm : newAddressForm
-      const initialCities = currentForm.stateId
-        ? AddressService.filterCitiesByState(cities, currentForm.stateId)
-        : cities
+      
+      let initialCities: City[] = []
+      if (currentForm.stateId) {
+        // Si hay un estado seleccionado, mostrar primero las ciudades de ese estado
+        // y después las ciudades de los demás estados
+        const selectedStateCities = AddressService.filterCitiesByState(cities, currentForm.stateId)
+        const otherStateCities = cities.filter(city => city.fkState !== currentForm.stateId)
+        initialCities = [...selectedStateCities, ...otherStateCities]
+      } else {
+        // Si no hay estado seleccionado, mostrar todas las ciudades
+        initialCities = cities
+      }
+      
       setFilteredCities(initialCities)
       setCitySearchText('')
     } else if (currentScreen === 'state') {

@@ -68,7 +68,7 @@ export const AddressList: React.FC<AddressListProps> = ({
     if (address.state && states.length > 0) {
       const state = states.find(s => s.pkState === address.state)
       if (state) {
-        parts.push(state.name.trim())
+        parts.push(state.internalCode.trim())
       }
     }
     

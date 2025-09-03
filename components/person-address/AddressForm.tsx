@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { forwardRef, useImperativeHandle, useRef } from 'react'
 import { ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native'
 import { addressStyles } from './styles'
 import { AddressFormData, ScreenType } from './types'
@@ -10,12 +10,23 @@ interface AddressFormProps {
   onSaveAddress: () => void
 }
 
-export const AddressForm: React.FC<AddressFormProps> = ({
+export interface AddressFormRef {
+  focusZipCode: () => void
+}
+
+export const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(({
   formData,
   onFormDataChange,
   onNavigateToScreen,
   onSaveAddress,
-}) => {
+}, ref) => {
+  const zipCodeRef = useRef<TextInput>(null)
+
+  useImperativeHandle(ref, () => ({
+    focusZipCode: () => {
+      zipCodeRef.current?.focus()
+    }
+  }), [])
   return (
     <ScrollView
       style={addressStyles.newAddressForm}
@@ -81,6 +92,7 @@ export const AddressForm: React.FC<AddressFormProps> = ({
         <View style={addressStyles.formColumn}>
           <Text style={addressStyles.formLabel}>Zip Code</Text>
           <TextInput
+            ref={zipCodeRef}
             style={addressStyles.formInput}
             placeholder="e.g 12345"
             value={formData.zipCode}
@@ -102,4 +114,4 @@ export const AddressForm: React.FC<AddressFormProps> = ({
       </TouchableOpacity>
     </ScrollView>
   )
-}
+})

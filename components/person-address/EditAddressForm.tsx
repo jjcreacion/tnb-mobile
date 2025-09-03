@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react'
+import React, { forwardRef, useEffect, useImperativeHandle, useRef } from 'react'
 import { ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native'
 import { addressStyles } from './styles'
 import { Address, AddressFormData, City, Country, ScreenType, State } from './types'
@@ -15,7 +15,11 @@ interface EditAddressFormProps {
   onCancel: () => void
 }
 
-export const EditAddressForm: React.FC<EditAddressFormProps> = ({
+export interface EditAddressFormRef {
+  focusZipCode: () => void
+}
+
+export const EditAddressForm = forwardRef<EditAddressFormRef, EditAddressFormProps>(({
   address,
   countries,
   cities,
@@ -25,8 +29,15 @@ export const EditAddressForm: React.FC<EditAddressFormProps> = ({
   onNavigateToScreen,
   onUpdateAddress,
   onCancel,
-}) => {
+}, ref) => {
   const hasInitialized = useRef(false)
+  const zipCodeRef = useRef<TextInput>(null)
+
+  useImperativeHandle(ref, () => ({
+    focusZipCode: () => {
+      zipCodeRef.current?.focus()
+    }
+  }), [])
 
   // Initialize form data with address data when component mounts or address changes
   useEffect(() => {
@@ -69,7 +80,7 @@ export const EditAddressForm: React.FC<EditAddressFormProps> = ({
         console.log('Looking for state with ID:', address.state)
         console.log('Found state data:', stateData)
         if (stateData) {
-          initialData.state = stateData.name
+          initialData.state = stateData.internalCode
         }
       }
 
@@ -159,6 +170,7 @@ export const EditAddressForm: React.FC<EditAddressFormProps> = ({
         <View style={addressStyles.formColumn}>
           <Text style={addressStyles.formLabel}>Zip Code</Text>
           <TextInput
+            ref={zipCodeRef}
             style={addressStyles.formInput}
             placeholder="e.g 12345"
             value={externalFormData.zipCode}
@@ -190,4 +202,4 @@ export const EditAddressForm: React.FC<EditAddressFormProps> = ({
       </View>
     </ScrollView>
   )
-}
+})

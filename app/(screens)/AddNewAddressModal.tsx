@@ -1,17 +1,17 @@
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import Constants from 'expo-constants'
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import {
-  Alert,
-  FlatList,
-  Modal,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    Alert,
+    FlatList,
+    Modal,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from 'react-native'
 import Icon from 'react-native-vector-icons/MaterialIcons'
 
@@ -53,6 +53,7 @@ const AddNewAddressModal: React.FC<AddNewAddressModalProps> = ({
   userAddresses,
   onAddressAdded,
 }) => {
+  const zipCodeRef = useRef<TextInput>(null)
   const [currentModalScreen, setCurrentModalScreen] = useState<
     'form' | 'city' | 'state'
   >('form')
@@ -135,12 +136,17 @@ const AddNewAddressModal: React.FC<AddNewAddressModalProps> = ({
       ...prev,
       city: city.name,
       cityId: city.pkCity,
-      state: cityState?.name ?? '',
+      state: cityState?.internalCode ?? '',
       stateId: cityState?.pkState ?? null,
     }))
     setCitySearchText('')
     // Volver al formulario principal
     setCurrentModalScreen('form')
+    
+    // Focus the zip code field after returning to form
+    setTimeout(() => {
+      zipCodeRef.current?.focus()
+    }, 100)
   }
 
   const handleStateSelect = (state: State) => {
@@ -149,7 +155,7 @@ const AddNewAddressModal: React.FC<AddNewAddressModalProps> = ({
     setFilteredCities(stateCities)
     setNewAddressForm((prev) => ({
       ...prev,
-      state: state.name,
+      state: state.internalCode,
       stateId: state.pkState,
       city: '',
       cityId: null,
@@ -361,6 +367,7 @@ const AddNewAddressModal: React.FC<AddNewAddressModalProps> = ({
                 <Text style={styles.formLabel}>Zip Code</Text>
                 <TextInput
                   key={`zipcode-${modalKey}`}
+                  ref={zipCodeRef}
                   style={styles.formInput}
                   placeholder="e.g 12345"
                   value={newAddressForm.zipCode}

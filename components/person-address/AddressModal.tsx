@@ -1,11 +1,11 @@
-import React from 'react'
+import React, { useRef } from 'react'
 import { Animated, Dimensions, Modal, Text, TouchableOpacity, View } from 'react-native'
 import Icon from 'react-native-vector-icons/MaterialIcons'
 
-import { AddressForm } from './AddressForm'
+import { AddressForm, AddressFormRef } from './AddressForm'
 import { AddressList } from './AddressList'
 import { CitySelector } from './CitySelector'
-import { EditAddressForm } from './EditAddressForm'
+import { EditAddressForm, EditAddressFormRef } from './EditAddressForm'
 import { StateSelector } from './StateSelector'
 import { addressStyles } from './styles'
 import { AddressModalProps } from './types'
@@ -22,6 +22,9 @@ const AddressModal: React.FC<AddressModalProps> = ({
   onAddNewAddress,
   onAddressAdded,
 }) => {
+  const addFormRef = useRef<AddressFormRef>(null)
+  const editFormRef = useRef<EditAddressFormRef>(null)
+
   const {
     currentScreen,
     slideAnim,
@@ -46,7 +49,10 @@ const AddressModal: React.FC<AddressModalProps> = ({
     handleUpdateAddress,
     handleDeleteAddress,
     handleCancelEdit,
-  } = useAddressModal(isVisible, addresses)
+  } = useAddressModal(isVisible, addresses, {
+    focusAddFormZipCode: () => addFormRef.current?.focusZipCode(),
+    focusEditFormZipCode: () => editFormRef.current?.focusZipCode(),
+  })
 
   const handleAddNewAddress = () => {
     onAddNewAddress()
@@ -157,6 +163,7 @@ const AddressModal: React.FC<AddressModalProps> = ({
             pointerEvents={currentScreen === 'add-form' ? 'auto' : 'none'}
           >
             <AddressForm
+              ref={addFormRef}
               formData={newAddressForm}
               onFormDataChange={setNewAddressForm}
               onNavigateToScreen={animateToScreen}
@@ -183,6 +190,7 @@ const AddressModal: React.FC<AddressModalProps> = ({
           >
             {editingAddress && (
               <EditAddressForm
+                ref={editFormRef}
                 address={editingAddress}
                 countries={countries}
                 cities={cities}
@@ -219,6 +227,7 @@ const AddressModal: React.FC<AddressModalProps> = ({
               searchText={citySearchText}
               onSearchTextChange={handleCitySearch}
               onCitySelect={handleCitySelect}
+              selectedStateId={editingAddress ? editAddressForm.stateId : newAddressForm.stateId}
             />
           </Animated.View>
 
