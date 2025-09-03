@@ -1,7 +1,7 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
-import { useRouter } from 'expo-router';
 import { FontAwesome } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import React from 'react';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 const TermsOfServiceScreen = () => {
   const router = useRouter();
@@ -10,7 +10,7 @@ const TermsOfServiceScreen = () => {
     <View style={styles.container}>
       <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
         <FontAwesome name="arrow-left" size={24} color="#333" />
-        <Text style={styles.backButtonText}>Back</Text>
+        <Text style={styles.backButtonText}>Atrás</Text>
       </TouchableOpacity>
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.title}>Terms of Service</Text>

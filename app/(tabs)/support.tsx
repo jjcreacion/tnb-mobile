@@ -1,18 +1,24 @@
+import { FontAwesome } from '@expo/vector-icons';
 import React from 'react';
 import {
-  View,
-  Text,
-  TouchableOpacity,
+  Linking,
   ScrollView,
   StyleSheet,
-  Linking,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
-import Icon from 'react-native-vector-icons/MaterialIcons';
-import { FontAwesome } from '@expo/vector-icons';
 import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
+import Icon from 'react-native-vector-icons/MaterialIcons';
+
+interface SocialLink {
+  icon: string;
+  url: string;
+  IconComponent: any;
+}
 
 export default function SupportScreen() {
-  const socialLinks = [
+  const socialLinks: SocialLink[] = [
     {
       icon: 'tiktok', 
       url: 'https://www.tiktok.com/@the.national.builders?is_from_webapp=1&sender_device=pc',
@@ -37,7 +43,7 @@ export default function SupportScreen() {
 
   const whatsappLink = 'https://api.whatsapp.com/send/?phone=%2B12294445456&text=Hi%2C+I+have+a+question...&type=phone_number&app_absent=0';
 
-  const handleLinkPress = (url) => {
+  const handleLinkPress = (url: string) => {
     Linking.openURL(url);
   };
 

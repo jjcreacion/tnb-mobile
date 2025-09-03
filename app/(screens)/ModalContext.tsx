@@ -1,4 +1,4 @@
-import React, { createContext, useState, Dispatch, SetStateAction } from 'react';
+import React, { createContext, Dispatch, SetStateAction, useState } from 'react';
 
 interface ModalContextType {  
   isSignUpModalVisible: boolean;
@@ -38,3 +38,8 @@ export const ModalProvider: React.FC<{ children?: React.ReactNode }> = ({ childr
     </ModalContext.Provider>
   );
 };
+
+// Export default para evitar el warning de ruta faltante
+export default function ModalContextScreen() {
+  return null;
+}

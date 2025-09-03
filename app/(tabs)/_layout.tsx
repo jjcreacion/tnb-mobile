@@ -1,8 +1,8 @@
+import { HapticTab } from '@/components/HapticTab';
+import { useColorScheme } from '@/hooks/useColorScheme';
 import { Tabs } from 'expo-router';
 import React from 'react';
 import { Platform } from 'react-native';
-import { HapticTab } from '@/components/HapticTab';
-import { useColorScheme } from '@/hooks/useColorScheme';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 
 export default function TabsLayout() {
@@ -21,8 +21,8 @@ export default function TabsLayout() {
           borderTopRightRadius: 0,
           overflow: 'hidden',
           borderTopWidth: 0,
-          height: Platform.OS === 'ios' ?  70: 90, 
-          marginTop: Platform.OS === 'ios' ?  30: 0, 
+          height: Platform.OS === 'ios' ? 70 : 90, 
+          marginTop: Platform.OS === 'ios' ? 30 : 0, 
         },
         tabBarLabelStyle: {
           fontSize: 12, 

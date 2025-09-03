@@ -1,23 +1,22 @@
-import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  Image,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  ImageBackground,
-  Platform,
-  Alert,
-  ActivityIndicator,
-} from 'react-native';
-import Icon from 'react-native-vector-icons/MaterialIcons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
-import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
-import { FontAwesome } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
+import React, { useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  Image,
+  ImageBackground,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import Icon from 'react-native-vector-icons/MaterialIcons';
 
 export default function ProfileScreen() {
   const [userData, setUserData] = useState({
@@ -30,12 +29,12 @@ export default function ProfileScreen() {
     lastName: '',
     birthdate: '',
     address: '',
-    pkUser: null,
-    createdAt: null,
+    pkUser: null as string | null,
+    createdAt: null as string | null,
   });
 
   const [isEditing, setIsEditing] = useState(false);
-  const [focusedInput, setFocusedInput] = useState(null);
+  const [focusedInput, setFocusedInput] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const API_URL = Constants.expoConfig?.extra?.API_BASE_URL || 'http://localhost:12099';
   const UPLOAD_IMAGE_URL = `${API_URL}/user/upload-profile-image`;
@@ -109,7 +108,7 @@ export default function ProfileScreen() {
    * @param {string} name - El nombre del campo que se está cambiando (ej., 'firstName').
    * @param {string} value - El nuevo valor para el campo.
    */
-  const handleChange = (name, value) => {
+  const handleChange = (name: string, value: string) => {
     setUserData({ ...userData, [name]: value });
   };
 
@@ -174,7 +173,7 @@ export default function ProfileScreen() {
    * @param {string} imageUri - La URI local de la imagen seleccionada.
    * @param {string} pkUser - El ID del usuario.
    */
-  const uploadProfileImage = async (imageUri, pkUser) => {
+  const uploadProfileImage = async (imageUri: string, pkUser: string) => {
     setIsLoading(true);
     const formData = new FormData();
     formData.append('pkUser', pkUser);
@@ -182,7 +181,7 @@ export default function ProfileScreen() {
       uri: imageUri,
       name: `profile_${pkUser}.jpg`,
       type: 'image/jpeg',
-    });
+    } as any);
 
     try {
       const response = await fetch(UPLOAD_IMAGE_URL, {

@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Modal } from 'react-native';
-import styles from '../styles'; 
 import { FontAwesome } from '@expo/vector-icons';
-import SetNewPassword from './SetNewPassword'; 
+import React, { useEffect, useRef, useState } from 'react';
+import { Modal, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import styles from '../styles';
+import SetNewPassword from './SetNewPassword';
 
 interface VerifyPasswordResetCodeProps {
   isVisible: boolean;
@@ -114,7 +114,7 @@ const VerifyPasswordResetCode: React.FC<VerifyPasswordResetCodeProps> = ({
             {enteredCode.map((digit, index) => (
               <TextInput
                 key={index}
-                ref={(ref) => (inputsRef.current[index] = ref)}
+                ref={(ref) => {(inputsRef.current[index] = ref)}}
                 style={[
                   styles.input,
                   styles.codeInput,

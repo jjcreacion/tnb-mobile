@@ -1,8 +1,8 @@
-import React from 'react';
-import { View, Text, StyleSheet, Modal, TouchableOpacity, Dimensions } from 'react-native';
-import Icon from 'react-native-vector-icons/MaterialIcons';
-import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useRouter } from 'expo-router';
+import React from 'react';
+import { Dimensions, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import Icon from 'react-native-vector-icons/MaterialIcons';
 
 
 
@@ -20,9 +20,9 @@ const SideMenu: React.FC<SideMenuProps> = ({ isVisible, onClose }) => {
   const handleItemPress = (item: string) => {
     console.log(`Navigating to: ${item}`);
      if (item === 'Share and Earn') {
-      router.push('/(screens)/ShareAndEarn');
+      router.push('/(screens)/ShareAndEarn' as any);
      } else if (item === 'Terms and Policies') {
-       router.push('/(screens)/TermsAndPolicies');
+       router.push('/(screens)/TermsAndPolicies' as any);
      }
     onClose();
   };
@@ -59,7 +59,7 @@ const SideMenu: React.FC<SideMenuProps> = ({ isVisible, onClose }) => {
 
           <TouchableOpacity style={styles.menuItem} onPress={() => handleItemPress('Terms and Policies')}>
             <Icon name="gavel" size={24} color="#333" />
-            <Text style={styles.menuItemText}>Terms and Polices</Text>
+            <Text style={styles.menuItemText}>Terms and Policies</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.menuItem} onPress={() => handleItemPress('Notifications')}>
             <Icon name="notifications" size={24} color="#333" />

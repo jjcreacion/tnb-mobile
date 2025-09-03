@@ -1,21 +1,28 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { StyleSheet, View, Text, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl, Platform } from 'react-native';
-import Icon from 'react-native-vector-icons/MaterialIcons';
-import { Picker } from '@react-native-picker/picker';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import Constants from 'expo-constants';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
+import React, { useCallback, useEffect, useState } from 'react';
+import { ActivityIndicator, Platform, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import Icon from 'react-native-vector-icons/MaterialIcons';
 
-const TabTwoScreen = ({  }) => {
-  const [services, setServices] = useState([]);
+interface Service {
+  requestId: string;
+  serviceDescription: string;
+  address: string;
+  status: number;
+  createdAt: string;
+}
+
+const HistoryScreen = () => {
+  const [services, setServices] = useState<Service[]>([]);
   const [selectedStatus, setSelectedStatus] = useState('All');
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
   const API_URL = Constants.expoConfig?.extra?.API_BASE_URL;
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const fetchServices = useCallback(async (currentUserId: any) => {
+  const fetchServices = useCallback(async (currentUserId: string) => {
     setIsRefreshing(true);
     setLoading(true);
     try {
@@ -40,7 +47,7 @@ const TabTwoScreen = ({  }) => {
       setLoading(false);
       setIsRefreshing(false);
     }
-  }, [API_URL, setServices, setLoading, setIsRefreshing]);
+  }, [API_URL]);
 
   useEffect(() => {
     const fetchUserIdAndInitialServices = async () => {
@@ -72,7 +79,7 @@ const TabTwoScreen = ({  }) => {
     }
   }, [fetchServices]);
 
-  const getStatusTextAndColor = (status: any ) => {
+  const getStatusTextAndColor = (status: number) => {
     switch (status) {
       case 1:
         return { text: 'Finish', color: '#FFC107' };
@@ -87,7 +94,7 @@ const TabTwoScreen = ({  }) => {
     }
   };
 
-  const renderServiceCard = (service: any) => {
+  const renderServiceCard = (service: Service) => {
     const statusInfo = getStatusTextAndColor(service.status);
 
     return (
@@ -129,7 +136,7 @@ const TabTwoScreen = ({  }) => {
         >
           <View style={styles.headerContainer}>
             <View style={styles.leftHeader}>
-              <Text style={styles.companyName}>Activity history</Text>
+              <Text style={styles.companyName}>Service History</Text>
             </View>
           </View>
         </LinearGradient>
@@ -291,4 +298,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default TabTwoScreen;
+export default HistoryScreen;

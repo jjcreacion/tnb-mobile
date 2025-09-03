@@ -1,7 +1,7 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
-import { useRouter } from 'expo-router';
 import { FontAwesome, MaterialIcons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import React from 'react';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 const TermsAndPoliciesScreen = () => {
   const router = useRouter();
@@ -15,7 +15,7 @@ const TermsAndPoliciesScreen = () => {
   ];
 
   const navigateToPolicy = (screen: string) => {
-    router.push(screen);
+    router.push(screen as any);
   };
 
   return (

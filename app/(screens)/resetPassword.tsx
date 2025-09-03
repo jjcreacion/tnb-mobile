@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { Modal, View, Text, TextInput, TouchableOpacity, ScrollView } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import styles from '../styles'; 
 import { FontAwesome } from '@expo/vector-icons';
-import VerifyCode from './verificodeReset'; 
-import { validateEmail } from '../../scripts/validator'; 
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
+import React, { useEffect, useState } from 'react';
+import { Modal, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { validateEmail } from '../../scripts/validator';
+import styles from '../styles';
+import VerifyCode from './verificodeReset';
 
 interface ModalProps {
   isVisible: boolean;
@@ -150,9 +150,9 @@ const ResetPassword: React.FC<ModalProps> = ({ isVisible, onClose }) => {
           onClose={onClose} 
           onBack={handleBack} 
           verificationCode={verificationCode} 
-          IsVerify={() => {
-            setShowVerifyCode(false); 
-          }}
+          // IsVerify={() => {
+          //   setShowVerifyCode(false); 
+          // }}
         />
       )}
     </Modal>

@@ -1,15 +1,15 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, ScrollView, Platform } from 'react-native';
+import { FontAwesome } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Picker } from '@react-native-picker/picker';
+import Constants from 'expo-constants';
+import * as Location from 'expo-location';
 import { Formik } from 'formik';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import MapView, { Marker } from 'react-native-maps';
 import * as Yup from 'yup';
 import styles from '../styles'; // Assuming styles are defined here
 import RegisterComplete from './registerComplete';
-import Constants from 'expo-constants';
-import MapView, { Marker } from 'react-native-maps';
-import * as Location from 'expo-location';
-import { Picker } from '@react-native-picker/picker';
-import { FontAwesome } from '@expo/vector-icons'; 
 
 interface RegisterProps {
   isVisible: boolean;
@@ -47,7 +47,7 @@ const Register: React.FC<RegisterProps> = ({ isVisible, onClose, IsVerify }) => 
   const [stateNameToIdMap, setStateNameToIdMap] = useState<{ [key: string]: number }>({}); 
 
   const mapRef = useRef<MapView>(null);
-  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null); // Ref for debounce timeout
+  const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null); // Ref for debounce timeout
 
   const API_URL = Constants.expoConfig?.extra?.API_BASE_URL || 'http://216.246.113.71:8080'; 
 

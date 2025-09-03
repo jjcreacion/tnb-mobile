@@ -1,8 +1,8 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Share, Alert, TextInput } from 'react-native';
-import { useRouter } from 'expo-router';
 import { FontAwesome } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
+import { useRouter } from 'expo-router';
+import React from 'react';
+import { Alert, Share, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 const ShareAndEarnScreen = () => {
   const router = useRouter();
@@ -108,10 +108,6 @@ const styles = StyleSheet.create({
     color: 'white',
     fontWeight: 'bold',
     fontSize: 16,
-  },
-  shareButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
   },
   backButton: {
     flexDirection: 'row',

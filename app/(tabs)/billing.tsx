@@ -1,17 +1,23 @@
-import React from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ScrollView, Platform } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import Icon from 'react-native-vector-icons/MaterialIcons';
 import { LinearGradient } from 'expo-linear-gradient';
+import React from 'react';
+import { FlatList, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import Icon from 'react-native-vector-icons/MaterialIcons';
 
-const transactions = [
+interface Transaction {
+  id: string;
+  service: string;
+  amount: number;
+  date: string;
+}
+
+const transactions: Transaction[] = [
   { id: '1', service: 'Roofing Repair', amount: 450, date: 'Aug 15, 2025' },
   { id: '2', service: 'Window Installation', amount: 800, date: 'Aug 10, 2025' },
   { id: '3', service: 'Insulation', amount: 620, date: 'Aug 01, 2025' },
 ];
 
 export default function BillingScreen() {
-  const renderTransactionItem = ({ item }) => (
+  const renderTransactionItem = ({ item }: { item: Transaction }) => (
     <View style={styles.transactionItem}>
       <Icon name="attach-money" size={24} color="#4CAF50" />
       <View style={styles.transactionDetails}>

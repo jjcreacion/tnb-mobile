@@ -1,25 +1,25 @@
-import React, { useState, useEffect } from 'react';
+import { FontAwesome, MaterialIcons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Picker } from '@react-native-picker/picker';
+import Constants from 'expo-constants';
+import * as ImagePicker from 'expo-image-picker';
+import * as Location from 'expo-location';
+import { Formik } from 'formik';
+import React, { useEffect, useState } from 'react';
 import {
-  Modal,
-  View,
-  Text,
-  TouchableOpacity,
-  TextInput,
-  ScrollView,
-  StyleSheet,
+  ActivityIndicator,
   Button,
   Image,
-  ActivityIndicator,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
-import { FontAwesome, MaterialIcons } from '@expo/vector-icons';
-import { Formik } from 'formik';
-import * as Yup from 'yup';
-import * as ImagePicker from 'expo-image-picker';
 import MapView, { Marker } from 'react-native-maps';
-import * as Location from 'expo-location';
-import Constants from 'expo-constants';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Picker } from '@react-native-picker/picker'; 
+import * as Yup from 'yup';
 
 interface Category {
   pkCategory: number;
@@ -68,6 +68,7 @@ const Request: React.FC<ModalProps> = ({ isVisible, onClose, selectedCategory, o
       setLoading(true);
 
       try {
+        console.log('-------API_URL', API_URL);
         const response = await fetch(`${API_URL}/sub_category/by-category/${selectedCategory.pkCategory}`);
         const data = await response.json();
         setSubCategories(data);
@@ -427,7 +428,7 @@ const Request: React.FC<ModalProps> = ({ isVisible, onClose, selectedCategory, o
                       <Button title="Upload Images" color="#f54021" onPress={handleImagePicker} />
                     </View>
                     <View style={styles.button}>
-                      <Button title="Save" onPress={handleSubmit} />
+                      <Button title="Save" onPress={() => handleSubmit()} />
                     </View>
                   </View>
 

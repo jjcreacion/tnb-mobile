@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TextInput, TouchableOpacity } from 'react-native';
-import styles from '../styles';
 import { FontAwesome } from '@expo/vector-icons';
+import React, { useEffect, useRef, useState } from 'react';
+import { Text, TextInput, TouchableOpacity, View } from 'react-native';
+import styles from '../styles';
 import Register from './register';
 
 interface VerifyCodeProps {
@@ -82,7 +82,7 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ isVisible, onClose, onBack, ver
         {code.map((digit, index) => (
           <TextInput
             key={index}
-            ref={(ref) => (inputsRef.current[index] = ref)}
+            ref={(ref) => { inputsRef.current[index] = ref; }}
             style={[
               styles.input,
               styles.codeInput,

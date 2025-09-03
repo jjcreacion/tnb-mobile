@@ -1,15 +1,15 @@
-import React, { useState } from 'react';
-import { StyleSheet, View, Text, TextInput, Image, TouchableOpacity, ImageBackground, ActivityIndicator } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import * as Animatable from 'react-native-animatable';
-import { Formik } from 'formik';
-import * as Yup from 'yup';
-import { useRouter } from 'expo-router';
-import Constants from 'expo-constants';
-import Icon from 'react-native-vector-icons/Ionicons'; 
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import SignUpModal from './singup';
+import Constants from 'expo-constants';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
+import { Formik } from 'formik';
+import React, { useState } from 'react';
+import { ActivityIndicator, Image, ImageBackground, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import * as Animatable from 'react-native-animatable';
+import Icon from 'react-native-vector-icons/Ionicons';
+import * as Yup from 'yup';
 import ResetModal from './resetPassword';
+import SignUpModal from './singup';
 
 const API_URL = Constants.expoConfig?.extra?.API_BASE_URL;
 
@@ -136,7 +136,7 @@ export default function LoginScreen() {
 
                   <TouchableOpacity
                     style={[styles.button, { backgroundColor: primaryButtonColor }]}
-                    onPress={handleSubmit}
+                    onPress={() => handleSubmit()}
                     disabled={loading}
                   >
                     {loading ? (
