@@ -1,5 +1,5 @@
-import React, { useCallback } from 'react'
-import { Alert, Pressable, ScrollView, Text, TouchableOpacity, View } from 'react-native'
+import React, { useCallback, useEffect, useRef } from 'react'
+import { Alert, Animated, Pressable, ScrollView, Text, TouchableOpacity, View } from 'react-native'
 import Icon from 'react-native-vector-icons/MaterialIcons'
 import { RadioButton } from '../ui/RadioButton'
 import { addressStyles } from './styles'
@@ -14,6 +14,7 @@ interface AddressListProps {
   onDeleteAddress?: (address: Address) => void
   cities?: City[]
   states?: State[]
+  recentlyAddedId?: number // ID del elemento recién agregado/actualizado
 }
 
 export const AddressList: React.FC<AddressListProps> = ({
@@ -25,10 +26,40 @@ export const AddressList: React.FC<AddressListProps> = ({
   onDeleteAddress,
   cities = [],
   states = [],
+  recentlyAddedId,
 }) => {
+  const animatedValues = useRef<Map<number, Animated.Value>>(new Map())
+  
   const handleAddressSelection = useCallback((address: Address) => {
     onAddressSelect(address)
   }, [onAddressSelect])
+
+  // Efecto para animar el elemento recién agregado/actualizado
+  useEffect(() => {
+    if (recentlyAddedId) {
+      // Crear o obtener el valor animado para este ID
+      let animValue = animatedValues.current.get(recentlyAddedId)
+      if (!animValue) {
+        animValue = new Animated.Value(1) // Empezar con borde oscuro
+        animatedValues.current.set(recentlyAddedId, animValue)
+      }
+      
+      // Iniciar la animación: de borde oscuro (1) a borde normal (0)
+      Animated.timing(animValue, {
+        toValue: 0,
+        duration: 2000, // 2 segundos para una transición suave
+        useNativeDriver: false, // No podemos usar native driver para borderColor
+      }).start(() => {
+        // Limpiar el valor animado después de la animación
+        animatedValues.current.delete(recentlyAddedId)
+      })
+    }
+  }, [recentlyAddedId])
+
+  // Función para obtener el valor animado de un elemento
+  const getAnimatedValue = (addressId: number) => {
+    return animatedValues.current.get(addressId)
+  }
   
   const handleDeletePress = (address: Address) => {
     Alert.alert(
@@ -107,17 +138,41 @@ export const AddressList: React.FC<AddressListProps> = ({
           })
           .map((address: Address) => {
             const isSelected = address.pkAddress === primaryAddress?.pkAddress
+            const animValue = getAnimatedValue(address.pkAddress)
+            const isRecentlyAdded = address.pkAddress === recentlyAddedId
+            
+            // Estilo animado para el borde
+            const animatedStyle = animValue ? {
+              borderColor: animValue.interpolate({
+                inputRange: [0, 1],
+                outputRange: ['#e0e0e0', '#4CAF50'] // De gris normal a verde destacado
+              }),
+              borderWidth: animValue.interpolate({
+                inputRange: [0, 1],
+                outputRange: [1, 2] // De grosor normal a más grueso
+              }),
+              backgroundColor: animValue.interpolate({
+                inputRange: [0, 1],
+                outputRange: ['#fff', '#f0f8f0'] // De blanco a verde muy claro
+              })
+            } : {}
             
             return (
-            <Pressable
+            <Animated.View
               key={address.pkAddress}
-              style={({ pressed }) => [
+              style={[
                 addressStyles.addressItem,
                 isSelected && addressStyles.selectedAddressItem,
-                !isSelected && pressed && { opacity: 0.7 },
+                animatedStyle, // Aplicar estilo animado si existe
               ]}
-              onPress={() => handleAddressSelection(address)}
             >
+              <Pressable
+                style={({ pressed }) => [
+                  { flex: 1, flexDirection: 'row', alignItems: 'center' },
+                  !isSelected && pressed && { opacity: 0.7 },
+                ]}
+                onPress={() => handleAddressSelection(address)}
+              >
               <View style={addressStyles.addressIconContainer}>
                 <RadioButton
                   selected={isSelected}
@@ -156,7 +211,8 @@ export const AddressList: React.FC<AddressListProps> = ({
                   </TouchableOpacity>
                 )}
               </View>
-            </Pressable>
+              </Pressable>
+            </Animated.View>
             )
           })
       ) : shouldRenderAddresses && (

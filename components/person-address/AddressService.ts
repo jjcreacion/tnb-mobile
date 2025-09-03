@@ -54,18 +54,18 @@ export class AddressService {
     formData: AddressFormData, 
     countryId: number, 
     isFirstAddress: boolean
-  ): Promise<boolean> {
+  ): Promise<{ success: boolean; addressId?: number }> {
     try {
       const userId = await AsyncStorage.getItem('userId')
       if (!userId) {
         console.error('User ID not found')
-        return false
+        return { success: false }
       }
 
       const userResponse = await fetch(`${API_BASE_URL}/user/findOne/${userId}`)
       if (!userResponse.ok) {
         console.error('Error fetching user data:', userResponse.status)
-        return false
+        return { success: false }
       }
 
       const userData = await userResponse.json()
@@ -73,7 +73,7 @@ export class AddressService {
 
       if (!fkPerson) {
         console.error('Person ID not found')
-        return false
+        return { success: false }
       }
 
       const response = await fetch(`${API_BASE_URL}/person-address`, {
@@ -95,10 +95,18 @@ export class AddressService {
         }),
       })
 
-      return response.ok
+      if (response.ok) {
+        const result = await response.json()
+        return { 
+          success: true, 
+          addressId: result?.pkAddress || result?.id || result?.pkPersonAddress 
+        }
+      } else {
+        return { success: false }
+      }
     } catch (error) {
       console.error('Error saving address:', error)
-      return false
+      return { success: false }
     }
   }
 

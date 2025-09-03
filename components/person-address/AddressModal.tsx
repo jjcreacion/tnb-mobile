@@ -1,4 +1,4 @@
-import React, { useRef } from 'react'
+import React, { useRef, useState } from 'react'
 import { Animated, Dimensions, Modal, Text, TouchableOpacity, View } from 'react-native'
 import Icon from 'react-native-vector-icons/MaterialIcons'
 
@@ -24,6 +24,7 @@ const AddressModal: React.FC<AddressModalProps> = ({
 }) => {
   const addFormRef = useRef<AddressFormRef>(null)
   const editFormRef = useRef<EditAddressFormRef>(null)
+  const [recentlyAddedId, setRecentlyAddedId] = useState<number | undefined>()
 
   const {
     currentScreen,
@@ -58,6 +59,44 @@ const AddressModal: React.FC<AddressModalProps> = ({
     onAddNewAddress()
     animateToScreen('add-form')
   }
+
+  // Wrapper para manejar el guardado con animación
+  const handleSaveAddressWithAnimation = async () => {
+    await new Promise<void>((resolve) => {
+      handleSaveAddress((addressId?: number) => {
+        onAddressAdded?.(); // Trigger the address list refresh first
+        
+        // If we got the new address ID, animate it directly
+        if (addressId) {
+          setTimeout(() => {
+            setRecentlyAddedId(addressId);
+            setTimeout(() => setRecentlyAddedId(undefined), 2500);
+          }, 200); // Short delay to ensure the list is refreshed
+        }
+        
+        resolve();
+      });
+    });
+  };
+
+  // Wrapper para manejar la actualización con animación
+  const handleUpdateAddressWithAnimation = async (isPrimaryChanged?: boolean) => {
+    if (editingAddress) {
+      const addressId = editingAddress.pkAddress;
+      
+      await new Promise<void>((resolve) => {
+        handleUpdateAddress(isPrimaryChanged, () => {
+          onAddressAdded?.(); // Trigger the address list refresh first
+          
+          // Animate the updated address
+          setRecentlyAddedId(addressId);
+          setTimeout(() => setRecentlyAddedId(undefined), 2500);
+          
+          resolve();
+        });
+      });
+    }
+  };
 
   const handleClose = () => {
     if (currentScreen === 'add-form' || currentScreen === 'edit-form' || currentScreen === 'city' || currentScreen === 'state') {
@@ -142,6 +181,7 @@ const AddressModal: React.FC<AddressModalProps> = ({
               onDeleteAddress={(address) => handleDeleteAddress(address, onAddressAdded)}
               cities={cities}
               states={states}
+              recentlyAddedId={recentlyAddedId}
             />
           </Animated.View>
           
@@ -167,7 +207,7 @@ const AddressModal: React.FC<AddressModalProps> = ({
               formData={newAddressForm}
               onFormDataChange={setNewAddressForm}
               onNavigateToScreen={animateToScreen}
-              onSaveAddress={() => handleSaveAddress(onAddressAdded)}
+              onSaveAddress={handleSaveAddressWithAnimation}
             />
           </Animated.View>
           
@@ -198,7 +238,7 @@ const AddressModal: React.FC<AddressModalProps> = ({
                 formData={editAddressForm}
                 onFormDataChange={setEditAddressForm}
                 onNavigateToScreen={animateToScreen}
-                onUpdateAddress={(isPrimaryChanged) => handleUpdateAddress(isPrimaryChanged, onAddressAdded)}
+                onUpdateAddress={handleUpdateAddressWithAnimation}
                 onCancel={handleCancelEdit}
               />
             )}

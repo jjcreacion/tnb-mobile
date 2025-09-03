@@ -242,7 +242,7 @@ export const useAddressModal = (isVisible: boolean, addresses: any[], focusCallb
     setStateSearchText('')
   }
 
-  const handleSaveAddress = async (onAddressAdded?: () => void) => {
+  const handleSaveAddress = async (onAddressAdded?: (addressId?: number) => void) => {
     if (
       !newAddressForm.address ||
       !newAddressForm.cityId ||
@@ -252,20 +252,20 @@ export const useAddressModal = (isVisible: boolean, addresses: any[], focusCallb
       return
     }
 
-    const success = await AddressService.saveAddress(
+    const result = await AddressService.saveAddress(
       newAddressForm,
       countryId,
       addresses.length === 0
     )
 
-    if (success) {
+    if (result.success) {
       Alert.alert('Success', 'Address added successfully')
       // Force reset form with additional delay for iOS
       setTimeout(() => {
         resetForm()
       }, 100)
       animateToScreen('list')
-      onAddressAdded?.()
+      onAddressAdded?.(result.addressId)
     } else {
       Alert.alert('Error', 'Failed to add address')
     }
