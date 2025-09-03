@@ -88,7 +88,14 @@ export const AddressList: React.FC<AddressListProps> = ({
     >
       {addresses.length > 0 ? (
         addresses
-          .sort((a, b) => b.isPrimary - a.isPrimary)
+          .sort((a, b) => {
+            // Ordenar de forma descendente (más recientes primero)
+            if (a.createdAt && b.createdAt) {
+              return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+            }
+            // Si no hay createdAt, usar pkAddress como fallback (más altos primero)
+            return b.pkAddress - a.pkAddress
+          })
           .map((address: Address) => (
             <TouchableOpacity
               key={address.pkAddress}
@@ -118,11 +125,11 @@ export const AddressList: React.FC<AddressListProps> = ({
                 <Text style={addressStyles.addressText}>
                   {buildFullAddressDescription(address)}
                 </Text>
-                {address.isPrimary === 1 && (
+                {/* {address.isPrimary === 1 && (
                   <Text style={[addressStyles.addressSubText, { color: '#4CAF50', fontWeight: '600' }]}>
                     Primary Address
                   </Text>
-                )}
+                )} */}
               </View>
               <View style={addressStyles.addressActionsContainer}>
                 {onEditAddress && (
