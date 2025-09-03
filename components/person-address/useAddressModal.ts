@@ -219,7 +219,8 @@ export const useAddressModal = (isVisible: boolean, addresses: any[], focusCallb
   }
 
   const resetForm = () => {
-    setNewAddressForm({
+    // First clear immediately
+    const emptyForm = {
       address: '',
       addressLine2: '',
       city: '',
@@ -227,7 +228,15 @@ export const useAddressModal = (isVisible: boolean, addresses: any[], focusCallb
       state: '',
       stateId: null,
       zipCode: '',
-    })
+    }
+    
+    setNewAddressForm(emptyForm)
+    
+    // Force a complete reset with setTimeout to ensure iOS TextInput updates
+    setTimeout(() => {
+      setNewAddressForm({...emptyForm}) // Create new object reference
+    }, 50) // Small delay to ensure TextInput state is properly cleared
+    
     setFilteredCities(cities)
     setCitySearchText('')
     setStateSearchText('')
@@ -251,7 +260,10 @@ export const useAddressModal = (isVisible: boolean, addresses: any[], focusCallb
 
     if (success) {
       Alert.alert('Success', 'Address added successfully')
-      resetForm()
+      // Force reset form with additional delay for iOS
+      setTimeout(() => {
+        resetForm()
+      }, 100)
       animateToScreen('list')
       onAddressAdded?.()
     } else {
@@ -345,6 +357,25 @@ export const useAddressModal = (isVisible: boolean, addresses: any[], focusCallb
       setCurrentScreen('list')
       slideAnim.setValue(0)
       loadCitiesAndStates()
+      // Reset form when modal opens with extra delay for iOS
+      setTimeout(() => {
+        resetForm()
+      }, 150)
+    } else {
+      // When modal closes, also reset to ensure clean state for next open
+      setTimeout(() => {
+        setNewAddressForm({
+          address: '',
+          addressLine2: '',
+          city: '',
+          cityId: null,
+          state: '',
+          stateId: null,
+          zipCode: '',
+        })
+        setEditingAddress(null)
+        setCurrentScreen('list')
+      }, 100)
     }
   }, [isVisible])
 

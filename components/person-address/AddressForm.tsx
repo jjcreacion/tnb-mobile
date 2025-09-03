@@ -1,5 +1,5 @@
-import React, { forwardRef, useImperativeHandle, useRef } from 'react'
-import { ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native'
+import React, { forwardRef, useEffect, useImperativeHandle, useRef } from 'react'
+import { Platform, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native'
 import { addressStyles } from './styles'
 import { AddressFormData, ScreenType } from './types'
 
@@ -27,6 +27,15 @@ export const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(({
       zipCodeRef.current?.focus()
     }
   }), [])
+
+  // Force TextInput to clear on iOS when form data is reset
+  useEffect(() => {
+    if (Platform.OS === 'ios' && formData.zipCode === '' && zipCodeRef.current) {
+      // Force the TextInput to clear its internal state
+      zipCodeRef.current.setNativeProps({ text: '' })
+    }
+  }, [formData.zipCode])
+
   return (
     <ScrollView
       style={addressStyles.newAddressForm}
@@ -92,6 +101,7 @@ export const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(({
         <View style={addressStyles.formColumn}>
           <Text style={addressStyles.formLabel}>Zip Code</Text>
           <TextInput
+            key={Platform.OS === 'ios' ? `zipCode-reset-${formData.address === '' && formData.zipCode === ''}` : undefined}
             ref={zipCodeRef}
             style={addressStyles.formInput}
             placeholder="e.g 12345"

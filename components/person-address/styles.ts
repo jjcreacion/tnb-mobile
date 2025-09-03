@@ -53,9 +53,20 @@ export const addressStyles = StyleSheet.create({
     borderColor: '#e0e0e0',
   },
   selectedAddressItem: {
-    backgroundColor: '#f8fff8',
-    borderColor: '#4CAF50',
-    borderWidth: 1.5,
+    backgroundColor: '#f9fffe',
+    borderColor: '#a8d8a8',
+    borderWidth: 1.2,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#4CAF50',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
+      },
+      android: {
+        elevation: 1,
+      },
+    }),
   },
   addressIconContainer: {
     marginRight: 15,
