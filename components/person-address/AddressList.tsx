@@ -1,6 +1,7 @@
-import React from 'react'
-import { Alert, ScrollView, Text, TouchableOpacity, View } from 'react-native'
+import React, { useCallback } from 'react'
+import { Alert, Pressable, ScrollView, Text, TouchableOpacity, View } from 'react-native'
 import Icon from 'react-native-vector-icons/MaterialIcons'
+import { RadioButton } from '../ui/RadioButton'
 import { addressStyles } from './styles'
 import { Address, City, State } from './types'
 
@@ -25,6 +26,11 @@ export const AddressList: React.FC<AddressListProps> = ({
   cities = [],
   states = [],
 }) => {
+  const handleAddressSelection = useCallback((address: Address) => {
+    console.log('🔵 Selecting address:', address.pkAddress)
+    onAddressSelect(address)
+  }, [onAddressSelect])
+  
   const handleDeletePress = (address: Address) => {
     Alert.alert(
       'Delete Address',
@@ -96,29 +102,25 @@ export const AddressList: React.FC<AddressListProps> = ({
             // Si no hay createdAt, usar pkAddress como fallback (más altos primero)
             return b.pkAddress - a.pkAddress
           })
-          .map((address: Address) => (
-            <TouchableOpacity
+          .map((address: Address) => {
+            const isSelected = address.pkAddress === primaryAddress?.pkAddress
+            
+            return (
+            <Pressable
               key={address.pkAddress}
-              style={[
+              style={({ pressed }) => [
                 addressStyles.addressItem,
-                address.pkAddress === primaryAddress?.pkAddress &&
-                  addressStyles.selectedAddressItem,
+                isSelected && addressStyles.selectedAddressItem,
+                !isSelected && pressed && { opacity: 0.7 },
               ]}
-              onPress={() => onAddressSelect(address)}
+              onPress={() => handleAddressSelection(address)}
             >
               <View style={addressStyles.addressIconContainer}>
-                <Icon
-                  name={
-                    address.pkAddress === primaryAddress?.pkAddress
-                      ? "radio-button-checked"
-                      : "radio-button-unchecked"
-                  }
+                <RadioButton
+                  selected={isSelected}
                   size={24}
-                  color={
-                    address.pkAddress === primaryAddress?.pkAddress
-                      ? '#4CAF50'
-                      : '#ccc'
-                  }
+                  selectedColor="#4CAF50"
+                  unselectedColor="#ccc"
                 />
               </View>
               <View style={addressStyles.addressTextContainer}>
@@ -151,8 +153,9 @@ export const AddressList: React.FC<AddressListProps> = ({
                   </TouchableOpacity>
                 )}
               </View>
-            </TouchableOpacity>
-          ))
+            </Pressable>
+            )
+          })
       ) : (
         <View style={addressStyles.emptyAddressContainer}>
           <Icon name="location-off" size={48} color="#ccc" />

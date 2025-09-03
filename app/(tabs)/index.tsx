@@ -3,17 +3,17 @@ import Constants from 'expo-constants'
 import { LinearGradient } from 'expo-linear-gradient'
 import React, { useEffect, useRef, useState } from 'react'
 import {
-    ActivityIndicator,
-    Alert,
-    Dimensions,
-    FlatList,
-    Image,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  Dimensions,
+  FlatList,
+  Image,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native'
 import Icon from 'react-native-vector-icons/MaterialIcons'
 import CampaignModal from '../(screens)/CampaignModal'
@@ -198,9 +198,9 @@ const HomeScreen: React.FC = () => {
   }
 
   const handleAddressSelect = async (address: Address) => {
-    // Si la dirección seleccionada ya es la primaria, solo cerrar el modal
+    // Si la dirección seleccionada ya es la primaria, no hacer nada
     if (address.pkAddress === primaryAddress?.pkAddress) {
-      setAddressModalVisible(false)
+      // setAddressModalVisible(false) // Comentado para no cerrar el modal
       return
     }
 
@@ -292,7 +292,7 @@ const HomeScreen: React.FC = () => {
 
       setUserAddresses(updatedAddresses)
       setPrimaryAddress({ ...address, isPrimary: 1 })
-      setAddressModalVisible(false)
+      // setAddressModalVisible(false) // Comentado para no cerrar el modal automáticamente
     } catch (error) {
       console.error('Error al actualizar dirección primaria:', error)
       Alert.alert(
