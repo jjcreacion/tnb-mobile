@@ -142,11 +142,6 @@ export class AddressService {
     updateData: Partial<AddressFormData & { isPrimary?: number }>
   ): Promise<{ success: boolean; address?: any; message?: string }> {
     try {
-      console.log('🔧 [AddressService.updateAddress] Iniciando actualización con:', {
-        pkAddress,
-        updateData
-      })
-
       const requestBody: any = { pkAddress }
       
       // Solo incluir campos que se han modificado - ahora soportados por el UpdatePersonAddressDto
@@ -156,8 +151,6 @@ export class AddressService {
       if (updateData.isPrimary !== undefined) requestBody.isPrimary = updateData.isPrimary
       if (updateData.cityId !== undefined) requestBody.city = updateData.cityId
       if (updateData.stateId !== undefined) requestBody.state = updateData.stateId
-
-      console.log('🔧 [AddressService.updateAddress] Request body completo:', requestBody)
 
       const response = await fetch(`${API_BASE_URL}/person-address`, {
         method: 'PATCH',
@@ -169,7 +162,6 @@ export class AddressService {
 
       if (response.ok) {
         const result = await response.json()
-        console.log('🔧 [AddressService.updateAddress] Respuesta exitosa del backend:', result)
         return {
           success: true,
           address: result.address,

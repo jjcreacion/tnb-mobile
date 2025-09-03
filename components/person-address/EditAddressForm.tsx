@@ -49,11 +49,6 @@ export const EditAddressForm = forwardRef<EditAddressFormRef, EditAddressFormPro
 
   useEffect(() => {
     if (!hasInitialized.current && cities.length > 0 && states.length > 0 && address.pkAddress) {
-      console.log('=== DEBUG: EditAddressForm initialization ===')
-      console.log('Address:', address)
-      console.log('Cities available:', cities.length)
-      console.log('States available:', states.length)
-      
       let initialData = {
         address: address.address || '',
         addressLine2: address.addressLine2 || '',
@@ -67,8 +62,6 @@ export const EditAddressForm = forwardRef<EditAddressFormRef, EditAddressFormPro
       // Find city name if cityId exists
       if (address.city && cities.length > 0) {
         const cityData = cities.find(c => c.pkCity === address.city)
-        console.log('Looking for city with ID:', address.city)
-        console.log('Found city data:', cityData)
         if (cityData) {
           initialData.city = cityData.name
         }
@@ -77,34 +70,24 @@ export const EditAddressForm = forwardRef<EditAddressFormRef, EditAddressFormPro
       // Find state name if stateId exists
       if (address.state && states.length > 0) {
         const stateData = states.find(s => s.pkState === address.state)
-        console.log('Looking for state with ID:', address.state)
-        console.log('Found state data:', stateData)
         if (stateData) {
           initialData.state = stateData.internalCode
         }
       }
 
-      console.log('Final initialData:', initialData)
       onFormDataChange(initialData)
       hasInitialized.current = true
-      console.log('=== EditAddressForm initialization complete ===')
     }
   }, [address, cities, states, onFormDataChange])
 
   const handleUpdate = () => {
-    console.log('=== DEBUG: EditAddressForm handleUpdate ===')
-    console.log('Current externalFormData:', externalFormData)
-    
     // No longer checking for primary changes since we removed the primary switch
     onUpdateAddress(false)
   }
 
   const handleFormChange = (field: keyof AddressFormData, value: string | number | null) => {
-    console.log(`=== DEBUG: handleFormChange ===`)
-    console.log(`Field: ${field}, Value:`, value)
     onFormDataChange(prev => {
       const updated = { ...prev, [field]: value }
-      console.log('Updated form data:', updated)
       return updated
     })
   }
