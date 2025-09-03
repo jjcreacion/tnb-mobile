@@ -27,7 +27,6 @@ export const AddressList: React.FC<AddressListProps> = ({
   states = [],
 }) => {
   const handleAddressSelection = useCallback((address: Address) => {
-    console.log('🔵 Selecting address:', address.pkAddress)
     onAddressSelect(address)
   }, [onAddressSelect])
   
@@ -85,6 +84,10 @@ export const AddressList: React.FC<AddressListProps> = ({
     
     return parts.join(', ')
   }
+
+  // Only render addresses when we have complete data (or no addresses at all)
+  const shouldRenderAddresses = addresses.length === 0 || (cities.length > 0 && states.length > 0)
+  
   return (
     <ScrollView 
       style={addressStyles.addressList}
@@ -92,7 +95,7 @@ export const AddressList: React.FC<AddressListProps> = ({
       showsVerticalScrollIndicator={false}
       keyboardShouldPersistTaps="handled"
     >
-      {addresses.length > 0 ? (
+      {shouldRenderAddresses && addresses.length > 0 ? (
         addresses
           .sort((a, b) => {
             // Ordenar de forma descendente (más recientes primero)
@@ -156,7 +159,7 @@ export const AddressList: React.FC<AddressListProps> = ({
             </Pressable>
             )
           })
-      ) : (
+      ) : shouldRenderAddresses && (
         <View style={addressStyles.emptyAddressContainer}>
           <Icon name="location-off" size={48} color="#ccc" />
           <Text style={addressStyles.emptyAddressTitle}>No addresses found</Text>
