@@ -175,7 +175,7 @@ const HomeScreen: React.FC = () => {
             const primary = userData.person.addresses.find(
               (addr: Address) => addr.isPrimary === 1
             )
-            setPrimaryAddress(primary || userData.person.addresses[0])
+            setPrimaryAddress(primary || null)
           }
         } else {
           console.error(
@@ -457,12 +457,19 @@ const HomeScreen: React.FC = () => {
         <Icon name="home" size={24} color="#ea0e08" />
         <View style={styles.addressTextSection}>
           <Text style={styles.addressText}>
-            {primaryAddress ? primaryAddress.address : 'No address added yet'}
+            {primaryAddress 
+              ? primaryAddress.address 
+              : userAddresses.length > 0 
+                ? 'Select your primary address'
+                : 'No address added yet'
+            }
           </Text>
           <Text style={styles.addressSubText}>
             {primaryAddress
               ? 'Tap to change address'
-              : 'Tap to add your address'}
+              : userAddresses.length > 0
+                ? `${userAddresses.length} address${userAddresses.length > 1 ? 'es' : ''} available`
+                : 'Tap to add your address'}
           </Text>
         </View>
         <Icon name="keyboard-arrow-down" size={24} color="#666" />
