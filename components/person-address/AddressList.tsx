@@ -15,6 +15,7 @@ interface AddressListProps {
   cities?: City[]
   states?: State[]
   recentlyAddedId?: number // ID del elemento recién agregado/actualizado
+  searchText?: string // Texto de búsqueda
 }
 
 export const AddressList: React.FC<AddressListProps> = ({
@@ -27,6 +28,7 @@ export const AddressList: React.FC<AddressListProps> = ({
   cities = [],
   states = [],
   recentlyAddedId,
+  searchText = '',
 }) => {
   const animatedValues = useRef<Map<number, Animated.Value>>(new Map())
   
@@ -116,8 +118,82 @@ export const AddressList: React.FC<AddressListProps> = ({
     return parts.join(', ')
   }
 
+  // Función para resaltar el texto que coincide con la búsqueda
+  const renderHighlightedText = (text: string, searchText: string) => {
+    if (!searchText.trim()) {
+      return <Text style={addressStyles.addressText}>{text}</Text>
+    }
+
+    const escapedSearchText = searchText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    const regex = new RegExp(`(${escapedSearchText})`, 'gi')
+    const parts = text.split(regex)
+
+    return (
+      <Text style={addressStyles.addressText}>
+        {parts.map((part, index) => {
+          const isHighlight = part.toLowerCase() === searchText.toLowerCase()
+          return (
+            <Text
+              key={index}
+              style={isHighlight ? { fontWeight: 'bold', color: '#007AFF' } : {}}
+            >
+              {part}
+            </Text>
+          )
+        })}
+      </Text>
+    )
+  }
+
+  // Función para filtrar direcciones basado en el texto de búsqueda
+  const getFilteredAndSortedAddresses = () => {
+    let filteredAddresses = addresses
+
+    // Filtrar si hay texto de búsqueda
+    if (searchText.trim()) {
+      filteredAddresses = addresses.filter(address => {
+        const fullDescription = buildFullAddressDescription(address).toLowerCase()
+        return fullDescription.includes(searchText.toLowerCase())
+      })
+    }
+
+    // Ordenar: primero las que coinciden con la búsqueda (si hay búsqueda), 
+    // luego por fecha de creación
+    return filteredAddresses.sort((a, b) => {
+      if (searchText.trim()) {
+        const aDescription = buildFullAddressDescription(a).toLowerCase()
+        const bDescription = buildFullAddressDescription(b).toLowerCase()
+        const searchLower = searchText.toLowerCase()
+        
+        // Calcular relevancia de la coincidencia
+        const aStartsWith = aDescription.startsWith(searchLower)
+        const bStartsWith = bDescription.startsWith(searchLower)
+        const aExactMatch = aDescription === searchLower
+        const bExactMatch = bDescription === searchLower
+        const aWordStart = aDescription.includes(' ' + searchLower) || aDescription.includes(', ' + searchLower)
+        const bWordStart = bDescription.includes(' ' + searchLower) || bDescription.includes(', ' + searchLower)
+        
+        // Prioridad: 1. Coincidencia exacta, 2. Empieza con texto, 3. Empieza palabra, 4. Contiene
+        if (aExactMatch && !bExactMatch) return -1
+        if (!aExactMatch && bExactMatch) return 1
+        if (aStartsWith && !bStartsWith) return -1
+        if (!aStartsWith && bStartsWith) return 1
+        if (aWordStart && !bWordStart) return -1
+        if (!aWordStart && bWordStart) return 1
+      }
+
+      // Ordenar de forma descendente por fecha (más recientes primero)
+      if (a.createdAt && b.createdAt) {
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      }
+      // Si no hay createdAt, usar pkAddress como fallback
+      return b.pkAddress - a.pkAddress
+    })
+  }
+
   // Only render addresses when we have complete data (or no addresses at all)
   const shouldRenderAddresses = addresses.length === 0 || (cities.length > 0 && states.length > 0)
+  const filteredAddresses = getFilteredAndSortedAddresses()
   
   return (
     <ScrollView 
@@ -126,20 +202,12 @@ export const AddressList: React.FC<AddressListProps> = ({
       showsVerticalScrollIndicator={false}
       keyboardShouldPersistTaps="handled"
     >
-      {shouldRenderAddresses && addresses.length > 0 ? (
-        addresses
-          .sort((a, b) => {
-            // Ordenar de forma descendente (más recientes primero)
-            if (a.createdAt && b.createdAt) {
-              return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-            }
-            // Si no hay createdAt, usar pkAddress como fallback (más altos primero)
-            return b.pkAddress - a.pkAddress
-          })
-          .map((address: Address) => {
+      {shouldRenderAddresses && filteredAddresses.length > 0 ? (
+        filteredAddresses.map((address: Address) => {
             const isSelected = address.pkAddress === primaryAddress?.pkAddress
             const animValue = getAnimatedValue(address.pkAddress)
             const isRecentlyAdded = address.pkAddress === recentlyAddedId
+            const fullDescription = buildFullAddressDescription(address)
             
             // Estilo animado para el borde
             const animatedStyle = animValue ? {
@@ -182,9 +250,7 @@ export const AddressList: React.FC<AddressListProps> = ({
                 />
               </View>
               <View style={addressStyles.addressTextContainer}>
-                <Text style={addressStyles.addressText}>
-                  {buildFullAddressDescription(address)}
-                </Text>
+                {renderHighlightedText(fullDescription, searchText)}
                 {/* {address.isPrimary === 1 && (
                   <Text style={[addressStyles.addressSubText, { color: '#4CAF50', fontWeight: '600' }]}>
                     Primary Address
@@ -215,6 +281,15 @@ export const AddressList: React.FC<AddressListProps> = ({
             </Animated.View>
             )
           })
+      ) : shouldRenderAddresses && addresses.length > 0 && filteredAddresses.length === 0 ? (
+        // Mostrar mensaje cuando hay direcciones pero ninguna coincide con la búsqueda
+        <View style={addressStyles.emptyAddressContainer}>
+          <Icon name="search-off" size={48} color="#ccc" />
+          <Text style={addressStyles.emptyAddressTitle}>No matches found</Text>
+          <Text style={addressStyles.emptyAddressMessage}>
+            No addresses match your search "{searchText}". Try different keywords or clear the search.
+          </Text>
+        </View>
       ) : shouldRenderAddresses && (
         <View style={addressStyles.emptyAddressContainer}>
           <Icon name="location-off" size={48} color="#ccc" />
