@@ -3,17 +3,17 @@ import Constants from 'expo-constants'
 import { LinearGradient } from 'expo-linear-gradient'
 import React, { useEffect, useRef, useState } from 'react'
 import {
-  ActivityIndicator,
-  Alert,
-  Dimensions,
-  FlatList,
-  Image,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    Dimensions,
+    FlatList,
+    Image,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native'
 import Icon from 'react-native-vector-icons/MaterialIcons'
 import CampaignModal from '../(screens)/CampaignModal'
@@ -175,7 +175,7 @@ const HomeScreen: React.FC = () => {
             const primary = userData.person.addresses.find(
               (addr: Address) => addr.isPrimary === 1
             )
-            setPrimaryAddress(primary || null)
+            setPrimaryAddress(primary || userData.person.addresses[0])
           }
         } else {
           console.error(

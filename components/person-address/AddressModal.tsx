@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react'
-import { Animated, Dimensions, Modal, Text, TouchableOpacity, View } from 'react-native'
+import { Animated, Dimensions, Modal, Text, TextInput, TouchableOpacity, View } from 'react-native'
 import Icon from 'react-native-vector-icons/MaterialIcons'
 
 import { AddressForm, AddressFormRef } from './AddressForm'
@@ -25,6 +25,7 @@ const AddressModal: React.FC<AddressModalProps> = ({
   const addFormRef = useRef<AddressFormRef>(null)
   const editFormRef = useRef<EditAddressFormRef>(null)
   const [recentlyAddedId, setRecentlyAddedId] = useState<number | undefined>()
+  const [searchText, setSearchText] = useState('')
 
   const {
     currentScreen,
@@ -107,6 +108,8 @@ const AddressModal: React.FC<AddressModalProps> = ({
         animateToScreen('list')
       }
     } else {
+      // Limpiar el texto de búsqueda al cerrar el modal
+      setSearchText('')
       onClose()
     }
   }
@@ -155,6 +158,31 @@ const AddressModal: React.FC<AddressModalProps> = ({
           <View style={{ width: 24 }} />
         </View>
 
+        {/* Search Bar - Solo mostrar en la pantalla de lista */}
+        {currentScreen === 'list' && (
+          <View style={addressStyles.searchContainer}>
+            <View style={addressStyles.searchInputContainer}>
+              <Icon name="search" size={20} color="#999" style={addressStyles.searchIcon} />
+              <TextInput
+                style={addressStyles.addressSearchInput}
+                placeholder="Search addresses..."
+                value={searchText}
+                onChangeText={setSearchText}
+                placeholderTextColor="#999"
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+              {searchText.length > 0 && (
+                <TouchableOpacity
+                  onPress={() => setSearchText('')}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <Icon name="clear" size={20} color="#999" />
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+        )}
         {/* Content with absolutely positioned screens */}
         <View style={addressStyles.contentContainer}>
           {/* Address List Screen */}
@@ -182,6 +210,7 @@ const AddressModal: React.FC<AddressModalProps> = ({
               cities={cities}
               states={states}
               recentlyAddedId={recentlyAddedId}
+              searchText={searchText}
             />
           </Animated.View>
           
