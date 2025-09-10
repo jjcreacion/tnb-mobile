@@ -183,7 +183,6 @@ const AddressModal: React.FC<AddressModalProps> = ({
             </View>
           </View>
         )}
-
         {/* Content with absolutely positioned screens */}
         <View style={addressStyles.contentContainer}>
           {/* Address List Screen */}
