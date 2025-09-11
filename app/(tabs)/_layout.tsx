@@ -80,14 +80,7 @@ export default function TabsLayout() {
           tabBarIcon: ({ color }) => <Icon name="support-agent" size={30} color={color} />,
         }}
       />
-
-      <Tabs.Screen
-        name="profile"
-        options={{
-          title: 'Profile',
-          tabBarIcon: ({ color }) => <Icon name="badge" size={30} color={color} />,
-        }}
-      />
+ 
     </Tabs>
   );
 }

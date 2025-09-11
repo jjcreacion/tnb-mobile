@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import Constants from 'expo-constants'
 import { LinearGradient } from 'expo-linear-gradient'
+import * as Animatable from 'react-native-animatable'
 import React, { useEffect, useRef, useState } from 'react'
 import {
     ActivityIndicator,
@@ -11,6 +12,7 @@ import {
     Platform,
     ScrollView,
     StyleSheet,
+    TextInput,
     Text,
     TouchableOpacity,
     View,
@@ -135,6 +137,8 @@ const HomeScreen: React.FC = () => {
   const [errorCampaigns, setErrorCampaigns] = useState<string | null>(null)
   const [errorCategories, setErrorCategories] = useState<string | null>(null)
   const [isMenuVisible, setMenuVisible] = useState(false)
+  const [isSearchVisible, setSearchVisible] = useState(false)
+  const [serviceSearchQuery, setServiceSearchQuery] = useState('')
 
   // Address related states
   const [primaryAddress, setPrimaryAddress] = useState<Address | null>(null)
@@ -149,6 +153,13 @@ const HomeScreen: React.FC = () => {
   const flatListRef = useRef<FlatList<Campaign>>(null)
   const [currentIndex, setCurrentIndex] = useState(0)
 
+  const handleToggleSearch = () => {
+    if (isSearchVisible) {
+      setServiceSearchQuery('')
+    }
+    setSearchVisible(!isSearchVisible)
+  }
+  
   const loadUserData = async () => {
     try {
       const userId = await AsyncStorage.getItem('userId')
@@ -475,8 +486,10 @@ const HomeScreen: React.FC = () => {
         <Icon name="keyboard-arrow-down" size={24} color="#666" />
       </TouchableOpacity>
 
+      <View style={styles.sectionHeader}>
       <Text style={styles.sectionTitle}>Recommended for you</Text>
-
+      </View>
+      
       <View style={styles.recommendedCarouselContainer}>
         {loadingCampaigns ? (
           <ActivityIndicator
@@ -515,7 +528,33 @@ const HomeScreen: React.FC = () => {
         )}
       </View>
 
-      <Text style={styles.sectionTitle}>Services to explore</Text>
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>Services to explore</Text>
+        <TouchableOpacity onPress={handleToggleSearch} style={styles.searchIcon}>
+         <Icon
+            name={isSearchVisible ? 'close' : 'search'}
+            size={24}
+            color="#7c1310"
+          />
+        </TouchableOpacity>
+      </View>
+
+      {isSearchVisible && (
+        <Animatable.View
+          animation="fadeInDown"
+          duration={300}
+          style={styles.searchContainer}
+        >
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search for a service..."
+            placeholderTextColor="#999"
+            value={serviceSearchQuery}
+            onChangeText={setServiceSearchQuery}
+            autoFocus={true}
+          />
+        </Animatable.View>
+      )}
 
       <ScrollView contentContainerStyle={styles.allServicesContainer}>
         {loadingCategories ? (
@@ -526,19 +565,37 @@ const HomeScreen: React.FC = () => {
           />
         ) : errorCategories ? (
           <Text style={styles.errorMessage}>{errorCategories}</Text>
-        ) : categories.length > 0 ? (
-          categories.map((category) => (
+        ) : categories.filter(
+          (category) =>
+            category.name
+              .toLowerCase()
+              .includes(serviceSearchQuery.toLowerCase()) ||
+            category.description
+              .toLowerCase()
+              .includes(serviceSearchQuery.toLowerCase())
+        ).length > 0 ? (
+        categories
+          .filter(
+            (category) =>
+              category.name
+                .toLowerCase()
+                .includes(serviceSearchQuery.toLowerCase()) ||
+              category.description
+                .toLowerCase()
+                .includes(serviceSearchQuery.toLowerCase())
+          )
+          .map((category) => (
             <ServiceItem
               key={category.pkCategory}
               category={category}
               onServicePress={handleServicePress}
               API_BASE_URL={API_BASE_URL || ''}
             />
-          ))
+            ))
         ) : (
-          <Text style={styles.noCampaignsMessage}>
-            No categories available at the moment.
-          </Text>
+          <Text style={styles.noResultsMessage}>
+          No services found matching "{serviceSearchQuery}".
+        </Text>
         )}
       </ScrollView>
 
@@ -586,6 +643,13 @@ const styles = StyleSheet.create({
   },
   menuButton: {
     marginRight: 10,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    marginTop: 5,
+    marginBottom: 15,
   },
   linearGradientHeader: {
     width: '100%',
@@ -636,9 +700,6 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
     color: '#7c1310',
-    marginLeft: 20,
-    marginTop: 5,
-    marginBottom: 15,
   },
   recommendedCarouselContainer: {
     height: 200,
@@ -646,8 +707,30 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  searchIcon: {
+    padding: 5,
+  },
   loadingIndicator: {
     paddingVertical: 20,
+  },
+  noResultsMessage: {
+    color: '#666',
+    textAlign: 'center',
+    padding: 20,
+    fontSize: 16,
+  },
+  searchContainer: {
+    paddingHorizontal: 20,
+    marginBottom: 15,
+  },
+  searchInput: {
+    height: 45,
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    paddingHorizontal: 15,
+    fontSize: 16,
+    borderWidth: 1,
+    borderColor: '#ddd',
   },
   errorMessage: {
     color: 'red',

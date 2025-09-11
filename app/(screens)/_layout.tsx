@@ -10,6 +10,8 @@ export default function RootLayout() {
         <Stack.Screen name="ShareAndEarn" options={{ headerShown: false }} />
         <Stack.Screen name="TermsAndPolicies" options={{ headerShown: false }} />
         <Stack.Screen name="policies" options={{ headerShown: false }} />
+        <Stack.Screen name="profile" options={{ headerShown: false }} />
+        <Stack.Screen name="ServiceRequestDetail" options={{ headerShown: false }} />
     </Stack>   
   )
 }

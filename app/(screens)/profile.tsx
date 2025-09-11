@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 import * as ImageManipulator from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
+import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -33,6 +34,7 @@ export default function ProfileScreen() {
     createdAt: null as string | null,
   });
 
+  const router = useRouter();
   const [isEditing, setIsEditing] = useState(false);
   const [focusedInput, setFocusedInput] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -279,6 +281,9 @@ export default function ProfileScreen() {
       )}
 
       <ImageBackground source={require('@/assets/images/roof-repair.jpg')} style={styles.backgroundImage}>
+        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <Icon name="arrow-back" size={28} color="#FFF" />
+        </TouchableOpacity>
         <View style={styles.profileHeader}>
           <View style={styles.profilePictureContainer}>
             {/* Modificación: Asegura que la prop 'source' siempre tenga un valor válido. */}
@@ -429,6 +434,15 @@ const styles = StyleSheet.create({
     right: 0,
     width: '100%',
     zIndex: 1,
+  },
+  backButton: {
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 50 : 20,
+    left: 15,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    padding: 8,
+    borderRadius: 25,
+    zIndex: 10,
   },
   profilePictureContainer: {
     width: 150,

@@ -5,34 +5,76 @@ import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Platform, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import { useRouter } from 'expo-router';
 
-interface Service {
-  requestId: string;
+
+// Definición de tipos para los datos de las APIs
+interface ServiceRequest {
+  requestId: number;
   serviceDescription: string;
   address: string;
-  status: number;
+  latitude: string;
+  longitude: string;
+  fkRequestStatus: number | null;
   createdAt: string;
+  updatedAt: string | null;
+  fkUser: {
+    pkUser: number;
+    email: string;
+    username: string | null;
+    password: string;
+    phone: string | null;
+    validateEmail: number;
+    validatePhone: number;
+    status: number;
+    img_profile: string;
+    roles: string[];
+    createdAt: string;
+    updatedAt: string;
+  };
+}
+
+interface Status {
+  statusId: number;
+  order: number;
+  name: string;
+  color: string;
 }
 
 const HistoryScreen = () => {
-  const [services, setServices] = useState<Service[]>([]);
+  const [services, setServices] = useState<ServiceRequest[]>([]);
+  const [statusList, setStatusList] = useState<Status[]>([]);
   const [selectedStatus, setSelectedStatus] = useState('All');
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
   const API_URL = Constants.expoConfig?.extra?.API_BASE_URL;
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const router = useRouter();
 
+  // Función para obtener la lista de estados de la API
+  const fetchStatusList = useCallback(async () => {
+    try {
+      const response = await axios.get<Status[]>('http://216.246.113.71:8080/status-list');
+      if (response.status === 200) {
+        setStatusList(response.data);
+      }
+    } catch (error) {
+      console.error('Error fetching status list:', error);
+    }
+  }, []);
+
+  // Función para obtener las solicitudes de servicio del usuario
   const fetchServices = useCallback(async (currentUserId: string) => {
     setIsRefreshing(true);
     setLoading(true);
     try {
-      const response = await axios.get(`${API_URL}/service_request/user/${currentUserId}`);
+      const response = await axios.get<ServiceRequest[]>(`${API_URL}/service_request/user/${currentUserId}`);
 
       if (response.status === 200) {
         setServices(response.data);
         console.log('Datos del usuario cargados:', response.data);
       } else if (response.status === 404) {
-        if (response.data && response.data.message && response.data.message.includes('No requests found')) {
+        if (response.data && (response.data as any).message && (response.data as any).message.includes('No requests found')) {
           setServices([]);
           console.log('No se encontraron solicitudes para este usuario.');
         } else {
@@ -42,7 +84,8 @@ const HistoryScreen = () => {
         console.error('Error al obtener servicios:', response);
       }
     } catch (error) {
-      // Handle network or other errors silently for now, as per original logic
+      console.error('Network or other error fetching services:', error);
+      setServices([]); // Establecer a un array vacío en caso de error
     } finally {
       setLoading(false);
       setIsRefreshing(false);
@@ -50,60 +93,55 @@ const HistoryScreen = () => {
   }, [API_URL]);
 
   useEffect(() => {
-    const fetchUserIdAndInitialServices = async () => {
-      setLoading(true);
-      setIsRefreshing(true);
-      try {
-        const storedUserId = await AsyncStorage.getItem('userId');
-        if (storedUserId) {
-          setUserId(storedUserId);
-          fetchServices(storedUserId);
-        } else {
-          setLoading(false);
-          setIsRefreshing(false);
-        }
-      } catch (error) {
-        // Handle errors silently for now, as per original logic
+    const initialize = async () => {
+      await fetchStatusList();
+      const storedUserId = await AsyncStorage.getItem('userId');
+      if (storedUserId) {
+        setUserId(storedUserId);
+        fetchServices(storedUserId);
+      } else {
         setLoading(false);
         setIsRefreshing(false);
       }
     };
 
-    fetchUserIdAndInitialServices();
-  }, [fetchServices]);
+    initialize();
+  }, [fetchServices, fetchStatusList]);
 
   const onRefresh = useCallback(async () => {
     const currentUserId = await AsyncStorage.getItem('userId');
     if (currentUserId) {
+      await fetchStatusList();
       fetchServices(currentUserId);
     }
-  }, [fetchServices]);
+  }, [fetchServices, fetchStatusList]);
 
-  const getStatusTextAndColor = (status: number) => {
-    switch (status) {
-      case 1:
-        return { text: 'Finish', color: '#FFC107' };
-      case 2:
-        return { text: 'Approved', color: '#4CAF50' };
-      case 3:
-        return { text: 'In Progress', color: '#2196F3' };
-      case 4:
-        return { text: 'Closed', color: '#9E9E9E' };
-      default:
-        return { text: 'Pending', color: 'gray' };
-    }
+  const handleCardPress = (service: ServiceRequest) => {
+    const statusInfo = getStatusTextAndColor(service.fkRequestStatus);
+    const serviceWithStatus = { ...service, statusInfo };
+    router.push({
+      pathname: '/(screens)/ServiceRequestDetail',
+      params: { service: JSON.stringify(serviceWithStatus) },
+    });
   };
 
-  const renderServiceCard = (service: Service) => {
-    const statusInfo = getStatusTextAndColor(service.status);
+  const getStatusTextAndColor = (fkRequestStatus: number | null) => {
+    const statusId = fkRequestStatus === null ? 1 : fkRequestStatus;
+    const statusObject = statusList.find(status => status.statusId === statusId);
+  
+    const statusColor = statusObject ? statusObject.color : 'gray'; 
+    const statusName = statusObject ? statusObject.name : 'Unknown';
+  
+    return { text: statusName, color: statusColor };
+  };
+
+  const renderServiceCard = (service: ServiceRequest) => {
+    const statusInfo = getStatusTextAndColor(service.fkRequestStatus);
 
     return (
-      <TouchableOpacity key={service.requestId} style={styles.card}>
+      <TouchableOpacity key={service.requestId} style={styles.card} onPress={() => handleCardPress(service)}>
         <View style={styles.cardHeader}>
           <Text style={styles.cardTitle}>{service.serviceDescription || 'No Description'}</Text>
-          <TouchableOpacity onPress={() => console.log(`Open chat modal for request ${service.requestId}`)}>
-            <Icon name="chat" size={24} color="#007AFF" />
-          </TouchableOpacity>
         </View>
         <Text style={styles.cardDescription}>{service.address || 'No Address'}</Text>
         <View style={styles.cardFooter}>
@@ -118,7 +156,7 @@ const HistoryScreen = () => {
 
   const filteredServices = selectedStatus === 'All'
     ? services
-    : services.filter(service => getStatusTextAndColor(service.status).text === selectedStatus);
+    : services.filter(service => getStatusTextAndColor(service.fkRequestStatus).text === selectedStatus);
 
   return (
     <ScrollView
@@ -127,7 +165,7 @@ const HistoryScreen = () => {
         <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} />
       }
     >
-     <View style={styles.backgroundTop}>
+      <View style={styles.backgroundTop}>
         <LinearGradient
           colors={['#ea0e08', '#fa2d64']}
           style={styles.linearGradientHeader}
@@ -140,7 +178,6 @@ const HistoryScreen = () => {
             </View>
           </View>
         </LinearGradient>
-
       </View>
 
       {loading ? (
@@ -285,15 +322,15 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 50, 
-    width: '100%', 
-    backgroundColor: 'transparent', 
+    paddingVertical: 50,
+    width: '100%',
+    backgroundColor: 'transparent',
   },
   noServicesText: {
-    marginTop: 15, 
-    fontSize: 25, 
+    marginTop: 15,
+    fontSize: 25,
     fontWeight: 'bold',
-    color: '#666', 
+    color: '#666',
     textAlign: 'center',
   },
 });

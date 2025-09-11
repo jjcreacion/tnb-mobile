@@ -19,8 +19,10 @@ const SideMenu: React.FC<SideMenuProps> = ({ isVisible, onClose }) => {
 
   const handleItemPress = (item: string) => {
     console.log(`Navigating to: ${item}`);
-     if (item === 'Share and Earn') {
+    if (item === 'Share and Earn') {
       router.push('/(screens)/ShareAndEarn' as any);
+     } else if (item === 'Profile') {
+      router.push('/(screens)/profile' as any);
      } else if (item === 'Terms and Policies') {
        router.push('/(screens)/TermsAndPolicies' as any);
      }
@@ -56,7 +58,10 @@ const SideMenu: React.FC<SideMenuProps> = ({ isVisible, onClose }) => {
               <Icon name="close" size={24} color="#333" />
             </TouchableOpacity>
           </View>
-
+          <TouchableOpacity style={styles.menuItem} onPress={() => handleItemPress('Profile')}>
+            <Icon name="account-circle" size={24} color="#333" />
+            <Text style={styles.menuItemText}>My Profile</Text>
+          </TouchableOpacity>
           <TouchableOpacity style={styles.menuItem} onPress={() => handleItemPress('Terms and Policies')}>
             <Icon name="gavel" size={24} color="#333" />
             <Text style={styles.menuItemText}>Terms and Policies</Text>
