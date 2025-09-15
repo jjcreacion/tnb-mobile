@@ -1,6 +1,7 @@
+import Constants from 'expo-constants';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React from 'react';
-import { Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, Dimensions, FlatList, Image, Modal, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 
@@ -20,10 +21,30 @@ interface ServiceRequest {
   };
 }
 
+interface ServiceRequestImage {
+  imageId: number;
+  urlImage: string;
+}
+
 const ServiceRequestDetailScreen = () => {
   const router = useRouter();
   const params = useLocalSearchParams();
   const { service: serviceString } = params;
+  const API_URL = Constants.expoConfig?.extra?.API_BASE_URL;
+  const { width, height } = Dimensions.get('window');
+  const [images, setImages] = useState<ServiceRequestImage[]>([]);
+  const [loadingImages, setLoadingImages] = useState(true);
+  const [isImageModalVisible, setImageModalVisible] = useState(false);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+
+  const openImageModal = (index: number) => {
+    setSelectedImageIndex(index);
+    setImageModalVisible(true);
+  };
+
+  const closeImageModal = () => {
+    setImageModalVisible(false);
+  };
 
   if (!serviceString || typeof serviceString !== 'string') {
     return (
@@ -58,6 +79,31 @@ const ServiceRequestDetailScreen = () => {
     latitudeDelta: 0.01,
     longitudeDelta: 0.01,
   } : null;
+
+  useEffect(() => {
+    const fetchImages = async () => {
+      if (!requestId || !API_URL) {
+        setLoadingImages(false);
+        return;
+      }
+      try {
+        setLoadingImages(true);
+        const response = await fetch(`${API_URL}/request-images/by-request/${requestId}`);
+        if (response.ok) {
+          const data: ServiceRequestImage[] = await response.json();
+          setImages(data);
+        } else {
+          console.error('Error al obtener las imágenes de la solicitud:', response.status);
+        }
+      } catch (error) {
+        console.error('Error de red al obtener las imágenes de la solicitud:', error);
+      } finally {
+        setLoadingImages(false);
+      }
+    };
+
+    fetchImages();
+  }, [requestId, API_URL]);
 
   return (
     <View style={styles.container}>
@@ -113,7 +159,67 @@ const ServiceRequestDetailScreen = () => {
              </View>
           </View>
         )}
+
+        <View style={styles.imageCard}>
+          <Text style={styles.mapTitle}>Request Images</Text>
+          {loadingImages ? (
+            <ActivityIndicator size="large" color="#007AFF" style={{ marginVertical: 20 }} />
+          ) : images.length > 0 ? (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              <View style={styles.imagePreviewContainer}>
+                {images.map((image, index) => (
+                  <TouchableOpacity key={image.imageId} onPress={() => openImageModal(index)}>
+                    <Image
+                      source={{ uri: `${API_URL}${image.urlImage}` }}
+                      style={styles.previewImage}
+                    />
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </ScrollView>
+          ) : (
+            <View style={styles.noMapContainer}>
+              <Icon name="image-not-supported" size={40} color="#999" />
+              <Text style={styles.noMapText}>No images were uploaded for this request.</Text>
+            </View>
+          )}
+        </View>
       </ScrollView>
+
+      <Modal
+        visible={isImageModalVisible}
+        transparent={true}
+        onRequestClose={closeImageModal}
+        animationType="fade"
+      >
+        <View style={styles.imageModalContainer}>
+          <TouchableOpacity style={styles.modalCloseButton} onPress={closeImageModal}>
+            <Icon name="close" size={32} color="#fff" />
+          </TouchableOpacity>
+          <FlatList
+            data={images}
+            renderItem={({ item }) => (
+              <View style={{ width, height, justifyContent: 'center', alignItems: 'center' }}>
+                <Image
+                  source={{ uri: `${API_URL}${item.urlImage}` }}
+                  style={styles.modalImage}
+                  resizeMode="contain"
+                />
+              </View>
+            )}
+            keyExtractor={(item) => item.imageId.toString()}
+            horizontal
+            pagingEnabled
+            initialScrollIndex={selectedImageIndex}
+            getItemLayout={(data, index) => ({
+              length: width,
+              offset: width * index,
+              index,
+            })}
+            showsHorizontalScrollIndicator={false}
+          />
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -127,6 +233,25 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingBottom: 32,
   },
+  imageModalContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalCloseButton: {
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 60 : 40,
+    right: 20,
+    zIndex: 2,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    borderRadius: 20,
+    padding: 5,
+  },
+  modalImage: {
+    width: '100%',
+    height: '80%',
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -136,6 +261,29 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
+  },
+  imageCard: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 20,
+    marginTop: 20,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  imagePreviewContainer: {
+    flexDirection: 'row',
+    marginTop: 10,
+  },
+  previewImage: {
+    width: 100,
+    height: 100,
+    borderRadius: 8,
+    marginRight: 10,
+    borderWidth: 1,
+    borderColor: '#ddd',
   },
   backButton: {
     padding: 5,
