@@ -1,11 +1,15 @@
 import { FontAwesome } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 import { useRouter } from 'expo-router';
-import React from 'react';
+import React, { useState, useEffect } from 'react'
+import Constants from 'expo-constants'
 import { Alert, Share, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 const ShareAndEarnScreen = () => {
   const router = useRouter();
+  const API_BASE_URL = Constants.expoConfig?.extra?.API_BASE_URL
+
+  const [referralReward, setReferralReward] = useState<string>('15')
 
   const inviteLink = "https://yourapp.com/invite?code=FRIEND123"; // Enlace de invitación de ejemplo
   const inviteMessage = `¡Únete a TNB y obtén un servicio de $19! Usa mi enlace: ${inviteLink}`;
@@ -32,6 +36,27 @@ const ShareAndEarnScreen = () => {
     await Clipboard.setStringAsync(inviteLink);
     Alert.alert('Copiado', 'El enlace de invitación ha sido copiado a tu portapapeles.');
   };
+
+  const fetchReferralReward = async () => {
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/app-settings/referral_reward_amount`
+      )
+      if (response.ok) {
+        const data = await response.json()
+        const rewardValue = parseFloat(data.value).toFixed(0)
+        setReferralReward(rewardValue)
+      } else {
+        console.error('Error fetching referral reward, using default.')
+      }
+    } catch (error: any) {
+      console.error('Error fetching referral reward:', error)
+    }
+  }
+
+   useEffect(() => {
+    fetchReferralReward()
+   }, [API_BASE_URL])
 
 
   return (

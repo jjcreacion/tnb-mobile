@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 import Constants from 'expo-constants'
 import { LinearGradient } from 'expo-linear-gradient'
 import * as Animatable from 'react-native-animatable'
+import { useRouter } from 'expo-router'
 import React, { useEffect, useRef, useState } from 'react'
 import {
     ActivityIndicator,
@@ -139,12 +140,14 @@ const HomeScreen: React.FC = () => {
   const [isMenuVisible, setMenuVisible] = useState(false)
   const [isSearchVisible, setSearchVisible] = useState(false)
   const [serviceSearchQuery, setServiceSearchQuery] = useState('')
+  const [referralReward, setReferralReward] = useState<string>('15')
 
   // Address related states
   const [primaryAddress, setPrimaryAddress] = useState<Address | null>(null)
   const [userAddresses, setUserAddresses] = useState<Address[]>([])
   const [isAddressModalVisible, setAddressModalVisible] = useState(false)
   const [loadingAddresses, setLoadingAddresses] = useState(false)
+  const [userBalance, setUserBalance] = useState<number | null>(null)
 
   const API_BASE_URL = Constants.expoConfig?.extra?.API_BASE_URL
   const CATEGORIES_ENDPOINT = '/category/findAll'
@@ -152,6 +155,7 @@ const HomeScreen: React.FC = () => {
 
   const flatListRef = useRef<FlatList<Campaign>>(null)
   const [currentIndex, setCurrentIndex] = useState(0)
+  const router = useRouter()
 
   const handleToggleSearch = () => {
     if (isSearchVisible) {
@@ -176,6 +180,7 @@ const HomeScreen: React.FC = () => {
           } else {
             setUserName('User')
           }
+          setUserBalance(userData.balance);
 
           // Load user addresses
           if (
@@ -194,6 +199,8 @@ const HomeScreen: React.FC = () => {
             response.status
           )
           setUserName('User')
+          
+          
         }
       } else {
         setUserName('User')
@@ -344,6 +351,23 @@ const HomeScreen: React.FC = () => {
       }
     }
 
+    const fetchReferralReward = async () => {
+      try {
+        const response = await fetch(
+          `${API_BASE_URL}/app-settings/referral_reward_amount`
+        )
+        if (response.ok) {
+          const data = await response.json()
+          const rewardValue = parseFloat(data.value).toFixed(0)
+          setReferralReward(rewardValue)
+        } else {
+          console.error('Error fetching referral reward, using default.')
+        }
+      } catch (error: any) {
+        console.error('Error fetching referral reward:', error)
+      }
+    }
+
     const fetchCategories = async () => {
       try {
         setLoadingCategories(true)
@@ -364,6 +388,7 @@ const HomeScreen: React.FC = () => {
     if (API_BASE_URL) {
       fetchCampaigns()
       fetchCategories()
+      fetchReferralReward()
     }
   }, [API_BASE_URL])
 
@@ -453,8 +478,16 @@ const HomeScreen: React.FC = () => {
               <Image source={tnbLogo} style={styles.companyLogo} />
             </View>
             <View style={styles.rightHeader}>
-              <Text style={styles.userName}>Hi, {userName} </Text>
-              <Icon name="account-circle" size={30} color="#fff7f9" />
+           
+            <TouchableOpacity style={styles.getMoneyButton} onPress={() => router.push('/(screens)/ShareAndEarn')}>
+                <Text style={styles.getMoneyButtonText}>Get ${referralReward}</Text>
+             </TouchableOpacity>
+
+            <TouchableOpacity style={styles.balanceButton} onPress={() => router.push('/(tabs)/billing')}>
+                <Text style={styles.balanceButtonText}>
+                  Balance: ${userBalance}
+                </Text>
+              </TouchableOpacity>
             </View>
           </View>
         </LinearGradient>
@@ -650,6 +683,37 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     marginTop: 5,
     marginBottom: 15,
+  },
+  balanceButton: {
+    backgroundColor: '#F5EDED',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 15,
+    marginLeft: 10,
+    borderWidth: 1,
+    borderColor: '#333'
+  },
+  getMoneyButtonText: {
+    color: '#333', // Texto oscuro para contrastar con el fondo claro
+    fontWeight: 'bold',
+    fontSize: 14,
+  },
+  balanceButtonText: {
+    color: '#333',
+    fontWeight: 'bold',
+    fontSize: 14,
+  },
+  getMoneyButton: {
+    backgroundColor: '#FFD700', 
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 15,
+    marginLeft: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+    elevation: 5,
   },
   linearGradientHeader: {
     width: '100%',
