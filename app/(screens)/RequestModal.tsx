@@ -8,15 +8,15 @@ import { Formik } from 'formik';
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  Button,
   Image,
   Modal,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 import * as Yup from 'yup';
@@ -103,20 +103,17 @@ const Request: React.FC<ModalProps> = ({
   const [uploadSuccess, setUploadSuccess] = useState(false);
   const [uploadFailed, setUploadFailed] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [subCategories, setSubCategories] = useState<SubCategory[]>([]);
+  const [subCategories, setSubCategories] = useState<SubCategory[]>([]); 
   const [selectedSubCategory, setSelectedSubCategory] = useState<number | null>(null);
-  const [showSubCategoryPicker, setShowSubCategoryPicker] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [isMapExpanded, setIsMapExpanded] = useState(false);
-  const [isMapInteracting, setIsMapInteracting] = useState(false);
-  const [shouldPreventNextPress, setShouldPreventNextPress] = useState(false);
-  const [initialScrollPosition, setInitialScrollPosition] = useState(0);
-  const mapHeight = useRef(new Animated.Value(200)).current;
-  const scrollViewRef = useRef<ScrollView>(null);
-  const mapContainerRef = useRef<View>(null);
-  const saveButtonRef = useRef<View>(null);
+  const [showSubCategoryPicker, setShowSubCategoryPicker] = useState(false); 
 
   const API_URL = Constants.expoConfig?.extra?.API_BASE_URL;
+  
+  // Función para obtener el nombre de la subcategoría seleccionada
+  const getSelectedSubCategoryName = () => {
+    const selected = subCategories.find(sub => sub.pkSubCategory === selectedSubCategory);
+    return selected ? selected.name : 'Select a subcategory';
+  };
   
   useEffect(() => {
     const fetchSubCategories = async () => {
@@ -206,12 +203,6 @@ const Request: React.FC<ModalProps> = ({
       setSubCategories([]); 
       setSelectedSubCategory(null);
       setShowSubCategoryPicker(false);
-      // Resetear el estado del mapa
-      setIsMapExpanded(false);
-      setIsMapInteracting(false);
-      setShouldPreventNextPress(false);
-      setInitialScrollPosition(0);
-      mapHeight.setValue(200);
     }
   }, [isVisible, mapHeight]);
 
@@ -430,16 +421,9 @@ const Request: React.FC<ModalProps> = ({
                       <Text style={styles.fieldLabel}>Select a subcategory:</Text>
                       
                       {/* Touch area to show picker */}
-                      <TouchableOpacity
+                      <TouchableOpacity 
                         style={styles.pickerButton}
-                        onPress={() => {
-                          console.log('🔍 [DEBUG] Opening subcategory picker');
-                          console.log('🔍 [DEBUG] Platform:', Platform.OS);
-                          console.log('🔍 [DEBUG] SubCategories count:', subCategories.length);
-                          console.log('🔍 [DEBUG] SubCategories data:', JSON.stringify(subCategories, null, 2));
-                          console.log('🔍 [DEBUG] Selected subcategory:', selectedSubCategory);
-                          setShowSubCategoryPicker(true);
-                        }}
+                        onPress={() => setShowSubCategoryPicker(true)}
                       >
                         <Text style={[
                           styles.pickerButtonText,
@@ -447,10 +431,10 @@ const Request: React.FC<ModalProps> = ({
                         ]}>
                           {getSelectedSubCategoryName()}
                         </Text>
-                        <MaterialIcons
-                          name={Platform.OS === 'android' ? 'arrow-drop-down' : 'arrow-drop-down'}
-                          size={24}
-                          color={Platform.OS === 'android' ? '#757575' : '#666'}
+                        <MaterialIcons 
+                          name={Platform.OS === 'android' ? 'arrow-drop-down' : 'arrow-drop-down'} 
+                          size={24} 
+                          color={Platform.OS === 'android' ? '#757575' : '#666'} 
                         />
                       </TouchableOpacity>
 
@@ -460,106 +444,39 @@ const Request: React.FC<ModalProps> = ({
                           visible={showSubCategoryPicker}
                           transparent={true}
                           animationType="slide"
-                          onRequestClose={() => {
-                            setShowSubCategoryPicker(false);
-                            setSearchQuery('');
-                          }}
+                          onRequestClose={() => setShowSubCategoryPicker(false)}
                         >
                           <View style={styles.pickerModalContainer}>
                             <View style={styles.pickerModalContent}>
                               <View style={styles.pickerHeader}>
                                 <TouchableOpacity
-                                  onPress={() => {
-                                    setShowSubCategoryPicker(false);
-                                    setSearchQuery('');
-                                  }}
+                                  onPress={() => setShowSubCategoryPicker(false)}
                                   style={styles.pickerHeaderButton}
                                 >
                                   <Text style={styles.pickerHeaderButtonText}>Cancel</Text>
                                 </TouchableOpacity>
                                 <Text style={styles.pickerHeaderTitle}>Select Subcategory</Text>
                                 <TouchableOpacity
-                                  onPress={() => {
-                                    setShowSubCategoryPicker(false);
-                                    setSearchQuery('');
-                                  }}
+                                  onPress={() => setShowSubCategoryPicker(false)}
                                   style={styles.pickerHeaderButton}
                                 >
                                   <Text style={[styles.pickerHeaderButtonText, styles.pickerDoneButton]}>Done</Text>
                                 </TouchableOpacity>
                               </View>
-
-                              {/* Search Input */}
-                              <View style={styles.searchContainer}>
-                                <MaterialIcons name="search" size={20} color="#999" style={styles.searchIcon} />
-                                <TextInput
-                                  style={styles.searchInput}
-                                  placeholder="Search subcategories..."
-                                  placeholderTextColor="#999"
-                                  value={searchQuery}
-                                  onChangeText={setSearchQuery}
-                                  autoCapitalize="none"
-                                  autoCorrect={false}
-                                />
-                                {searchQuery.length > 0 && (
-                                  <TouchableOpacity onPress={() => setSearchQuery('')}>
-                                    <MaterialIcons name="clear" size={20} color="#999" />
-                                  </TouchableOpacity>
-                                )}
-                              </View>
-
-                              {/* Items Count */}
-                              <Text style={styles.itemsCount}>
-                                {getFilteredSubCategories().length} {getFilteredSubCategories().length === 1 ? 'option' : 'options'}
-                              </Text>
-
-                              <ScrollView
-                                style={styles.iosPickerScrollView}
-                                showsVerticalScrollIndicator={true}
-                                indicatorStyle="black"
+                              <Picker
+                                selectedValue={selectedSubCategory}
+                                onValueChange={(itemValue) => setSelectedSubCategory(itemValue)}
+                                style={styles.iosPicker}
+                                itemStyle={styles.iosPickerItem}
                               >
-                                {getFilteredSubCategories().length > 0 ? (
-                                  getFilteredSubCategories().map((sub, index) => {
-                                    const isSelected = (sub.pkSubCategory === selectedSubCategory);
-                                    const isLast = index === getFilteredSubCategories().length - 1;
-
-                                    return (
-                                      <TouchableOpacity
-                                        key={sub.pkSubCategory}
-                                        style={[
-                                          styles.iosPickerItemButton,
-                                          isSelected && styles.iosPickerItemSelected,
-                                          isLast && styles.iosPickerItemLast,
-                                        ]}
-                                        onPress={() => {
-                                          setSelectedSubCategory(sub.pkSubCategory);
-                                          setShowSubCategoryPicker(false);
-                                          setSearchQuery('');
-                                        }}
-                                        activeOpacity={0.7}
-                                      >
-                                        <View style={styles.iosPickerItemContent}>
-                                          <Text style={[
-                                            styles.iosPickerItemText,
-                                            isSelected && styles.iosPickerItemSelectedText,
-                                          ]}>
-                                            {sub.name}
-                                          </Text>
-                                        </View>
-                                        {isSelected && (
-                                          <MaterialIcons name="check" size={24} color="#007AFF" />
-                                        )}
-                                      </TouchableOpacity>
-                                    );
-                                  })
-                                ) : (
-                                  <View style={styles.emptyStateContainer}>
-                                    <MaterialIcons name="search-off" size={48} color="#ccc" />
-                                    <Text style={styles.emptyStateText}>No results found</Text>
-                                    <Text style={styles.emptyStateSubtext}>Try a different search term</Text>
-                                  </View>
-                                )}
-                              </ScrollView>
+                                {subCategories.map((sub) => (
+                                  <Picker.Item
+                                    key={sub.pkSubCategory}
+                                    label={sub.name}
+                                    value={sub.pkSubCategory}
+                                  />
+                                ))}
+                              </Picker>
                             </View>
                           </View>
                         </Modal>
@@ -568,105 +485,56 @@ const Request: React.FC<ModalProps> = ({
                           <Modal
                             visible={showSubCategoryPicker}
                             transparent={true}
-                            animationType="fade"
-                            onRequestClose={() => {
-                              setShowSubCategoryPicker(false);
-                              setSearchQuery('');
-                            }}
+                            animationType="none"
+                            onRequestClose={() => setShowSubCategoryPicker(false)}
                           >
-                            <TouchableOpacity
+                            <TouchableOpacity 
                               style={styles.androidPickerOverlay}
                               activeOpacity={1}
-                              onPress={() => {
-                                setShowSubCategoryPicker(false);
-                                setSearchQuery('');
-                              }}
+                              onPress={() => setShowSubCategoryPicker(false)}
                             >
                               <View style={styles.androidSpinnerContainer}>
                                 <View style={styles.androidSpinnerHeader}>
                                   <Text style={styles.androidSpinnerTitle}>Select Subcategory</Text>
-                                  <TouchableOpacity
-                                    onPress={() => {
-                                      setShowSubCategoryPicker(false);
-                                      setSearchQuery('');
-                                    }}
-                                    style={styles.androidCloseButton}
-                                  >
-                                    <MaterialIcons name="close" size={24} color="#666" />
-                                  </TouchableOpacity>
                                 </View>
-
-                                {/* Search Input */}
-                                <View style={styles.searchContainer}>
-                                  <MaterialIcons name="search" size={20} color="#999" style={styles.searchIcon} />
-                                  <TextInput
-                                    style={styles.searchInput}
-                                    placeholder="Search subcategories..."
-                                    placeholderTextColor="#999"
-                                    value={searchQuery}
-                                    onChangeText={setSearchQuery}
-                                    autoCapitalize="none"
-                                    autoCorrect={false}
-                                  />
-                                  {searchQuery.length > 0 && (
-                                    <TouchableOpacity onPress={() => setSearchQuery('')}>
-                                      <MaterialIcons name="clear" size={20} color="#999" />
-                                    </TouchableOpacity>
-                                  )}
-                                </View>
-
-                                {/* Items Count */}
-                                <Text style={styles.itemsCount}>
-                                  {getFilteredSubCategories().length} {getFilteredSubCategories().length === 1 ? 'option' : 'options'}
-                                </Text>
-
-                                <ScrollView
+                                <ScrollView 
                                   style={styles.androidSpinnerScrollView}
-                                  showsVerticalScrollIndicator={true}
+                                  showsVerticalScrollIndicator={false}
                                 >
-                                  {getFilteredSubCategories().length > 0 ? (
-                                    getFilteredSubCategories().map((sub, index) => {
-                                      const isSelected = selectedSubCategory === sub.pkSubCategory;
-                                      const isLast = index === getFilteredSubCategories().length - 1;
-
-                                      return (
-                                        <TouchableOpacity
-                                          key={sub.pkSubCategory}
-                                          style={[
-                                            styles.androidSpinnerItem,
-                                            isSelected && styles.androidSpinnerSelectedItem,
-                                            isLast && styles.androidSpinnerLastItem
-                                          ]}
-                                          onPress={() => {
-                                            setSelectedSubCategory(sub.pkSubCategory);
-                                            setShowSubCategoryPicker(false);
-                                            setSearchQuery('');
-                                          }}
-                                          activeOpacity={0.7}
-                                        >
-                                          <View style={styles.androidSpinnerItemContent}>
-                                            <Text style={[
-                                              styles.androidSpinnerItemText,
-                                              isSelected && styles.androidSpinnerSelectedText
-                                            ]}>
-                                              {sub.name}
-                                            </Text>
-                                            {isSelected ? (
-                                              <MaterialIcons name="radio-button-checked" size={22} color="#2196F3" />
-                                            ) : (
-                                              <MaterialIcons name="radio-button-unchecked" size={22} color="#BDBDBD" />
-                                            )}
+                                  {subCategories.map((sub, index) => (
+                                    <TouchableOpacity
+                                      key={sub.pkSubCategory}
+                                      style={[
+                                        styles.androidSpinnerItem,
+                                        selectedSubCategory === sub.pkSubCategory && styles.androidSpinnerSelectedItem,
+                                        index === subCategories.length - 1 && styles.androidSpinnerLastItem
+                                      ]}
+                                      onPress={() => {
+                                        setSelectedSubCategory(sub.pkSubCategory);
+                                        setShowSubCategoryPicker(false);
+                                      }}
+                                      activeOpacity={0.7}
+                                    >
+                                      <View style={styles.androidSpinnerItemContent}>
+                                        <Text style={[
+                                          styles.androidSpinnerItemText,
+                                          selectedSubCategory === sub.pkSubCategory && styles.androidSpinnerSelectedText
+                                        ]}>
+                                          {sub.name}
+                                        </Text>
+                                        {selectedSubCategory === sub.pkSubCategory && (
+                                          <View style={styles.androidSpinnerCheckContainer}>
+                                            <MaterialIcons name="radio-button-checked" size={20} color="#2196F3" />
                                           </View>
-                                        </TouchableOpacity>
-                                      );
-                                    })
-                                  ) : (
-                                    <View style={styles.emptyStateContainer}>
-                                      <MaterialIcons name="search-off" size={48} color="#ccc" />
-                                      <Text style={styles.emptyStateText}>No results found</Text>
-                                      <Text style={styles.emptyStateSubtext}>Try a different search term</Text>
-                                    </View>
-                                  )}
+                                        )}
+                                        {selectedSubCategory !== sub.pkSubCategory && (
+                                          <View style={styles.androidSpinnerCheckContainer}>
+                                            <MaterialIcons name="radio-button-unchecked" size={20} color="#BDBDBD" />
+                                          </View>
+                                        )}
+                                      </View>
+                                    </TouchableOpacity>
+                                  ))}
                                 </ScrollView>
                               </View>
                             </TouchableOpacity>
@@ -827,12 +695,21 @@ const Request: React.FC<ModalProps> = ({
                   </View>
 
                   <View style={styles.buttonContainer}>
-                    <View style={styles.button} >
-                      <Button title="Upload Images" color="#f54021" onPress={handleImagePicker} />
-                    </View>
-                    <View style={styles.button}>
-                      <Button title="Save" onPress={() => handleSubmit()} />
-                    </View>
+                    <TouchableOpacity 
+                      style={[styles.customButton, styles.uploadButton]} 
+                      onPress={handleImagePicker}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={[styles.buttonText, styles.uploadButtonText]} numberOfLines={1}>Upload Images</Text>
+                    </TouchableOpacity>
+                    
+                    <TouchableOpacity 
+                      style={[styles.customButton, styles.saveButton]} 
+                      onPress={() => handleSubmit()}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={[styles.buttonText, styles.saveButtonText]}>Save</Text>
+                    </TouchableOpacity>
                   </View>
 
                 </View>
@@ -1056,21 +933,11 @@ const styles = StyleSheet.create({
   subCategoryContainer: {
     marginBottom: 15,
   },
-  fieldContainer: {
-    marginBottom: 20,
-  },
   fieldLabel: {
     fontSize: 16,
     fontWeight: '600',
     marginBottom: 8,
     color: '#333',
-  },
-  fieldHint: {
-    fontSize: 13,
-    color: '#666',
-    marginBottom: 8,
-    lineHeight: 18,
-    fontStyle: 'italic',
   },
   pickerButton: {
     flexDirection: 'row',
@@ -1114,59 +981,9 @@ const styles = StyleSheet.create({
   },
   pickerModalContent: {
     backgroundColor: '#fff',
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    maxHeight: '75%',
-    paddingBottom: 20,
-  },
-  // Search Container
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F5F5F5',
-    borderRadius: 10,
-    marginHorizontal: 16,
-    marginVertical: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-  },
-  searchIcon: {
-    marginRight: 8,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 16,
-    color: '#333',
-    paddingVertical: 6,
-  },
-  // Items Count
-  itemsCount: {
-    fontSize: 13,
-    color: '#666',
-    marginHorizontal: 20,
-    marginBottom: 8,
-    fontWeight: '500',
-  },
-  // Empty State
-  emptyStateContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 60,
-    paddingHorizontal: 40,
-  },
-  emptyStateText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#666',
-    marginTop: 16,
-    marginBottom: 4,
-  },
-  emptyStateSubtext: {
-    fontSize: 14,
-    color: '#999',
-    textAlign: 'center',
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
+    maxHeight: '50%',
   },
   pickerHeader: {
     flexDirection: 'row',
@@ -1195,48 +1012,10 @@ const styles = StyleSheet.create({
   },
   iosPicker: {
     backgroundColor: '#fff',
-    width: '100%',
-  },
-  iosPickerScrollView: {
-    flexGrow: 0,
-  },
-  iosPickerItemButton: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 18,
-    paddingHorizontal: 20,
-    minHeight: 56,
-    borderBottomWidth: 0.5,
-    borderBottomColor: '#E5E5E7',
-    backgroundColor: '#fff',
-  },
-  iosPickerItemSelected: {
-    backgroundColor: '#E8F4FD',
-  },
-  iosPickerItemLast: {
-    borderBottomWidth: 0,
-  },
-  iosPickerItemContent: {
-    flex: 1,
-  },
-  iosPickerItemText: {
-    fontSize: 17,
-    color: '#000',
-    flex: 1,
-    lineHeight: 22,
-  },
-  iosPickerItemSelectedText: {
-    color: '#007AFF',
-    fontWeight: '600',
-  },
-  iosPickerItemPlaceholderText: {
-    color: '#999',
   },
   iosPickerItem: {
-    fontSize: 20,
-    height: 44,
-    color: '#000',
+    fontSize: 18,
+    height: 120,
   },
   // Android Picker Modal Styles
   androidPickerOverlay: {
@@ -1260,38 +1039,30 @@ const styles = StyleSheet.create({
     }),
   },
   androidSpinnerHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
     paddingVertical: 16,
-    paddingHorizontal: 20,
+    paddingHorizontal: 24,
     borderBottomWidth: 1,
     borderBottomColor: '#E0E0E0',
-    backgroundColor: '#FAFAFA',
+    backgroundColor: '#F5F5F5',
   },
   androidSpinnerTitle: {
-    fontSize: 20,
-    fontWeight: '600',
+    fontSize: 18,
+    fontWeight: '500',
     color: '#212121',
-    flex: 1,
-  },
-  androidCloseButton: {
-    padding: 4,
-    marginLeft: 16,
+    textAlign: 'left',
   },
   androidSpinnerScrollView: {
     maxHeight: 320,
   },
   androidSpinnerItem: {
-    paddingHorizontal: 20,
-    paddingVertical: 18,
-    minHeight: 56,
-    borderBottomWidth: 0.5,
-    borderBottomColor: '#E8E8E8',
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
     backgroundColor: '#fff',
   },
   androidSpinnerSelectedItem: {
-    backgroundColor: '#E8F5E9',
+    backgroundColor: '#E3F2FD',
   },
   androidSpinnerLastItem: {
     borderBottomWidth: 0,
@@ -1308,8 +1079,13 @@ const styles = StyleSheet.create({
     lineHeight: 24,
   },
   androidSpinnerSelectedText: {
-    color: '#2E7D32',
-    fontWeight: '600',
+    color: '#1976D2',
+    fontWeight: '500',
+  },
+  androidSpinnerCheckContainer: {
+    marginLeft: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   // Legacy Android Picker Styles (kept for compatibility)
   androidPickerContainer: {

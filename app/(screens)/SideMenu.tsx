@@ -19,8 +19,10 @@ const SideMenu: React.FC<SideMenuProps> = ({ isVisible, onClose }) => {
 
   const handleItemPress = (item: string) => {
     console.log(`Navigating to: ${item}`);
-     if (item === 'Share and Earn') {
+    if (item === 'Share and Earn') {
       router.push('/(screens)/ShareAndEarn' as any);
+     } else if (item === 'Profile') {
+      router.push('/(screens)/profile' as any);
      } else if (item === 'Terms and Policies') {
        router.push('/(screens)/TermsAndPolicies' as any);
      }

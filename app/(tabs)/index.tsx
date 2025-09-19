@@ -1,20 +1,23 @@
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import Constants from 'expo-constants'
 import { LinearGradient } from 'expo-linear-gradient'
+import { useRouter } from 'expo-router'
 import React, { useEffect, useRef, useState } from 'react'
 import {
-    ActivityIndicator,
-    Alert,
-    Dimensions,
-    FlatList,
-    Image,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  Dimensions,
+  FlatList,
+  Image,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native'
+import * as Animatable from 'react-native-animatable'
 import Icon from 'react-native-vector-icons/MaterialIcons'
 import CampaignModal from '../(screens)/CampaignModal'
 import RequestModal from '../(screens)/RequestModal'
@@ -135,12 +138,16 @@ const HomeScreen: React.FC = () => {
   const [errorCampaigns, setErrorCampaigns] = useState<string | null>(null)
   const [errorCategories, setErrorCategories] = useState<string | null>(null)
   const [isMenuVisible, setMenuVisible] = useState(false)
+  const [isSearchVisible, setSearchVisible] = useState(false)
+  const [serviceSearchQuery, setServiceSearchQuery] = useState('')
+  const [referralReward, setReferralReward] = useState<string>('15')
 
   // Address related states
   const [primaryAddress, setPrimaryAddress] = useState<Address | null>(null)
   const [userAddresses, setUserAddresses] = useState<Address[]>([])
   const [isAddressModalVisible, setAddressModalVisible] = useState(false)
   const [loadingAddresses, setLoadingAddresses] = useState(false)
+  const [userBalance, setUserBalance] = useState<number | null>(null)
 
   const API_BASE_URL = Constants.expoConfig?.extra?.API_BASE_URL
   const CATEGORIES_ENDPOINT = '/category/findAll'
@@ -148,6 +155,14 @@ const HomeScreen: React.FC = () => {
 
   const flatListRef = useRef<FlatList<Campaign>>(null)
   const [currentIndex, setCurrentIndex] = useState(0)
+  const router = useRouter()
+
+  const handleToggleSearch = () => {
+    if (isSearchVisible) {
+      setServiceSearchQuery('')
+    }
+    setSearchVisible(!isSearchVisible)
+  }
 
   const loadUserData = async () => {
     try {
@@ -165,6 +180,7 @@ const HomeScreen: React.FC = () => {
           } else {
             setUserName('User')
           }
+          setUserBalance(userData.balance)
 
           // Load user addresses
           if (
@@ -333,6 +349,23 @@ const HomeScreen: React.FC = () => {
       }
     }
 
+    const fetchReferralReward = async () => {
+      try {
+        const response = await fetch(
+          `${API_BASE_URL}/app-settings/referral_reward_amount`
+        )
+        if (response.ok) {
+          const data = await response.json()
+          const rewardValue = parseFloat(data.value).toFixed(0)
+          setReferralReward(rewardValue)
+        } else {
+          console.error('Error fetching referral reward, using default.')
+        }
+      } catch (error: any) {
+        console.error('Error fetching referral reward:', error)
+      }
+    }
+
     const fetchCategories = async () => {
       try {
         setLoadingCategories(true)
@@ -353,6 +386,7 @@ const HomeScreen: React.FC = () => {
     if (API_BASE_URL) {
       fetchCampaigns()
       fetchCategories()
+      fetchReferralReward()
     }
   }, [API_BASE_URL])
 
@@ -442,13 +476,31 @@ const HomeScreen: React.FC = () => {
               <Image source={tnbLogo} style={styles.companyLogo} />
             </View>
             <View style={styles.rightHeader}>
-              <Text style={styles.userName}>Hi, {userName} </Text>
-              <Icon name="account-circle" size={30} color="#fff7f9" />
+              <TouchableOpacity
+                style={styles.getMoneyButton}
+                onPress={() => router.push('/(screens)/ShareAndEarn')}
+              >
+                <Text style={styles.getMoneyButtonText}>
+                  Get ${referralReward}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.balanceButton}
+                onPress={() => router.push('/(tabs)/billing')}
+              >
+                <Text style={styles.balanceButtonText}>
+                  Balance: ${userBalance}
+                </Text>
+              </TouchableOpacity>
             </View>
           </View>
         </LinearGradient>
       </View>
 
+      <View style={styles.addressSectionHeader}>
+        <Text style={styles.sectionTitle}>Service Address</Text>
+      </View>
       {/* Address Section */}
       <TouchableOpacity
         style={styles.addressSection}
@@ -457,25 +509,28 @@ const HomeScreen: React.FC = () => {
         <Icon name="home" size={24} color="#ea0e08" />
         <View style={styles.addressTextSection}>
           <Text style={styles.addressText}>
-            {primaryAddress 
-              ? primaryAddress.address 
-              : userAddresses.length > 0 
-                ? 'Select your primary address'
-                : 'No address added yet'
-            }
+            {primaryAddress
+              ? primaryAddress.address
+              : userAddresses.length > 0
+              ? 'Select your primary address'
+              : 'No address added yet'}
           </Text>
           <Text style={styles.addressSubText}>
             {primaryAddress
               ? 'Tap to change address'
               : userAddresses.length > 0
-                ? `${userAddresses.length} address${userAddresses.length > 1 ? 'es' : ''} available`
-                : 'Tap to add your address'}
+              ? `${userAddresses.length} address${
+                  userAddresses.length > 1 ? 'es' : ''
+                } available`
+              : 'Tap to add your address'}
           </Text>
         </View>
         <Icon name="keyboard-arrow-down" size={24} color="#666" />
       </TouchableOpacity>
 
-      <Text style={styles.sectionTitle}>Recommended for you</Text>
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>Recommended for you</Text>
+      </View>
 
       <View style={styles.recommendedCarouselContainer}>
         {loadingCampaigns ? (
@@ -515,7 +570,36 @@ const HomeScreen: React.FC = () => {
         )}
       </View>
 
-      <Text style={styles.sectionTitle}>Services to explore</Text>
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>Services to explore</Text>
+        <TouchableOpacity
+          onPress={handleToggleSearch}
+          style={styles.searchIcon}
+        >
+          <Icon
+            name={isSearchVisible ? 'close' : 'search'}
+            size={24}
+            color="#7c1310"
+          />
+        </TouchableOpacity>
+      </View>
+
+      {isSearchVisible && (
+        <Animatable.View
+          animation="fadeInDown"
+          duration={300}
+          style={styles.searchContainer}
+        >
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search for a service..."
+            placeholderTextColor="#999"
+            value={serviceSearchQuery}
+            onChangeText={setServiceSearchQuery}
+            autoFocus={true}
+          />
+        </Animatable.View>
+      )}
 
       <ScrollView contentContainerStyle={styles.allServicesContainer}>
         {loadingCategories ? (
@@ -526,18 +610,36 @@ const HomeScreen: React.FC = () => {
           />
         ) : errorCategories ? (
           <Text style={styles.errorMessage}>{errorCategories}</Text>
-        ) : categories.length > 0 ? (
-          categories.map((category) => (
-            <ServiceItem
-              key={category.pkCategory}
-              category={category}
-              onServicePress={handleServicePress}
-              API_BASE_URL={API_BASE_URL || ''}
-            />
-          ))
+        ) : categories.filter(
+            (category) =>
+              category.name
+                .toLowerCase()
+                .includes(serviceSearchQuery.toLowerCase()) ||
+              category.description
+                .toLowerCase()
+                .includes(serviceSearchQuery.toLowerCase())
+          ).length > 0 ? (
+          categories
+            .filter(
+              (category) =>
+                category.name
+                  .toLowerCase()
+                  .includes(serviceSearchQuery.toLowerCase()) ||
+                category.description
+                  .toLowerCase()
+                  .includes(serviceSearchQuery.toLowerCase())
+            )
+            .map((category) => (
+              <ServiceItem
+                key={category.pkCategory}
+                category={category}
+                onServicePress={handleServicePress}
+                API_BASE_URL={API_BASE_URL || ''}
+              />
+            ))
         ) : (
-          <Text style={styles.noCampaignsMessage}>
-            No categories available at the moment.
+          <Text style={styles.noResultsMessage}>
+            No services found matching "{serviceSearchQuery}".
           </Text>
         )}
       </ScrollView>
@@ -600,6 +702,44 @@ const styles = StyleSheet.create({
   menuButton: {
     marginRight: 10,
   },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    marginTop: 5,
+    marginBottom: 15,
+  },
+  balanceButton: {
+    backgroundColor: '#F5EDED',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 15,
+    marginLeft: 10,
+    borderWidth: 1,
+    borderColor: '#333',
+  },
+  getMoneyButtonText: {
+    color: '#333', // Texto oscuro para contrastar con el fondo claro
+    fontWeight: 'bold',
+    fontSize: 14,
+  },
+  balanceButtonText: {
+    color: '#333',
+    fontWeight: 'bold',
+    fontSize: 14,
+  },
+  getMoneyButton: {
+    backgroundColor: '#FFD700',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 15,
+    marginLeft: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+    elevation: 5,
+  },
   linearGradientHeader: {
     width: '100%',
     paddingTop: 40,
@@ -649,9 +789,6 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
     color: '#7c1310',
-    marginLeft: 20,
-    marginTop: 5,
-    marginBottom: 15,
   },
   recommendedCarouselContainer: {
     height: 200,
@@ -659,8 +796,30 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  searchIcon: {
+    padding: 5,
+  },
   loadingIndicator: {
     paddingVertical: 20,
+  },
+  noResultsMessage: {
+    color: '#666',
+    textAlign: 'center',
+    padding: 20,
+    fontSize: 16,
+  },
+  searchContainer: {
+    paddingHorizontal: 20,
+    marginBottom: 15,
+  },
+  searchInput: {
+    height: 45,
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    paddingHorizontal: 15,
+    fontSize: 16,
+    borderWidth: 1,
+    borderColor: '#ddd',
   },
   errorMessage: {
     color: 'red',
@@ -778,7 +937,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#fff',
     marginHorizontal: 20,
-    marginVertical: 10,
+    marginVertical: 5, // Reduced from 10 to 5
     padding: 15,
     borderRadius: 10,
     ...Platform.select({
@@ -806,6 +965,14 @@ const styles = StyleSheet.create({
   addressSubText: {
     fontSize: 12,
     color: '#666',
+  },
+  // Address section header with reduced spacing
+  addressSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    marginTop: 5,
+    marginBottom: 5, // Reduced from default 15 to 5
   },
 })
 

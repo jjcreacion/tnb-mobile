@@ -117,7 +117,7 @@ const AddressModal: React.FC<AddressModalProps> = ({
   const getTitle = () => {
     switch (currentScreen) {
       case 'list':
-        return 'Select a property address'
+        return 'Select Service Address'
       case 'add-form':
         return 'Add a new address'
       case 'edit-form':
