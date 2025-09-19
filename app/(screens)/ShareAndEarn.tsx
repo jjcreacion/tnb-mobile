@@ -58,7 +58,7 @@ const ShareAndEarnScreen = () => {
   const imgShare = require('@/assets/images/share.png')
   const copyToClipboard = async () => {
     await Clipboard.setStringAsync(inviteLink);
-    Alert.alert('¡Copiado!', 'El enlace de invitación ha sido copiado a tu portapapeles.');
+    Alert.alert('¡Copied!', 'The invitation link has been copied to your clipboard.');
   };
 
   return (
