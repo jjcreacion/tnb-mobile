@@ -109,6 +109,52 @@ const Request: React.FC<ModalProps> = ({
 
   const API_URL = Constants.expoConfig?.extra?.API_BASE_URL;
   
+  // Función para construir la descripción completa de la dirección (igual que en AddressList)
+  const buildFullAddressDescription = (address: Address): string => {
+    const parts: string[] = []
+    
+    // 1. address
+    if (address.address) {
+      parts.push(address.address.trim())
+    }
+    
+    // 2. addressLine2
+    if (address.addressLine2) {
+      parts.push(address.addressLine2.trim())
+    }
+    
+    // 3. City (buscar el nombre por ID)
+    if (address.city && cities.length > 0) {
+      const city = cities.find(c => c.pkCity === address.city)
+      if (city) {
+        parts.push(city.name.trim())
+      }
+    }
+    
+    // 4. State (buscar el nombre por ID)
+    if (address.state && states.length > 0) {
+      const state = states.find(s => s.pkState === address.state)
+      if (state) {
+        parts.push(state.internalCode.trim())
+      }
+    }
+    
+    // 5. zipCode
+    if (address.zipCode) {
+      parts.push(address.zipCode.trim())
+    }
+    
+    return parts.join(', ')
+  }
+  
+  // Obtener la dirección completa formateada
+  const getFormattedPrimaryAddress = (): string => {
+    if (primaryAddress) {
+      return buildFullAddressDescription(primaryAddress)
+    }
+    return 'No primary address selected'
+  }
+  
   // Función para obtener el nombre de la subcategoría seleccionada
   const getSelectedSubCategoryName = () => {
     const selected = subCategories.find(sub => sub.pkSubCategory === selectedSubCategory);
@@ -561,22 +607,18 @@ const Request: React.FC<ModalProps> = ({
                     )}
                   </View>
 
-                  {/* Service Address Field */}
-                  <View style={styles.fieldContainer}>
-                    <Text style={styles.fieldLabel}>Service Address</Text>
-                    <TextInput
-                      style={[styles.input, styles.readOnlyInput]}
-                      placeholder="Address"
-                      onChangeText={handleChange('address')}
-                      onBlur={handleBlur('address')}
-                      value={values.address}
-                      editable={false}
-                      selectTextOnFocus={false}
-                    />
-                    {touched.address && errors.address && (
-                      <Text style={styles.errorText}>{errors.address}</Text>
-                    )}
-                  </View>
+                  <TextInput
+                    style={[styles.input, styles.readOnlyInput]}
+                    placeholder="Address"
+                    onChangeText={handleChange('address')}
+                    onBlur={handleBlur('address')}
+                    value={values.address}
+                    editable={false}
+                    selectTextOnFocus={false}
+                  />
+                  {touched.address && errors.address && (
+                    <Text style={styles.errorText}>{errors.address}</Text>
+                  )}
 
                   {/* Location on Map */}
                   <View style={styles.fieldContainer}>
@@ -764,6 +806,10 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     fontSize: 16,
     minHeight: 48,
+  },
+  readOnlyInput: {
+    backgroundColor: '#f5f5f5',
+    color: '#666',
   },
   readOnlyInput: {
     backgroundColor: '#f5f5f5',

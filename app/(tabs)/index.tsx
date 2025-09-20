@@ -23,6 +23,8 @@ import CampaignModal from '../(screens)/CampaignModal'
 import RequestModal from '../(screens)/RequestModal'
 import SideMenu from '../(screens)/SideMenu'
 import { AddressModal } from '../../components/person-address'
+import { AddressService } from '../../components/person-address/AddressService'
+import type { City, State } from '../../components/person-address/types'
 
 const { width: screenWidth } = Dimensions.get('window')
 
@@ -148,6 +150,10 @@ const HomeScreen: React.FC = () => {
   const [isAddressModalVisible, setAddressModalVisible] = useState(false)
   const [loadingAddresses, setLoadingAddresses] = useState(false)
   const [userBalance, setUserBalance] = useState<number | null>(null)
+  
+  // Cities and States for address formatting
+  const [cities, setCities] = useState<City[]>([])
+  const [states, setStates] = useState<State[]>([])
 
   const API_BASE_URL = Constants.expoConfig?.extra?.API_BASE_URL
   const CATEGORIES_ENDPOINT = '/category/findAll'
@@ -219,6 +225,19 @@ const HomeScreen: React.FC = () => {
       // Clear addresses on error
       setUserAddresses([])
       setPrimaryAddress(null)
+    }
+  }
+
+  const loadCitiesAndStates = async () => {
+    try {
+      const [citiesData, statesData] = await Promise.all([
+        AddressService.loadCities(),
+        AddressService.loadStates()
+      ])
+      setCities(citiesData)
+      setStates(statesData)
+    } catch (error) {
+      console.error('Error loading cities and states:', error)
     }
   }
 
@@ -337,6 +356,7 @@ const HomeScreen: React.FC = () => {
 
   useEffect(() => {
     loadUserData()
+    loadCitiesAndStates()
   }, [API_BASE_URL])
 
   useEffect(() => {
