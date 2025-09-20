@@ -42,6 +42,7 @@
     },
     "extra": {
       "API_BASE_URL": "http://216.246.113.71:8080",
+      "URL_SHARE_AND_EARN": "http://216.246.113.71:8080",
       "router": {},
       "eas": {
         "projectId": "08fc301b-8b03-4744-b3d0-16060fd5efa2"
