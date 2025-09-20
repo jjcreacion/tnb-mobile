@@ -528,7 +528,7 @@ const HomeScreen: React.FC = () => {
         <Icon name="keyboard-arrow-down" size={24} color="#666" />
       </TouchableOpacity>
 
-      <View style={styles.sectionHeader}>
+      <View style={[styles.sectionHeader, styles.recommendedSectionHeader]}>
         <Text style={styles.sectionTitle}>Recommended for you</Text>
       </View>
 
@@ -742,7 +742,7 @@ const styles = StyleSheet.create({
   },
   linearGradientHeader: {
     width: '100%',
-    paddingTop: 40,
+    paddingTop: 60, // Increased from 40 to 60 to avoid overlap with Dynamic Island
     paddingBottom: 20,
     overflow: 'hidden',
     ...Platform.select({
@@ -973,6 +973,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     marginTop: 5,
     marginBottom: 5, // Reduced from default 15 to 5
+  },
+  // Recommended section with additional top margin
+  recommendedSectionHeader: {
+    marginTop: 20, // Additional margin to separate from address section
   },
 })
 
