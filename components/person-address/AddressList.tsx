@@ -63,6 +63,14 @@ export const AddressList: React.FC<AddressListProps> = ({
     }
   }, [recentlyAddedId])
 
+  // Efecto para limpiar las animaciones cuando no hay direcciones
+  useEffect(() => {
+    if (addresses.length === 0) {
+      // Limpiar todas las animaciones cuando la lista se vacía
+      animatedValues.current.clear()
+    }
+  }, [addresses.length])
+
   // Función para obtener el valor animado de un elemento
   const getAnimatedValue = (addressId: number) => {
     return animatedValues.current.get(addressId)

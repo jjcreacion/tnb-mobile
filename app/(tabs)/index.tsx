@@ -192,6 +192,10 @@ const HomeScreen: React.FC = () => {
               (addr: Address) => addr.isPrimary === 1
             )
             setPrimaryAddress(primary || userData.person.addresses[0])
+          } else {
+            // Clear addresses when none exist
+            setUserAddresses([])
+            setPrimaryAddress(null)
           }
         } else {
           console.error(
@@ -199,13 +203,22 @@ const HomeScreen: React.FC = () => {
             response.status
           )
           setUserName('User')
+          // Clear addresses on error
+          setUserAddresses([])
+          setPrimaryAddress(null)
         }
       } else {
         setUserName('User')
+        // Clear addresses when no userId
+        setUserAddresses([])
+        setPrimaryAddress(null)
       }
     } catch (error) {
       console.error('Error al cargar los datos del usuario:', error)
       setUserName('User')
+      // Clear addresses on error
+      setUserAddresses([])
+      setPrimaryAddress(null)
     }
   }
 

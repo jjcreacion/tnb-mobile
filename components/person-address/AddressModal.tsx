@@ -206,7 +206,12 @@ const AddressModal: React.FC<AddressModalProps> = ({
               onAddressSelect={onAddressSelect}
               onAddNewAddress={handleAddNewAddress}
               onEditAddress={(address) => handleEditAddress(address)}
-              onDeleteAddress={(address) => handleDeleteAddress(address, onAddressAdded)}
+              onDeleteAddress={(address) => {
+                handleDeleteAddress(address, async () => {
+                  // Force immediate refresh of the parent list
+                  await onAddressAdded?.();
+                });
+              }}
               cities={cities}
               states={states}
               recentlyAddedId={recentlyAddedId}
