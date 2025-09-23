@@ -6,6 +6,8 @@ import { AddressForm, AddressFormRef } from './AddressForm'
 import { AddressList } from './AddressList'
 import { CitySelector } from './CitySelector'
 import { EditAddressForm, EditAddressFormRef } from './EditAddressForm'
+import { isMapboxAvailable } from './mapbox'
+import { MapboxDebugPanel } from './MapboxDebugPanel'
 import { StateSelector } from './StateSelector'
 import { addressStyles } from './styles'
 import { AddressModalProps } from './types'
@@ -26,6 +28,7 @@ const AddressModal: React.FC<AddressModalProps> = ({
   const editFormRef = useRef<EditAddressFormRef>(null)
   const [recentlyAddedId, setRecentlyAddedId] = useState<number | undefined>()
   const [searchText, setSearchText] = useState('')
+  const [showDebugPanel, setShowDebugPanel] = useState(false)
 
   const {
     currentScreen,
@@ -155,7 +158,19 @@ const AddressModal: React.FC<AddressModalProps> = ({
           <Text style={addressStyles.addressTitle}>
             {getTitle()}
           </Text>
-          <View style={{ width: 24 }} />
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            {/* Debug button - only show in development and when Mapbox is available */}
+            {__DEV__ && isMapboxAvailable() && (
+              <TouchableOpacity
+                onPress={() => setShowDebugPanel(true)}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                style={{ marginRight: 12 }}
+              >
+                <Icon name="bug-report" size={20} color="#007AFF" />
+              </TouchableOpacity>
+            )}
+            <View style={{ width: 24 }} />
+          </View>
         </View>
 
         {/* Search Bar - Solo mostrar en la pantalla de lista */}
@@ -242,6 +257,8 @@ const AddressModal: React.FC<AddressModalProps> = ({
               onFormDataChange={setNewAddressForm}
               onNavigateToScreen={animateToScreen}
               onSaveAddress={handleSaveAddressWithAnimation}
+              cities={cities}
+              states={states}
             />
           </Animated.View>
           
@@ -331,6 +348,12 @@ const AddressModal: React.FC<AddressModalProps> = ({
           </Animated.View>
         </View>
       </View>
+
+      {/* Debug Panel */}
+      <MapboxDebugPanel
+        isVisible={showDebugPanel}
+        onClose={() => setShowDebugPanel(false)}
+      />
     </Modal>
   )
 }

@@ -48,6 +48,10 @@ export interface AddressFormData {
   state: string
   stateId: number | null
   zipCode: string
+  // Mapbox integration fields
+  latitude?: number
+  longitude?: number
+  isMapboxResult?: boolean
 }
 
 export interface AddressModalProps {

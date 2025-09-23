@@ -87,8 +87,8 @@ export class AddressService {
           addressLine2: formData.addressLine2,
           zipCode: formData.zipCode,
           isPrimary: isFirstAddress ? 1 : 0,
-          latitude: 0,
-          longitude: 0,
+          latitude: formData.latitude?.toString() || '0',
+          longitude: formData.longitude?.toString() || '0',
           country: countryId,
           state: formData.stateId,
           city: formData.cityId,
@@ -159,6 +159,8 @@ export class AddressService {
       if (updateData.isPrimary !== undefined) requestBody.isPrimary = updateData.isPrimary
       if (updateData.cityId !== undefined) requestBody.city = updateData.cityId
       if (updateData.stateId !== undefined) requestBody.state = updateData.stateId
+      if (updateData.latitude !== undefined) requestBody.latitude = updateData.latitude?.toString() || '0'
+      if (updateData.longitude !== undefined) requestBody.longitude = updateData.longitude?.toString() || '0'
 
       const response = await fetch(`${API_BASE_URL}/person-address`, {
         method: 'PATCH',

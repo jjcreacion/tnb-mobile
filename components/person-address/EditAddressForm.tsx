@@ -1,5 +1,9 @@
-import React, { forwardRef, useEffect, useImperativeHandle, useRef } from 'react'
+import React, { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react'
 import { ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native'
+import { AddressAutocomplete } from './AddressAutocomplete'
+import { AddressMappingService } from './AddressMappingService'
+import type { ParsedMapboxAddress } from './mapbox'
+import { isMapboxAvailable, MAPBOX_CONFIG } from './mapbox'
 import { addressStyles } from './styles'
 import { Address, AddressFormData, City, Country, ScreenType, State } from './types'
 
@@ -32,6 +36,8 @@ export const EditAddressForm = forwardRef<EditAddressFormRef, EditAddressFormPro
 }, ref) => {
   const hasInitialized = useRef(false)
   const zipCodeRef = useRef<TextInput>(null)
+  const [useManualEntry, setUseManualEntry] = useState(false)
+  const [mappingWarnings, setMappingWarnings] = useState<string[]>([])
 
   useImperativeHandle(ref, () => ({
     focusZipCode: () => {
@@ -57,6 +63,9 @@ export const EditAddressForm = forwardRef<EditAddressFormRef, EditAddressFormPro
         state: '',
         stateId: address.state || null,
         zipCode: address.zipCode || '',
+        latitude: address.latitude ? parseFloat(address.latitude) : undefined,
+        longitude: address.longitude ? parseFloat(address.longitude) : undefined,
+        isMapboxResult: false, // Existing addresses are not from Mapbox
       }
 
       // Find city name if cityId exists
@@ -92,6 +101,94 @@ export const EditAddressForm = forwardRef<EditAddressFormRef, EditAddressFormPro
     })
   }
 
+  // Handle Mapbox address selection
+  const handleAddressSelect = (mapboxAddress: ParsedMapboxAddress) => {
+    if (MAPBOX_CONFIG.enabled && !MAPBOX_CONFIG.useLocalDatabaseMapping) {
+      // When Mapbox is enabled WITHOUT local DB mapping, use Mapbox data directly
+      const directFormData: AddressFormData = {
+        address: mapboxAddress.houseNumber && mapboxAddress.street 
+          ? `${mapboxAddress.houseNumber} ${mapboxAddress.street}`
+          : mapboxAddress.street || mapboxAddress.fullAddress,
+        addressLine2: externalFormData.addressLine2, // Keep existing addressLine2
+        city: mapboxAddress.city || '',
+        cityId: null, // Don't map to local DB when useLocalDatabaseMapping is false
+        state: mapboxAddress.stateCode || mapboxAddress.state || '', // Use state code (abbreviation) first
+        stateId: null, // Don't map to local DB when useLocalDatabaseMapping is false
+        zipCode: mapboxAddress.zipCode || '',
+        latitude: mapboxAddress.latitude,
+        longitude: mapboxAddress.longitude,
+        isMapboxResult: true
+      }
+      
+      // Update form with Mapbox data directly
+      onFormDataChange(directFormData)
+      
+      // Clear any existing warnings since we're not doing local mapping
+      setMappingWarnings([])
+      
+      console.log('✅ [EditAddressForm] Using Mapbox data directly (no local mapping):', {
+        ...directFormData,
+        debug: {
+          originalState: mapboxAddress.state,
+          usedStateCode: mapboxAddress.stateCode,
+          finalState: directFormData.state
+        }
+      })
+    } else {
+      // When Mapbox is disabled OR local DB mapping is enabled, use local database mapping
+      const mappingResult = AddressMappingService.mapToFormData(mapboxAddress, cities, states)
+      
+      // Update form with mapped data
+      onFormDataChange(mappingResult.formData)
+      
+      // Store warnings for user feedback
+      setMappingWarnings(mappingResult.warnings)
+      
+      // 🔍 DEBUG: Log mapping warnings for debugging
+      if (mappingResult.warnings.length > 0) {
+        console.log('🚨 [EditAddressForm] MAPPING WARNINGS:', mappingResult.warnings)
+      }
+      
+      // If mapping is incomplete, provide feedback but don't force manual mode
+      if (!mappingResult.isComplete) {
+        console.warn('Incomplete address mapping:', mappingResult.missingFields)
+      }
+    }
+  }
+
+  // Handle fallback to manual entry
+  const handleFallbackToManual = () => {
+    setUseManualEntry(true)
+    setMappingWarnings([])
+    // Keep current address text but clear Mapbox-specific data
+    onFormDataChange(prev => ({
+      ...prev,
+      latitude: undefined,
+      longitude: undefined,
+      isMapboxResult: false
+    }))
+  }
+
+  // Handle manual address text changes
+  const handleManualAddressChange = (text: string) => {
+    handleFormChange('address', text)
+    // Clear Mapbox-specific data when manually editing
+    onFormDataChange(prev => ({
+      ...prev,
+      latitude: undefined,
+      longitude: undefined,
+      isMapboxResult: false
+    }))
+  }
+
+  // Reset to autocomplete when address is cleared
+  useEffect(() => {
+    if (externalFormData.address === '' && useManualEntry) {
+      setUseManualEntry(false)
+      setMappingWarnings([])
+    }
+  }, [externalFormData.address, useManualEntry])
+
   return (
     <ScrollView
       style={addressStyles.newAddressForm}
@@ -99,12 +196,39 @@ export const EditAddressForm = forwardRef<EditAddressFormRef, EditAddressFormPro
       showsVerticalScrollIndicator={false}
     >
       <Text style={addressStyles.formLabel}>Address</Text>
-      <TextInput
-        style={addressStyles.formInput}
-        placeholder="e.g 108 Jackson St"
-        value={externalFormData.address}
-        onChangeText={(text) => handleFormChange('address', text)}
-      />
+      
+      {/* Address Input - Use autocomplete if available and not in manual mode */}
+      {isMapboxAvailable() && !useManualEntry ? (
+        <AddressAutocomplete
+          value={externalFormData.address}
+          onChangeText={handleManualAddressChange}
+          onAddressSelect={handleAddressSelect}
+          onFallbackToManual={handleFallbackToManual}
+          placeholder="e.g 108 Jackson St"
+          style={addressStyles.formInput}
+        />
+      ) : (
+        <TextInput
+          style={addressStyles.formInput}
+          placeholder="e.g 108 Jackson St"
+          value={externalFormData.address}
+          onChangeText={handleManualAddressChange}
+        />
+      )}
+
+      {/* Show mapping warnings if any */}
+      {mappingWarnings.length > 0 && (
+        <View style={addressStyles.warningContainer}>
+          <Text style={addressStyles.warningText}>
+            Note: Some address details need verification
+          </Text>
+          {__DEV__ && (
+            <Text style={[addressStyles.warningText, { fontSize: 12, fontStyle: 'italic' }]}>
+              Debug: {mappingWarnings.join('; ')}
+            </Text>
+          )}
+        </View>
+      )}
 
       <TextInput
         style={[addressStyles.formInput, addressStyles.formInputSecondary]}

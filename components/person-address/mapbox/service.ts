@@ -75,7 +75,8 @@ export class MapboxSearchService {
 
       const url = `${this.baseUrl}/${encodeURIComponent(query)}.json?${params}`
       
-
+      // ✅ DEBUG: Log search URL
+      console.log(`🔍 [URL] Search URL: ${url}`)
       
       // Create a timeout promise for React Native compatibility
       const timeoutPromise = new Promise<never>((_, reject) => {
@@ -104,11 +105,38 @@ export class MapboxSearchService {
       const data: MapboxSearchResponse = await response.json()
       const responseTime = Date.now() - startTime
 
+      // ✅ DEBUG: Log raw results from Mapbox
+      console.log(`🔍 [Mapbox Debug] Raw results for "${query}":`)
+      if (data.features && Array.isArray(data.features)) {
+        data.features.forEach((feature: MapboxFeature, index: number) => {
+          console.log(`  ${index + 1}. ${feature.place_name || 'No place_name'}`)
+          console.log(`     - Address: ${feature.properties?.address || 'No address'}`)
+          console.log(`     - Context: ${JSON.stringify(feature.context?.map((c: any) => c.text) || [])}`)
+        })
+      } else {
+        console.log(`  No features found or invalid response format`)
+      }
+
       // Parse results
       const suggestions = this.parseSearchResults(data.features)
 
-      // Sort results by relevance to the query
+      // ✅ DEBUG: Log parsed results before sorting
+      console.log(`🔍 [Mapbox Debug] Parsed results before sorting (${suggestions.length}):`)
+      suggestions.forEach((suggestion: AddressAutocompleteSuggestion, index: number) => {
+        console.log(`  ${index + 1}. "${suggestion.displayText}" | ${suggestion.secondaryText}`)
+        console.log(`     - Street: ${suggestion.parsedAddress.street}`)
+        console.log(`     - House#: ${suggestion.parsedAddress.houseNumber || 'N/A'}`)
+        console.log(`     - City: ${suggestion.parsedAddress.city}, State: ${suggestion.parsedAddress.state}, ZIP: ${suggestion.parsedAddress.zipCode || 'N/A'}`)
+      })
+
+      // ✅ Sort results by relevance to the query
       const sortedSuggestions = this.prioritizeResults(suggestions, query)
+
+      // ✅ DEBUG: Log sorted results
+      console.log(`🎯 [Mapbox Debug] Sorted results after prioritization (${sortedSuggestions.length}):`)
+      sortedSuggestions.forEach((suggestion: AddressAutocompleteSuggestion, index: number) => {
+        console.log(`  ${index + 1}. "${suggestion.displayText}" | ${suggestion.secondaryText}`)
+      })
 
       // Log telemetry
       this.logTelemetry({
@@ -126,7 +154,16 @@ export class MapboxSearchService {
       const responseTime = Date.now() - startTime
       const mapboxError = this.parseError(error)
 
-      
+      // Enhanced error logging for debugging
+      if (__DEV__) {
+        console.error('🔧 [Mapbox] Detailed error:', {
+          query,
+          responseTime,
+          error: error instanceof Error ? error.message : error,
+          errorType: error instanceof Error ? error.name : 'Unknown',
+          stack: error instanceof Error ? error.stack : undefined
+        })
+      }
 
       // Log error telemetry
       this.logTelemetry({
@@ -167,24 +204,38 @@ export class MapboxSearchService {
   private prioritizeResults(suggestions: AddressAutocompleteSuggestion[], query: string): AddressAutocompleteSuggestion[] {
     const queryLower = query.toLowerCase().trim()
     
+    console.log(`🎯 [Prioritize] Sorting results for query: "${queryLower}"`)
+    
     // Extract search components
     const houseNumberMatch = queryLower.match(/^(\d+)\s+(.+)/)
     const searchHouseNumber = houseNumberMatch ? houseNumberMatch[1] : ''
     const searchStreet = houseNumberMatch ? houseNumberMatch[2] : queryLower
     
+    console.log(`🎯 [Prioritize] Search components: house="${searchHouseNumber}", street="${searchStreet}"`)
+    
     return suggestions.sort((a, b) => {
+      const aDisplay = a.displayText.toLowerCase()
+      const bDisplay = b.displayText.toLowerCase()
       const aStreet = a.parsedAddress.street.toLowerCase()
       const bStreet = b.parsedAddress.street.toLowerCase()
+      
+      console.log(`🎯 [Prioritize] Comparing:`)
+      console.log(`  A: "${aDisplay}" (street: "${aStreet}")`)
+      console.log(`  B: "${bDisplay}" (street: "${bStreet}")`)
       
       // Priority 1: Exact house number match
       if (searchHouseNumber) {
         const aHouseMatch = a.parsedAddress.houseNumber === searchHouseNumber
         const bHouseMatch = b.parsedAddress.houseNumber === searchHouseNumber
         
+        console.log(`  House number match: A=${aHouseMatch}, B=${bHouseMatch}`)
+        
         if (aHouseMatch && !bHouseMatch) {
+          console.log(`  → A wins (exact house number match)`)
           return -1
         }
         if (!aHouseMatch && bHouseMatch) {
+          console.log(`  → B wins (exact house number match)`)
           return 1
         }
       }
@@ -194,10 +245,14 @@ export class MapboxSearchService {
         const aExactStreet = aStreet === searchStreet
         const bExactStreet = bStreet === searchStreet
         
+        console.log(`  Exact street match: A=${aExactStreet}, B=${bExactStreet}`)
+        
         if (aExactStreet && !bExactStreet) {
+          console.log(`  → A wins (exact street match)`)
           return -1
         }
         if (!aExactStreet && bExactStreet) {
+          console.log(`  → B wins (exact street match)`)
           return 1
         }
         
@@ -205,10 +260,14 @@ export class MapboxSearchService {
         const aStartsWith = aStreet.startsWith(searchStreet)
         const bStartsWith = bStreet.startsWith(searchStreet)
         
+        console.log(`  Street starts with: A=${aStartsWith}, B=${bStartsWith}`)
+        
         if (aStartsWith && !bStartsWith) {
+          console.log(`  → A wins (street starts with)`)
           return -1
         }
         if (!aStartsWith && bStartsWith) {
+          console.log(`  → B wins (street starts with)`)
           return 1
         }
         
@@ -216,15 +275,20 @@ export class MapboxSearchService {
         const aDistance = this.calculateStringSimilarity(searchStreet, aStreet)
         const bDistance = this.calculateStringSimilarity(searchStreet, bStreet)
         
+        console.log(`  String similarity: A=${aDistance}, B=${bDistance}`)
+        
         if (aDistance > bDistance) {
+          console.log(`  → A wins (better similarity)`)
           return -1
         }
         if (bDistance > aDistance) {
+          console.log(`  → B wins (better similarity)`)
           return 1
         }
       }
       
       // Priority 5: Keep original Mapbox relevance order
+      console.log(`  → Keeping original order`)
       return 0
     })
   }
@@ -252,6 +316,14 @@ export class MapboxSearchService {
    */
   private parseMapboxFeature(feature: MapboxFeature): ParsedMapboxAddress {
     try {
+      // ✅ DEBUG: Log feature being parsed
+      console.log(`🔧 [Parse] Processing feature:`, {
+        place_name: feature.place_name,
+        text: feature.text,
+        properties: feature.properties,
+        context: feature.context?.map((c: any) => `${c.id}: ${c.text}`)
+      })
+
       const [longitude, latitude] = feature.center
       
       // Extract address components from context
@@ -321,10 +393,19 @@ export class MapboxSearchService {
         raw: feature
       }
 
-
+      // ✅ DEBUG: Log parsed result
+      console.log(`🔧 [Parse] Result:`, {
+        street: result.street,
+        houseNumber: result.houseNumber,
+        city: result.city,
+        state: result.state,
+        zipCode: result.zipCode,
+        isValid: result.isValid
+      })
 
       return result
-    } catch {
+    } catch (error) {
+      console.warn('Error parsing Mapbox feature:', error)
       return {
         street: '',
         city: '',
@@ -421,6 +502,9 @@ export class MapboxSearchService {
     }
 
     // In production, you might want to send this to your analytics service
+    if (__DEV__) {
+      console.log('Mapbox Telemetry:', data)
+    }
   }
 
   /**

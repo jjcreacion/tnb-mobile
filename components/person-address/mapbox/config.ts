@@ -3,8 +3,6 @@
  * Handles Mapbox feature toggles and settings
  */
 
-import Constants from 'expo-constants'
-
 export interface MapboxConfig {
   enabled: boolean
   debounceMs: number
@@ -21,20 +19,22 @@ export const MAPBOX_CONFIG: MapboxConfig = {
   enabled: true, // Global toggle for Mapbox autocomplete;;; true=enable Mapbox, false=input address manually
   debounceMs: 600, // Debounce delay for API calls (increased to reduce API calls)
   minChars: 3, // Minimum characters to trigger search
-  maxResults: 5, // Maximum results to show (increased for better options)
+  maxResults: 4, // Maximum results to show (increased for better options)
   countryFilter: "US", // Country restriction
   fallbackToManual: true, // Fall back to manual entry on errors
   enableTelemetry: true, // Enable usage/error tracking
-  timeout: 9000, // API timeout in milliseconds (increased from 8000 to handle slower connections)
-  useLocalDatabaseMapping: true, // When true, maps Mapbox results to local DB (causes verification warnings)
+  timeout: 12000, // API timeout in milliseconds (increased from 8000 to handle slower connections)
+  useLocalDatabaseMapping: false, // When true, maps Mapbox results to local DB (causes verification warnings)
 }
 
 /**
  * Environment variables and token management
  */
+import Constants from 'expo-constants'
+
 export const getMapboxToken = (): string | null => {
   // Get token from expo config (app.json extra field)
-  const token = Constants.expoConfig?.extra?.GOOGLE_MAP_TOKEN || process.env.GOOGLE_MAP_TOKEN
+  const token = Constants.expoConfig?.extra?.MAPBOX_TOKEN || process.env.MAPBOX_TOKEN
   return token || null
 }
 

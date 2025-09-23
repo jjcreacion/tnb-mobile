@@ -23,6 +23,9 @@ export const useAddressModal = (isVisible: boolean, addresses: any[], focusCallb
     state: '',
     stateId: null,
     zipCode: '',
+    latitude: undefined,
+    longitude: undefined,
+    isMapboxResult: false,
   })
 
   // Form data for editing address
@@ -34,6 +37,9 @@ export const useAddressModal = (isVisible: boolean, addresses: any[], focusCallb
     state: '',
     stateId: null,
     zipCode: '',
+    latitude: undefined,
+    longitude: undefined,
+    isMapboxResult: false,
   })
 
   // Data for city and state selection
@@ -228,6 +234,9 @@ export const useAddressModal = (isVisible: boolean, addresses: any[], focusCallb
       state: '',
       stateId: null,
       zipCode: '',
+      latitude: undefined,
+      longitude: undefined,
+      isMapboxResult: false,
     }
     
     setNewAddressForm(emptyForm)
