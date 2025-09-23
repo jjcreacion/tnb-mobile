@@ -8,15 +8,15 @@ import { Formik } from 'formik';
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  Button,
   Image,
   Modal,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 import * as Yup from 'yup';
@@ -36,14 +36,60 @@ interface SubCategory {
   priceTo: string;
 }
 
+interface Address {
+  pkAddress: number;
+  address: string;
+  addressLine2?: string;
+  zipCode?: string;
+  isPrimary: number;
+  status?: number;
+  latitude?: string;
+  longitude?: string;
+  country?: number;
+  state?: number;
+  city?: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+interface City {
+  pkCity: number;
+  name: string;
+  fkState: number;
+  status: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface State {
+  pkState: number;
+  name: string;
+  fkCountry: number;
+  internalCode: string;
+  status: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
 interface ModalProps {
   isVisible: boolean;
   onClose: () => void;
   selectedCategory: Category | null;
   onServiceCreated?: () => void;
+  primaryAddress?: Address | null;
+  cities?: City[];
+  states?: State[];
 }
 
-const Request: React.FC<ModalProps> = ({ isVisible, onClose, selectedCategory, onServiceCreated }) => {
+const Request: React.FC<ModalProps> = ({ 
+  isVisible, 
+  onClose, 
+  selectedCategory, 
+  onServiceCreated,
+  primaryAddress,
+  cities = [],
+  states = []
+}) => {
   const [images, setImages] = useState<string[]>([]);
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
@@ -58,9 +104,62 @@ const Request: React.FC<ModalProps> = ({ isVisible, onClose, selectedCategory, o
   const [uploadFailed, setUploadFailed] = useState(false);
   const [loading, setLoading] = useState(false);
   const [subCategories, setSubCategories] = useState<SubCategory[]>([]); 
-  const [selectedSubCategory, setSelectedSubCategory] = useState<number | null>(null); 
+  const [selectedSubCategory, setSelectedSubCategory] = useState<number | null>(null);
+  const [showSubCategoryPicker, setShowSubCategoryPicker] = useState(false); 
 
   const API_URL = Constants.expoConfig?.extra?.API_BASE_URL;
+  
+  // Función para construir la descripción completa de la dirección (igual que en AddressList)
+  const buildFullAddressDescription = (address: Address): string => {
+    const parts: string[] = []
+    
+    // 1. address
+    if (address.address) {
+      parts.push(address.address.trim())
+    }
+    
+    // 2. addressLine2
+    if (address.addressLine2) {
+      parts.push(address.addressLine2.trim())
+    }
+    
+    // 3. City (buscar el nombre por ID)
+    if (address.city && cities.length > 0) {
+      const city = cities.find(c => c.pkCity === address.city)
+      if (city) {
+        parts.push(city.name.trim())
+      }
+    }
+    
+    // 4. State (buscar el nombre por ID)
+    if (address.state && states.length > 0) {
+      const state = states.find(s => s.pkState === address.state)
+      if (state) {
+        parts.push(state.internalCode.trim())
+      }
+    }
+    
+    // 5. zipCode
+    if (address.zipCode) {
+      parts.push(address.zipCode.trim())
+    }
+    
+    return parts.join(', ')
+  }
+  
+  // Obtener la dirección completa formateada
+  const getFormattedPrimaryAddress = (): string => {
+    if (primaryAddress) {
+      return buildFullAddressDescription(primaryAddress)
+    }
+    return 'No primary address selected'
+  }
+  
+  // Función para obtener el nombre de la subcategoría seleccionada
+  const getSelectedSubCategoryName = () => {
+    const selected = subCategories.find(sub => sub.pkSubCategory === selectedSubCategory);
+    return selected ? selected.name : 'Select a subcategory';
+  };
   
   useEffect(() => {
     const fetchSubCategories = async () => {
@@ -149,6 +248,7 @@ const Request: React.FC<ModalProps> = ({ isVisible, onClose, selectedCategory, o
       setImages([]);
       setSubCategories([]); 
       setSelectedSubCategory(null);
+      setShowSubCategoryPicker(false);
     }
   }, [isVisible]);
 
@@ -337,7 +437,7 @@ const Request: React.FC<ModalProps> = ({ isVisible, onClose, selectedCategory, o
                 service: selectedCategory ? selectedCategory.name : '',
                 requirement: '',
                 description: '',
-                address: '',
+                address: getFormattedPrimaryAddress(),
               }}
               validationSchema={validationSchema}
               onSubmit={handleSave}
@@ -346,21 +446,130 @@ const Request: React.FC<ModalProps> = ({ isVisible, onClose, selectedCategory, o
               {({ handleChange, handleBlur, handleSubmit, values, errors, touched }) => (
                 <View>
                   {subCategories.length > 0 && (
-                    <View style={styles.pickerContainer}>
-                      <Text style={styles.pickerLabel}>Select a subcategory:</Text>
-                      <Picker
-                        selectedValue={selectedSubCategory}
-                        onValueChange={(itemValue) => setSelectedSubCategory(itemValue)}
-                        style={styles.picker}
+                    <View style={styles.subCategoryContainer}>
+                      <Text style={styles.fieldLabel}>Select a subcategory:</Text>
+                      
+                      {/* Touch area to show picker */}
+                      <TouchableOpacity 
+                        style={styles.pickerButton}
+                        onPress={() => setShowSubCategoryPicker(true)}
                       >
-                        {subCategories.map((sub) => (
-                          <Picker.Item
-                            key={sub.pkSubCategory}
-                            label={`${sub.name}`}
-                            value={sub.pkSubCategory}
-                          />
-                        ))}
-                      </Picker>
+                        <Text style={[
+                          styles.pickerButtonText,
+                          selectedSubCategory ? {} : styles.placeholderText
+                        ]}>
+                          {getSelectedSubCategoryName()}
+                        </Text>
+                        <MaterialIcons 
+                          name={Platform.OS === 'android' ? 'arrow-drop-down' : 'arrow-drop-down'} 
+                          size={24} 
+                          color={Platform.OS === 'android' ? '#757575' : '#666'} 
+                        />
+                      </TouchableOpacity>
+
+                      {/* Native Picker Modal */}
+                      {Platform.OS === 'ios' ? (
+                        <Modal
+                          visible={showSubCategoryPicker}
+                          transparent={true}
+                          animationType="slide"
+                          onRequestClose={() => setShowSubCategoryPicker(false)}
+                        >
+                          <View style={styles.pickerModalContainer}>
+                            <View style={styles.pickerModalContent}>
+                              <View style={styles.pickerHeader}>
+                                <TouchableOpacity
+                                  onPress={() => setShowSubCategoryPicker(false)}
+                                  style={styles.pickerHeaderButton}
+                                >
+                                  <Text style={styles.pickerHeaderButtonText}>Cancel</Text>
+                                </TouchableOpacity>
+                                <Text style={styles.pickerHeaderTitle}>Select Subcategory</Text>
+                                <TouchableOpacity
+                                  onPress={() => setShowSubCategoryPicker(false)}
+                                  style={styles.pickerHeaderButton}
+                                >
+                                  <Text style={[styles.pickerHeaderButtonText, styles.pickerDoneButton]}>Done</Text>
+                                </TouchableOpacity>
+                              </View>
+                              <Picker
+                                selectedValue={selectedSubCategory}
+                                onValueChange={(itemValue) => setSelectedSubCategory(itemValue)}
+                                style={styles.iosPicker}
+                                itemStyle={styles.iosPickerItem}
+                              >
+                                {subCategories.map((sub) => (
+                                  <Picker.Item
+                                    key={sub.pkSubCategory}
+                                    label={sub.name}
+                                    value={sub.pkSubCategory}
+                                  />
+                                ))}
+                              </Picker>
+                            </View>
+                          </View>
+                        </Modal>
+                      ) : (
+                        showSubCategoryPicker && (
+                          <Modal
+                            visible={showSubCategoryPicker}
+                            transparent={true}
+                            animationType="none"
+                            onRequestClose={() => setShowSubCategoryPicker(false)}
+                          >
+                            <TouchableOpacity 
+                              style={styles.androidPickerOverlay}
+                              activeOpacity={1}
+                              onPress={() => setShowSubCategoryPicker(false)}
+                            >
+                              <View style={styles.androidSpinnerContainer}>
+                                <View style={styles.androidSpinnerHeader}>
+                                  <Text style={styles.androidSpinnerTitle}>Select Subcategory</Text>
+                                </View>
+                                <ScrollView 
+                                  style={styles.androidSpinnerScrollView}
+                                  showsVerticalScrollIndicator={false}
+                                >
+                                  {subCategories.map((sub, index) => (
+                                    <TouchableOpacity
+                                      key={sub.pkSubCategory}
+                                      style={[
+                                        styles.androidSpinnerItem,
+                                        selectedSubCategory === sub.pkSubCategory && styles.androidSpinnerSelectedItem,
+                                        index === subCategories.length - 1 && styles.androidSpinnerLastItem
+                                      ]}
+                                      onPress={() => {
+                                        setSelectedSubCategory(sub.pkSubCategory);
+                                        setShowSubCategoryPicker(false);
+                                      }}
+                                      activeOpacity={0.7}
+                                    >
+                                      <View style={styles.androidSpinnerItemContent}>
+                                        <Text style={[
+                                          styles.androidSpinnerItemText,
+                                          selectedSubCategory === sub.pkSubCategory && styles.androidSpinnerSelectedText
+                                        ]}>
+                                          {sub.name}
+                                        </Text>
+                                        {selectedSubCategory === sub.pkSubCategory && (
+                                          <View style={styles.androidSpinnerCheckContainer}>
+                                            <MaterialIcons name="radio-button-checked" size={20} color="#2196F3" />
+                                          </View>
+                                        )}
+                                        {selectedSubCategory !== sub.pkSubCategory && (
+                                          <View style={styles.androidSpinnerCheckContainer}>
+                                            <MaterialIcons name="radio-button-unchecked" size={20} color="#BDBDBD" />
+                                          </View>
+                                        )}
+                                      </View>
+                                    </TouchableOpacity>
+                                  ))}
+                                </ScrollView>
+                              </View>
+                            </TouchableOpacity>
+                          </Modal>
+                        )
+                      )}
                     </View>
                   )}
 
@@ -377,11 +586,13 @@ const Request: React.FC<ModalProps> = ({ isVisible, onClose, selectedCategory, o
                   )}
 
                   <TextInput
-                    style={styles.input}
+                    style={[styles.input, styles.readOnlyInput]}
                     placeholder="Address"
                     onChangeText={handleChange('address')}
                     onBlur={handleBlur('address')}
                     value={values.address}
+                    editable={false}
+                    selectTextOnFocus={false}
                   />
                   {touched.address && errors.address && (
                     <Text style={styles.errorText}>{errors.address}</Text>
@@ -424,12 +635,21 @@ const Request: React.FC<ModalProps> = ({ isVisible, onClose, selectedCategory, o
                   </View>
 
                   <View style={styles.buttonContainer}>
-                    <View style={styles.button} >
-                      <Button title="Upload Images" color="#f54021" onPress={handleImagePicker} />
-                    </View>
-                    <View style={styles.button}>
-                      <Button title="Save" onPress={() => handleSubmit()} />
-                    </View>
+                    <TouchableOpacity 
+                      style={[styles.customButton, styles.uploadButton]} 
+                      onPress={handleImagePicker}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={[styles.buttonText, styles.uploadButtonText]} numberOfLines={1}>Upload Images</Text>
+                    </TouchableOpacity>
+                    
+                    <TouchableOpacity 
+                      style={[styles.customButton, styles.saveButton]} 
+                      onPress={() => handleSubmit()}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={[styles.buttonText, styles.saveButtonText]}>Save</Text>
+                    </TouchableOpacity>
                   </View>
 
                 </View>
@@ -484,6 +704,10 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     borderRadius: 5,
   },
+  readOnlyInput: {
+    backgroundColor: '#f5f5f5',
+    color: '#666',
+  },
   descriptionInput: {
     borderWidth: 1,
     borderColor: '#ccc',
@@ -498,9 +722,52 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   buttonContainer: {
-    marginTop: 20,
+    marginTop: 24,
+    marginBottom: 40,
     flexDirection: 'row',
-    justifyContent: 'space-around',
+    justifyContent: 'space-between',
+    paddingHorizontal: 0,
+    gap: 16,
+  },
+  // Custom Button Styles
+  customButton: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    minHeight: 44,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 3,
+      },
+    }),
+  },
+  uploadButton: {
+    backgroundColor: '#f54021',
+  },
+  saveButton: {
+    backgroundColor: '#007AFF',
+  },
+  buttonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    textAlign: 'center',
+    color: '#FFFFFF',
+    letterSpacing: 0.2,
+  },
+  uploadButtonText: {
+    color: '#FFFFFF',
+  },
+  saveButtonText: {
+    color: '#FFFFFF',
   },
   button: {
     flex: 1,
@@ -588,6 +855,210 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     alignItems: 'center',
   },
+  // Subcategory picker styles
+  subCategoryContainer: {
+    marginBottom: 15,
+  },
+  fieldLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 8,
+    color: '#333',
+  },
+  pickerButton: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 8,
+    paddingHorizontal: 15,
+    paddingVertical: 12,
+    backgroundColor: '#fff',
+    minHeight: 48,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
+      },
+      android: {
+        elevation: 1,
+        borderRadius: 4,
+        borderColor: '#BDBDBD',
+        backgroundColor: '#FAFAFA',
+      },
+    }),
+  },
+  pickerButtonText: {
+    fontSize: 16,
+    color: '#333',
+    flex: 1,
+  },
+  placeholderText: {
+    color: '#999',
+  },
+  // iOS Picker Modal Styles
+  pickerModalContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  pickerModalContent: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
+    maxHeight: '50%',
+  },
+  pickerHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+  },
+  pickerHeaderButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+  },
+  pickerHeaderButtonText: {
+    fontSize: 16,
+    color: '#007bff',
+  },
+  pickerDoneButton: {
+    fontWeight: '600',
+  },
+  pickerHeaderTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#333',
+  },
+  iosPicker: {
+    backgroundColor: '#fff',
+  },
+  iosPickerItem: {
+    fontSize: 18,
+    height: 120,
+  },
+  // Android Picker Modal Styles
+  androidPickerOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  // Android Native Spinner Styles
+  androidSpinnerContainer: {
+    backgroundColor: '#fff',
+    borderRadius: 4,
+    width: '100%',
+    maxHeight: '70%',
+    maxWidth: 400,
+    ...Platform.select({
+      android: {
+        elevation: 8,
+      },
+    }),
+  },
+  androidSpinnerHeader: {
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0E0E0',
+    backgroundColor: '#F5F5F5',
+  },
+  androidSpinnerTitle: {
+    fontSize: 18,
+    fontWeight: '500',
+    color: '#212121',
+    textAlign: 'left',
+  },
+  androidSpinnerScrollView: {
+    maxHeight: 320,
+  },
+  androidSpinnerItem: {
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+    backgroundColor: '#fff',
+  },
+  androidSpinnerSelectedItem: {
+    backgroundColor: '#E3F2FD',
+  },
+  androidSpinnerLastItem: {
+    borderBottomWidth: 0,
+  },
+  androidSpinnerItemContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  androidSpinnerItemText: {
+    fontSize: 16,
+    color: '#424242',
+    flex: 1,
+    lineHeight: 24,
+  },
+  androidSpinnerSelectedText: {
+    color: '#1976D2',
+    fontWeight: '500',
+  },
+  androidSpinnerCheckContainer: {
+    marginLeft: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  // Legacy Android Picker Styles (kept for compatibility)
+  androidPickerContainer: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    width: '100%',
+    maxHeight: '70%',
+    ...Platform.select({
+      android: {
+        elevation: 8,
+      },
+    }),
+  },
+  androidPickerTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#333',
+    textAlign: 'center',
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+  },
+  androidPickerScrollView: {
+    maxHeight: 300,
+  },
+  androidPickerItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  androidPickerSelectedItem: {
+    backgroundColor: '#f0f8ff',
+  },
+  androidPickerItemText: {
+    fontSize: 16,
+    color: '#333',
+    flex: 1,
+  },
+  androidPickerSelectedText: {
+    color: '#007bff',
+    fontWeight: '600',
+  },
+  // Keep existing picker styles for backward compatibility
   pickerContainer: {
     borderWidth: 1,
     borderColor: '#ccc',

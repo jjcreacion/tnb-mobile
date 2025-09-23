@@ -1,9 +1,11 @@
-import React, { useCallback, useEffect, useRef } from 'react'
-import { Alert, Animated, Pressable, ScrollView, Text, TouchableOpacity, View } from 'react-native'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
+import { Alert, Animated, Dimensions, Pressable, ScrollView, Text, TouchableOpacity, View } from 'react-native'
 import Icon from 'react-native-vector-icons/MaterialIcons'
 import { RadioButton } from '../ui/RadioButton'
 import { addressStyles } from './styles'
 import { Address, City, State } from './types'
+
+const { height: screenHeight } = Dimensions.get('window')
 
 interface AddressListProps {
   addresses: Address[]
@@ -31,6 +33,9 @@ export const AddressList: React.FC<AddressListProps> = ({
   searchText = '',
 }) => {
   const animatedValues = useRef<Map<number, Animated.Value>>(new Map())
+  const [shouldFloatButton, setShouldFloatButton] = useState(false)
+  const scrollViewRef = useRef<ScrollView>(null)
+  const contentRef = useRef<View>(null)
   
   const handleAddressSelection = useCallback((address: Address) => {
     onAddressSelect(address)
@@ -57,6 +62,14 @@ export const AddressList: React.FC<AddressListProps> = ({
       })
     }
   }, [recentlyAddedId])
+
+  // Efecto para limpiar las animaciones cuando no hay direcciones
+  useEffect(() => {
+    if (addresses.length === 0) {
+      // Limpiar todas las animaciones cuando la lista se vacía
+      animatedValues.current.clear()
+    }
+  }, [addresses.length])
 
   // Función para obtener el valor animado de un elemento
   const getAnimatedValue = (addressId: number) => {
@@ -194,14 +207,29 @@ export const AddressList: React.FC<AddressListProps> = ({
   // Only render addresses when we have complete data (or no addresses at all)
   const shouldRenderAddresses = addresses.length === 0 || (cities.length > 0 && states.length > 0)
   const filteredAddresses = getFilteredAndSortedAddresses()
+
+  // Efecto para determinar si el contenido es más largo que la pantalla disponible
+  useEffect(() => {
+    if (filteredAddresses.length > 4) { // Si hay más de 4 direcciones, probablemente necesite scroll
+      setShouldFloatButton(true)
+    } else {
+      setShouldFloatButton(false)
+    }
+  }, [filteredAddresses.length])
   
   return (
-    <ScrollView 
-      style={addressStyles.addressList}
-      contentContainerStyle={{ paddingBottom: 20 }}
-      showsVerticalScrollIndicator={false}
-      keyboardShouldPersistTaps="handled"
-    >
+    <View style={{ flex: 1 }}>
+      <ScrollView 
+        ref={scrollViewRef}
+        style={addressStyles.addressList}
+        contentContainerStyle={{ 
+          paddingBottom: shouldFloatButton ? 80 : 20, // Más espacio si el botón flota
+          flexGrow: 1 
+        }}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
+        <View ref={contentRef}>
       {shouldRenderAddresses && filteredAddresses.length > 0 ? (
         filteredAddresses.map((address: Address) => {
             const isSelected = address.pkAddress === primaryAddress?.pkAddress
@@ -301,17 +329,39 @@ export const AddressList: React.FC<AddressListProps> = ({
         </View>
       )}
 
-      <TouchableOpacity 
-        style={addressStyles.addAddressButton}
-        onPress={onAddNewAddress}
-        activeOpacity={0.7}
-        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-      >
-        <Icon name="add" size={24} color="#007AFF" />
-        <Text style={addressStyles.addAddressText}>
-          Add a new property address
-        </Text>
-      </TouchableOpacity>
-    </ScrollView>
+      {/* Botón dentro del scroll si no debe flotar */}
+      {!shouldFloatButton && (
+        <TouchableOpacity 
+          style={addressStyles.addAddressButton}
+          onPress={onAddNewAddress}
+          activeOpacity={0.7}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <Icon name="add" size={24} color="#007AFF" />
+          <Text style={addressStyles.addAddressText}>
+            Add a new property address
+          </Text>
+        </TouchableOpacity>
+      )}
+        </View>
+      </ScrollView>
+
+      {/* Botón flotante cuando debe flotar */}
+      {shouldFloatButton && (
+        <View style={addressStyles.floatingButtonContainer}>
+          <TouchableOpacity 
+            style={[addressStyles.addAddressButton, addressStyles.floatingAddButton]}
+            onPress={onAddNewAddress}
+            activeOpacity={0.7}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Icon name="add" size={24} color="#007AFF" />
+            <Text style={addressStyles.addAddressText}>
+              Add a new property address
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
+    </View>
   )
 }

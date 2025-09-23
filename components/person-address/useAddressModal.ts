@@ -326,12 +326,16 @@ export const useAddressModal = (isVisible: boolean, addresses: any[], focusCallb
     }
   }
 
-  const handleDeleteAddress = async (address: Address, onAddressDeleted?: () => void) => {
+  const handleDeleteAddress = async (address: Address, onAddressDeleted?: () => void | Promise<void>) => {
     const result = await AddressService.deleteAddress(address.pkAddress)
 
     if (result.success) {
+      // Execute callback first to update the parent state and wait for it
+      if (onAddressDeleted) {
+        await onAddressDeleted()
+      }
+      // Then show the success message
       Alert.alert('Success', result.message || 'Address deleted successfully')
-      onAddressDeleted?.()
     } else {
       Alert.alert('Error', result.message || 'Failed to delete address')
     }

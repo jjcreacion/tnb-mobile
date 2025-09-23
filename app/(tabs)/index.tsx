@@ -1,28 +1,30 @@
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import Constants from 'expo-constants'
 import { LinearGradient } from 'expo-linear-gradient'
-import * as Animatable from 'react-native-animatable'
 import { useRouter } from 'expo-router'
 import React, { useEffect, useRef, useState } from 'react'
 import {
-    ActivityIndicator,
-    Alert,
-    Dimensions,
-    FlatList,
-    Image,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    TextInput,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  Dimensions,
+  FlatList,
+  Image,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native'
+import * as Animatable from 'react-native-animatable'
 import Icon from 'react-native-vector-icons/MaterialIcons'
 import CampaignModal from '../(screens)/CampaignModal'
 import RequestModal from '../(screens)/RequestModal'
 import SideMenu from '../(screens)/SideMenu'
 import { AddressModal } from '../../components/person-address'
+import { AddressService } from '../../components/person-address/AddressService'
+import type { City, State } from '../../components/person-address/types'
 
 const { width: screenWidth } = Dimensions.get('window')
 
@@ -148,6 +150,10 @@ const HomeScreen: React.FC = () => {
   const [isAddressModalVisible, setAddressModalVisible] = useState(false)
   const [loadingAddresses, setLoadingAddresses] = useState(false)
   const [userBalance, setUserBalance] = useState<number | null>(null)
+  
+  // Cities and States for address formatting
+  const [cities, setCities] = useState<City[]>([])
+  const [states, setStates] = useState<State[]>([])
 
   const API_BASE_URL = Constants.expoConfig?.extra?.API_BASE_URL
   const CATEGORIES_ENDPOINT = '/category/findAll'
@@ -163,7 +169,7 @@ const HomeScreen: React.FC = () => {
     }
     setSearchVisible(!isSearchVisible)
   }
-  
+
   const loadUserData = async () => {
     try {
       const userId = await AsyncStorage.getItem('userId')
@@ -180,7 +186,7 @@ const HomeScreen: React.FC = () => {
           } else {
             setUserName('User')
           }
-          setUserBalance(userData.balance);
+          setUserBalance(userData.balance)
 
           // Load user addresses
           if (
@@ -192,6 +198,10 @@ const HomeScreen: React.FC = () => {
               (addr: Address) => addr.isPrimary === 1
             )
             setPrimaryAddress(primary || userData.person.addresses[0])
+          } else {
+            // Clear addresses when none exist
+            setUserAddresses([])
+            setPrimaryAddress(null)
           }
         } else {
           console.error(
@@ -199,15 +209,35 @@ const HomeScreen: React.FC = () => {
             response.status
           )
           setUserName('User')
-          
-          
+          // Clear addresses on error
+          setUserAddresses([])
+          setPrimaryAddress(null)
         }
       } else {
         setUserName('User')
+        // Clear addresses when no userId
+        setUserAddresses([])
+        setPrimaryAddress(null)
       }
     } catch (error) {
       console.error('Error al cargar los datos del usuario:', error)
       setUserName('User')
+      // Clear addresses on error
+      setUserAddresses([])
+      setPrimaryAddress(null)
+    }
+  }
+
+  const loadCitiesAndStates = async () => {
+    try {
+      const [citiesData, statesData] = await Promise.all([
+        AddressService.loadCities(),
+        AddressService.loadStates()
+      ])
+      setCities(citiesData)
+      setStates(statesData)
+    } catch (error) {
+      console.error('Error loading cities and states:', error)
     }
   }
 
@@ -326,6 +356,7 @@ const HomeScreen: React.FC = () => {
 
   useEffect(() => {
     loadUserData()
+    loadCitiesAndStates()
   }, [API_BASE_URL])
 
   useEffect(() => {
@@ -478,12 +509,19 @@ const HomeScreen: React.FC = () => {
               <Image source={tnbLogo} style={styles.companyLogo} />
             </View>
             <View style={styles.rightHeader}>
-           
-            <TouchableOpacity style={styles.getMoneyButton} onPress={() => router.push('/(screens)/ShareAndEarn')}>
-                <Text style={styles.getMoneyButtonText}>Get ${referralReward}</Text>
-             </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.getMoneyButton}
+                onPress={() => router.push('/(screens)/ShareAndEarn')}
+              >
+                <Text style={styles.getMoneyButtonText}>
+                  Get ${referralReward}
+                </Text>
+              </TouchableOpacity>
 
-            <TouchableOpacity style={styles.balanceButton} onPress={() => router.push('/(tabs)/billing')}>
+              <TouchableOpacity
+                style={styles.balanceButton}
+                onPress={() => router.push('/(tabs)/billing')}
+              >
                 <Text style={styles.balanceButtonText}>
                   Balance: ${userBalance}
                 </Text>
@@ -493,6 +531,9 @@ const HomeScreen: React.FC = () => {
         </LinearGradient>
       </View>
 
+      <View style={styles.addressSectionHeader}>
+        <Text style={styles.sectionTitle}>Service Address</Text>
+      </View>
       {/* Address Section */}
       <TouchableOpacity
         style={styles.addressSection}
@@ -501,23 +542,28 @@ const HomeScreen: React.FC = () => {
         <Icon name="home" size={24} color="#ea0e08" />
         <View style={styles.addressTextSection}>
           <Text style={styles.addressText}>
-            {primaryAddress 
-              ? primaryAddress.address 
-              : userAddresses.length > 0 
-                ? 'Select your primary address'
-                : 'No address added yet'
-            }
+            {primaryAddress
+              ? primaryAddress.address
+              : userAddresses.length > 0
+              ? 'Select your primary address'
+              : 'No address added yet'}
           </Text>
           <Text style={styles.addressSubText}>
             {primaryAddress
               ? 'Tap to change address'
               : userAddresses.length > 0
-                ? `${userAddresses.length} address${userAddresses.length > 1 ? 'es' : ''} available`
-                : 'Tap to add your address'}
+              ? `${userAddresses.length} address${
+                  userAddresses.length > 1 ? 'es' : ''
+                } available`
+              : 'Tap to add your address'}
           </Text>
         </View>
         <Icon name="keyboard-arrow-down" size={24} color="#666" />
       </TouchableOpacity>
+
+      <View style={[styles.sectionHeader, styles.recommendedSectionHeader]}>
+        <Text style={styles.sectionTitle}>Recommended for you</Text>
+      </View>
 
       <View style={styles.sectionHeader}>
       <Text style={styles.sectionTitle}>Recommended for you</Text>
@@ -563,8 +609,11 @@ const HomeScreen: React.FC = () => {
 
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Services to explore</Text>
-        <TouchableOpacity onPress={handleToggleSearch} style={styles.searchIcon}>
-         <Icon
+        <TouchableOpacity
+          onPress={handleToggleSearch}
+          style={styles.searchIcon}
+        >
+          <Icon
             name={isSearchVisible ? 'close' : 'search'}
             size={24}
             color="#7c1310"
@@ -599,16 +648,6 @@ const HomeScreen: React.FC = () => {
         ) : errorCategories ? (
           <Text style={styles.errorMessage}>{errorCategories}</Text>
         ) : categories.filter(
-          (category) =>
-            category.name
-              .toLowerCase()
-              .includes(serviceSearchQuery.toLowerCase()) ||
-            category.description
-              .toLowerCase()
-              .includes(serviceSearchQuery.toLowerCase())
-        ).length > 0 ? (
-        categories
-          .filter(
             (category) =>
               category.name
                 .toLowerCase()
@@ -616,19 +655,29 @@ const HomeScreen: React.FC = () => {
               category.description
                 .toLowerCase()
                 .includes(serviceSearchQuery.toLowerCase())
-          )
-          .map((category) => (
-            <ServiceItem
-              key={category.pkCategory}
-              category={category}
-              onServicePress={handleServicePress}
-              API_BASE_URL={API_BASE_URL || ''}
-            />
+          ).length > 0 ? (
+          categories
+            .filter(
+              (category) =>
+                category.name
+                  .toLowerCase()
+                  .includes(serviceSearchQuery.toLowerCase()) ||
+                category.description
+                  .toLowerCase()
+                  .includes(serviceSearchQuery.toLowerCase())
+            )
+            .map((category) => (
+              <ServiceItem
+                key={category.pkCategory}
+                category={category}
+                onServicePress={handleServicePress}
+                API_BASE_URL={API_BASE_URL || ''}
+              />
             ))
         ) : (
           <Text style={styles.noResultsMessage}>
-          No services found matching "{serviceSearchQuery}".
-        </Text>
+            No services found matching "{serviceSearchQuery}".
+          </Text>
         )}
       </ScrollView>
 
@@ -636,6 +685,9 @@ const HomeScreen: React.FC = () => {
         isVisible={isRequestModalVisible}
         onClose={handleCloseServiceModal}
         selectedCategory={selectedServiceData}
+        primaryAddress={primaryAddress}
+        cities={cities}
+        states={states}
       />
 
       <CampaignModal
@@ -691,7 +743,7 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     marginLeft: 10,
     borderWidth: 1,
-    borderColor: '#333'
+    borderColor: '#333',
   },
   getMoneyButtonText: {
     color: '#333', // Texto oscuro para contrastar con el fondo claro
@@ -704,7 +756,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   getMoneyButton: {
-    backgroundColor: '#FFD700', 
+    backgroundColor: '#FFD700',
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 15,
@@ -717,7 +769,7 @@ const styles = StyleSheet.create({
   },
   linearGradientHeader: {
     width: '100%',
-    paddingTop: 40,
+    paddingTop: 60, // Increased from 40 to 60 to avoid overlap with Dynamic Island
     paddingBottom: 20,
     overflow: 'hidden',
     ...Platform.select({
@@ -912,7 +964,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#fff',
     marginHorizontal: 20,
-    marginVertical: 10,
+    marginVertical: 5, // Reduced from 10 to 5
     padding: 15,
     borderRadius: 10,
     ...Platform.select({
@@ -940,6 +992,18 @@ const styles = StyleSheet.create({
   addressSubText: {
     fontSize: 12,
     color: '#666',
+  },
+  // Address section header with reduced spacing
+  addressSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    marginTop: 5,
+    marginBottom: 5, // Reduced from default 15 to 5
+  },
+  // Recommended section with additional top margin
+  recommendedSectionHeader: {
+    marginTop: 20, // Additional margin to separate from address section
   },
 })
 
