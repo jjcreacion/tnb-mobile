@@ -190,11 +190,13 @@ export const EditAddressForm = forwardRef<EditAddressFormRef, EditAddressFormPro
   }, [externalFormData.address, useManualEntry])
 
   return (
-    <ScrollView
-      style={addressStyles.newAddressForm}
-      keyboardShouldPersistTaps="handled"
-      showsVerticalScrollIndicator={false}
-    >
+    <View style={addressStyles.newAddressFormContainer}>
+      <ScrollView
+        style={addressStyles.newAddressForm}
+        contentContainerStyle={{ paddingBottom: 40 }}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
       <Text style={addressStyles.formLabel}>Address</Text>
       
       {/* Address Input - Use autocomplete if available and not in manual mode */}
@@ -308,5 +310,6 @@ export const EditAddressForm = forwardRef<EditAddressFormRef, EditAddressFormPro
         </TouchableOpacity>
       </View>
     </ScrollView>
+    </View>
   )
 })

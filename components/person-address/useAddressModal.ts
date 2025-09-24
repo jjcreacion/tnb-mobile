@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from 'react'
-import { Alert, Animated } from 'react-native'
+import { useCallback, useEffect, useState } from 'react'
+import { Alert } from 'react-native'
 import { AddressService } from './AddressService'
 import { Address, AddressFormData, City, Country, ScreenType, State } from './types'
 
@@ -12,7 +12,7 @@ export const useAddressModal = (isVisible: boolean, addresses: any[], focusCallb
   const [currentScreen, setCurrentScreen] = useState<ScreenType>('list')
   const [editingAddress, setEditingAddress] = useState<Address | null>(null)
   const [countries, setCountries] = useState<Country[]>([])
-  const slideAnim = useRef(new Animated.Value(0)).current
+  const [hasInitialized, setHasInitialized] = useState(false)
   
   // Form data for new address
   const [newAddressForm, setNewAddressForm] = useState<AddressFormData>({
@@ -51,36 +51,10 @@ export const useAddressModal = (isVisible: boolean, addresses: any[], focusCallb
   const [countryId, setCountryId] = useState<number>(1)
 
   const animateToScreen = (screen: ScreenType) => {
-    let animValue = 0
-    
-    switch (screen) {
-      case 'list':
-        animValue = 0
-        break
-      case 'add-form':
-        animValue = 1
-        break
-      case 'edit-form':
-        animValue = 1
-        break
-      case 'city':
-      case 'state':
-        animValue = 2
-        break
-    }
-    
     setCurrentScreen(screen)
-    
-    requestAnimationFrame(() => {
-      Animated.timing(slideAnim, {
-        toValue: animValue,
-        duration: 250,
-        useNativeDriver: true,
-      }).start()
-    })
   }
 
-  const loadCitiesAndStates = async () => {
+  const loadCitiesAndStates = useCallback(async () => {
     try {
       // Load countries first to get USA ID
       const countriesData = await AddressService.loadCountries()
@@ -106,7 +80,7 @@ export const useAddressModal = (isVisible: boolean, addresses: any[], focusCallb
       console.error('Error loading cities and states:', error)
       setCountryId(1)
     }
-  }
+  }, [])
 
   const handleCitySelect = (city: City) => {
     const cityState = AddressService.findStateByCity(states, city)
@@ -224,7 +198,7 @@ export const useAddressModal = (isVisible: boolean, addresses: any[], focusCallb
     setStateSearchText(text)
   }
 
-  const resetForm = () => {
+  const resetForm = useCallback(() => {
     // First clear immediately
     const emptyForm = {
       address: '',
@@ -249,7 +223,7 @@ export const useAddressModal = (isVisible: boolean, addresses: any[], focusCallb
     setFilteredCities(cities)
     setCitySearchText('')
     setStateSearchText('')
-  }
+  }, [cities])
 
   const handleSaveAddress = async (onAddressAdded?: (addressId?: number) => void) => {
     if (
@@ -364,18 +338,19 @@ export const useAddressModal = (isVisible: boolean, addresses: any[], focusCallb
     animateToScreen('list')
   }
 
-  // Reset to list view when modal opens
+  // Reset to list view when modal opens/closes
   useEffect(() => {
-    if (isVisible) {
+    if (isVisible && !hasInitialized) {
+      // Only initialize once when modal opens for the first time
       setCurrentScreen('list')
-      slideAnim.setValue(0)
       loadCitiesAndStates()
+      setHasInitialized(true)
       // Reset form when modal opens with extra delay for iOS
       setTimeout(() => {
         resetForm()
       }, 150)
-    } else {
-      // When modal closes, also reset to ensure clean state for next open
+    } else if (!isVisible && hasInitialized) {
+      // When modal closes, reset to ensure clean state for next open
       setTimeout(() => {
         setNewAddressForm({
           address: '',
@@ -388,9 +363,10 @@ export const useAddressModal = (isVisible: boolean, addresses: any[], focusCallb
         })
         setEditingAddress(null)
         setCurrentScreen('list')
+        setHasInitialized(false) // Reset for next open
       }, 100)
     }
-  }, [isVisible])
+  }, [isVisible, hasInitialized, loadCitiesAndStates, resetForm])
 
   // Effect to initialize filtered cities when entering city screen
   useEffect(() => {
@@ -415,11 +391,10 @@ export const useAddressModal = (isVisible: boolean, addresses: any[], focusCallb
     } else if (currentScreen === 'state') {
       setStateSearchText('')
     }
-  }, [currentScreen, cities.length, newAddressForm.stateId, editAddressForm.stateId, editingAddress])
+  }, [currentScreen, cities, newAddressForm, editAddressForm, editingAddress])
 
   return {
     currentScreen,
-    slideAnim,
     newAddressForm,
     setNewAddressForm,
     editAddressForm,

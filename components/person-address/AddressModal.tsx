@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react'
-import { Animated, Dimensions, Modal, Text, TextInput, TouchableOpacity, View } from 'react-native'
+import { Modal, Text, TextInput, TouchableOpacity, View } from 'react-native'
 import Icon from 'react-native-vector-icons/MaterialIcons'
 
 import { AddressForm, AddressFormRef } from './AddressForm'
@@ -12,8 +12,6 @@ import { StateSelector } from './StateSelector'
 import { addressStyles } from './styles'
 import { AddressModalProps } from './types'
 import { useAddressModal } from './useAddressModal'
-
-const { width: screenWidth } = Dimensions.get('window')
 
 const AddressModal: React.FC<AddressModalProps> = ({
   isVisible,
@@ -32,7 +30,6 @@ const AddressModal: React.FC<AddressModalProps> = ({
 
   const {
     currentScreen,
-    slideAnim,
     newAddressForm,
     setNewAddressForm,
     editAddressForm,
@@ -60,7 +57,6 @@ const AddressModal: React.FC<AddressModalProps> = ({
   })
 
   const handleAddNewAddress = () => {
-    onAddNewAddress()
     animateToScreen('add-form')
   }
 
@@ -198,23 +194,9 @@ const AddressModal: React.FC<AddressModalProps> = ({
             </View>
           </View>
         )}
-        {/* Content with absolutely positioned screens */}
+        {/* Content with conditional rendering for better ScrollView support */}
         <View style={addressStyles.contentContainer}>
-          {/* Address List Screen */}
-          <Animated.View
-            style={[
-              addressStyles.absoluteScreen,
-              {
-                transform: [{
-                  translateX: slideAnim.interpolate({
-                    inputRange: [0, 1, 2],
-                    outputRange: [0, -screenWidth, -screenWidth],
-                    extrapolate: 'clamp',
-                  })
-                }]
-              }
-            ]}
-          >
+          {currentScreen === 'list' && (
             <AddressList
               addresses={addresses}
               primaryAddress={primaryAddress}
@@ -232,25 +214,9 @@ const AddressModal: React.FC<AddressModalProps> = ({
               recentlyAddedId={recentlyAddedId}
               searchText={searchText}
             />
-          </Animated.View>
+          )}
           
-          {/* Add New Address Form Screen */}
-          <Animated.View
-            style={[
-              addressStyles.absoluteScreen,
-              {
-                opacity: currentScreen === 'add-form' ? 1 : 0,
-                transform: [{
-                  translateX: slideAnim.interpolate({
-                    inputRange: [0, 1, 2],
-                    outputRange: [screenWidth, 0, -screenWidth],
-                    extrapolate: 'clamp',
-                  })
-                }]
-              }
-            ]}
-            pointerEvents={currentScreen === 'add-form' ? 'auto' : 'none'}
-          >
+          {currentScreen === 'add-form' && (
             <AddressForm
               ref={addFormRef}
               formData={newAddressForm}
@@ -260,58 +226,24 @@ const AddressModal: React.FC<AddressModalProps> = ({
               cities={cities}
               states={states}
             />
-          </Animated.View>
+          )}
           
-          {/* Edit Address Form Screen */}
-          <Animated.View
-            style={[
-              addressStyles.absoluteScreen,
-              {
-                opacity: currentScreen === 'edit-form' ? 1 : 0,
-                transform: [{
-                  translateX: slideAnim.interpolate({
-                    inputRange: [0, 1, 2],
-                    outputRange: [screenWidth, 0, -screenWidth],
-                    extrapolate: 'clamp',
-                  })
-                }]
-              }
-            ]}
-            pointerEvents={currentScreen === 'edit-form' ? 'auto' : 'none'}
-          >
-            {editingAddress && (
-              <EditAddressForm
-                ref={editFormRef}
-                address={editingAddress}
-                countries={countries}
-                cities={cities}
-                states={states}
-                formData={editAddressForm}
-                onFormDataChange={setEditAddressForm}
-                onNavigateToScreen={animateToScreen}
-                onUpdateAddress={handleUpdateAddressWithAnimation}
-                onCancel={handleCancelEdit}
-              />
-            )}
-          </Animated.View>
+          {currentScreen === 'edit-form' && editingAddress && (
+            <EditAddressForm
+              ref={editFormRef}
+              address={editingAddress}
+              countries={countries}
+              cities={cities}
+              states={states}
+              formData={editAddressForm}
+              onFormDataChange={setEditAddressForm}
+              onNavigateToScreen={animateToScreen}
+              onUpdateAddress={handleUpdateAddressWithAnimation}
+              onCancel={handleCancelEdit}
+            />
+          )}
           
-          {/* City Selection Screen */}
-          <Animated.View
-            style={[
-              addressStyles.absoluteScreen,
-              {
-                opacity: currentScreen === 'city' ? 1 : 0,
-                transform: [{
-                  translateX: slideAnim.interpolate({
-                    inputRange: [0, 1, 2],
-                    outputRange: [screenWidth, screenWidth, 0],
-                    extrapolate: 'clamp',
-                  })
-                }]
-              }
-            ]}
-            pointerEvents={currentScreen === 'city' ? 'auto' : 'none'}
-          >
+          {currentScreen === 'city' && (
             <CitySelector
               cities={filteredCities}
               states={states}
@@ -320,32 +252,16 @@ const AddressModal: React.FC<AddressModalProps> = ({
               onCitySelect={handleCitySelect}
               selectedStateId={editingAddress ? editAddressForm.stateId : newAddressForm.stateId}
             />
-          </Animated.View>
+          )}
 
-          {/* State Selection Screen */}
-          <Animated.View
-            style={[
-              addressStyles.absoluteScreen,
-              {
-                opacity: currentScreen === 'state' ? 1 : 0,
-                transform: [{
-                  translateX: slideAnim.interpolate({
-                    inputRange: [0, 1, 2],
-                    outputRange: [screenWidth, screenWidth, 0],
-                    extrapolate: 'clamp',
-                  })
-                }]
-              }
-            ]}
-            pointerEvents={currentScreen === 'state' ? 'auto' : 'none'}
-          >
+          {currentScreen === 'state' && (
             <StateSelector
               states={states}
               searchText={stateSearchText}
               onSearchTextChange={handleStateSearch}
               onStateSelect={handleStateSelect}
             />
-          </Animated.View>
+          )}
         </View>
       </View>
 

@@ -3,16 +3,15 @@
  * Provides address autocomplete functionality using Mapbox Search API
  */
 
-import debounce from 'lodash.debounce'
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import {
-    ActivityIndicator,
-    FlatList,
-    Keyboard,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  Keyboard,
+  ScrollView,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native'
 import Icon from 'react-native-vector-icons/MaterialIcons'
 
@@ -47,63 +46,77 @@ export const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
 
   const textInputRef = useRef<TextInput>(null)
   const isMounted = useRef(true)
+  const debounceTimerRef = useRef<number | null>(null)
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
       isMounted.current = false
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current)
+        debounceTimerRef.current = null
+      }
     }
   }, [])
 
   // Debounced search function
-  const debouncedSearch = useCallback(
-    debounce(async (query: string) => {
-      if (!isMounted.current || query.length < MAPBOX_CONFIG.minChars) {
-        setSuggestions([])
-        setIsLoading(false)
-        setHasSearched(false)
-        return
-      }
+  const searchAddresses = useCallback(async (query: string) => {
+    if (!isMounted.current || query.length < MAPBOX_CONFIG.minChars) {
+      setSuggestions([])
+      setIsLoading(false)
+      setHasSearched(false)
+      return
+    }
 
-      try {
-        setError(null)
-        const results = await mapboxSearchService.searchAddresses(query)
+    try {
+      setError(null)
+      const results = await mapboxSearchService.searchAddresses(query)
+      
+      if (isMounted.current) {
+        setSuggestions(results)
+        setShowSuggestions(true)
+        setHasSearched(true)
         
-        if (isMounted.current) {
-          setSuggestions(results)
-          setShowSuggestions(true)
-          setHasSearched(true)
-          
-          // 🔍 DEBUG: Log how many suggestions are being set for display
-          console.log(`🎨 [AddressAutocomplete] Setting ${results.length} suggestions for display`)
-        }
-      } catch (err) {
-        if (isMounted.current) {
-          const mapboxError = err as MapboxError
-          
-          // Handle timeout errors more gracefully
-          if (mapboxError.isTimeoutError) {
-            // For timeout errors, just clear suggestions and allow manual entry
-            // Don't show a red error message as timeouts are common
-            setError(null)
-            console.log('🕐 [AddressAutocomplete] Search timed out, allowing manual entry')
-          } else {
-            // For other errors, show the error message
-            setError(mapboxError.message)
-            console.warn('❌ [AddressAutocomplete] Search failed:', mapboxError.message)
-          }
-          
-          setSuggestions([])
-          setHasSearched(true)
-        }
-      } finally {
-        if (isMounted.current) {
-          setIsLoading(false)
-        }
+        // 🔍 DEBUG: Log how many suggestions are being set for display
+        console.log(`🎨 [AddressAutocomplete] Setting ${results.length} suggestions for display`)
       }
-    }, MAPBOX_CONFIG.debounceMs),
-    []
-  )
+    } catch (err) {
+      if (isMounted.current) {
+        const mapboxError = err as MapboxError
+        
+        // Handle timeout errors more gracefully
+        if (mapboxError.isTimeoutError) {
+          // For timeout errors, just clear suggestions and allow manual entry
+          // Don't show a red error message as timeouts are common
+          setError(null)
+          console.log('🕐 [AddressAutocomplete] Search timed out, allowing manual entry')
+        } else {
+          // For other errors, show the error message
+          setError(mapboxError.message)
+          console.warn('❌ [AddressAutocomplete] Search failed:', mapboxError.message)
+        }
+        
+        setSuggestions([])
+        setHasSearched(true)
+      }
+    } finally {
+      if (isMounted.current) {
+        setIsLoading(false)
+      }
+    }
+  }, [])
+
+  const debouncedSearch = useCallback((query: string) => {
+    // Clear existing timer
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current)
+    }
+
+    // Set new timer
+    debounceTimerRef.current = setTimeout(() => {
+      searchAddresses(query)
+    }, MAPBOX_CONFIG.debounceMs)
+  }, [searchAddresses])
 
   // Handle text input changes
   const handleTextChange = (text: string) => {
@@ -197,29 +210,6 @@ export const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
     }
   }
 
-  // Render suggestion item
-  const renderSuggestion = ({ item }: { item: AddressAutocompleteSuggestion }) => (
-    <TouchableOpacity
-      style={addressStyles.suggestionItem}
-      onPress={() => handleSuggestionSelect(item)}
-      activeOpacity={0.7}
-    >
-      <View style={addressStyles.suggestionContent}>
-        <Icon name="location-on" size={20} color="#666" style={addressStyles.suggestionIcon} />
-        <View style={addressStyles.suggestionText}>
-          <Text style={addressStyles.suggestionPrimary} numberOfLines={1}>
-            {item.displayText}
-          </Text>
-          {item.secondaryText && (
-            <Text style={addressStyles.suggestionSecondary} numberOfLines={1}>
-              {item.secondaryText}
-            </Text>
-          )}
-        </View>
-      </View>
-    </TouchableOpacity>
-  )
-
   // Don't render autocomplete if Mapbox is not available
   if (!isMapboxAvailable()) {
     return (
@@ -286,17 +276,36 @@ export const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
               </TouchableOpacity>
             </View>
           ) : suggestions.length > 0 ? (
-            <FlatList
-              data={suggestions}
-              keyExtractor={(item) => item.id}
-              renderItem={renderSuggestion}
+            <ScrollView
               style={addressStyles.suggestionsList}
               keyboardShouldPersistTaps="handled"
-              showsVerticalScrollIndicator={false}
-              bounces={false}
+              showsVerticalScrollIndicator={true}
+              bounces={true}
               nestedScrollEnabled={true}
-              scrollEnabled={false}
-            />
+            >
+              {suggestions.map((item) => (
+                <TouchableOpacity
+                  key={item.id}
+                  style={addressStyles.suggestionItem}
+                  onPress={() => handleSuggestionSelect(item)}
+                  activeOpacity={0.7}
+                >
+                  <View style={addressStyles.suggestionContent}>
+                    <Icon name="location-on" size={20} color="#666" style={addressStyles.suggestionIcon} />
+                    <View style={addressStyles.suggestionText}>
+                      <Text style={addressStyles.suggestionPrimary} numberOfLines={1}>
+                        {item.displayText}
+                      </Text>
+                      {item.secondaryText && (
+                        <Text style={addressStyles.suggestionSecondary} numberOfLines={1}>
+                          {item.secondaryText}
+                        </Text>
+                      )}
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
           ) : hasSearched && !isLoading ? (
             <View style={addressStyles.noResultsContainer}>
               <Icon name="search-off" size={20} color="#999" />
