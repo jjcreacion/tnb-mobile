@@ -31,9 +31,6 @@ export class AddressMappingService {
     if (!matchingState && mapboxAddress.stateCode) {
       const warning = `State "${mapboxAddress.stateCode}" not found in local database`
       warnings.push(warning)
-      console.log(`⚠️ [AddressMapping] ${warning}`)
-    } else if (matchingState) {
-      console.log(`✅ [AddressMapping] State found: ${mapboxAddress.stateCode} -> ${matchingState.name} (ID: ${matchingState.pkState})`)
     }
 
     // Find matching city
@@ -45,18 +42,12 @@ export class AddressMappingService {
     if (!matchingCity && mapboxAddress.city) {
       const warning = `City "${mapboxAddress.city}" not found in local database`
       warnings.push(warning)
-      console.log(`⚠️ [AddressMapping] ${warning}`)
-    } else if (matchingCity) {
-      console.log(`✅ [AddressMapping] City found: ${mapboxAddress.city} -> ${matchingCity.name} (ID: ${matchingCity.pkCity})`)
     }
 
     // Validate ZIP code
     if (mapboxAddress.zipCode && !isValidUSZipCode(mapboxAddress.zipCode)) {
       const warning = `ZIP code "${mapboxAddress.zipCode}" format is invalid`
       warnings.push(warning)
-      console.log(`⚠️ [AddressMapping] ${warning}`)
-    } else if (mapboxAddress.zipCode) {
-      console.log(`✅ [AddressMapping] ZIP code valid: ${mapboxAddress.zipCode}`)
     }
 
     // Build form data
@@ -80,16 +71,6 @@ export class AddressMappingService {
     if (!formData.zipCode) missingFields.push('zipCode')
 
     const isComplete = missingFields.length === 0 && formData.cityId !== null && formData.stateId !== null
-
-    // Debug log the mapping results
-    console.log(`🗺️ [AddressMapping] Mapping result:`)
-    console.log(`  - Address: "${formData.address}"`)
-    console.log(`  - City: "${formData.city}" (ID: ${formData.cityId})`)
-    console.log(`  - State: "${formData.state}" (ID: ${formData.stateId})`)
-    console.log(`  - ZIP: "${formData.zipCode}"`)
-    console.log(`  - Complete: ${isComplete}`)
-    console.log(`  - Missing fields: [${missingFields.join(', ')}]`)
-    console.log(`  - Warnings: [${warnings.join(', ')}]`)
 
     return {
       formData,

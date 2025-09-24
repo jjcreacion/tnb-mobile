@@ -25,7 +25,7 @@ export const MAPBOX_CONFIG: MapboxConfig = {
   countryFilter: "US", // Country restriction
   fallbackToManual: true, // Fall back to manual entry on errors
   enableTelemetry: true, // Enable usage/error tracking
-  timeout: 12000, // API timeout in milliseconds (increased from 8000 to handle slower connections)
+  timeout: 9000, // API timeout in milliseconds (increased from 8000 to handle slower connections)
   useLocalDatabaseMapping: false, // When true, maps Mapbox results to local DB (causes verification warnings)
 }
 

@@ -76,8 +76,7 @@ export const useAddressModal = (isVisible: boolean, addresses: any[], focusCallb
       setCities(citiesData)
       setFilteredCities(citiesData)
       setStates(statesData)
-    } catch (error) {
-      console.error('Error loading cities and states:', error)
+    } catch {
       setCountryId(1)
     }
   }, [])

@@ -6,8 +6,8 @@ import { AddressForm, AddressFormRef } from './AddressForm'
 import { AddressList } from './AddressList'
 import { CitySelector } from './CitySelector'
 import { EditAddressForm, EditAddressFormRef } from './EditAddressForm'
-import { isMapboxAvailable } from './mapbox'
-import { MapboxDebugPanel } from './MapboxDebugPanel'
+
+
 import { StateSelector } from './StateSelector'
 import { addressStyles } from './styles'
 import { AddressModalProps } from './types'
@@ -26,7 +26,7 @@ const AddressModal: React.FC<AddressModalProps> = ({
   const editFormRef = useRef<EditAddressFormRef>(null)
   const [recentlyAddedId, setRecentlyAddedId] = useState<number | undefined>()
   const [searchText, setSearchText] = useState('')
-  const [showDebugPanel, setShowDebugPanel] = useState(false)
+
 
   const {
     currentScreen,
@@ -155,16 +155,7 @@ const AddressModal: React.FC<AddressModalProps> = ({
             {getTitle()}
           </Text>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            {/* Debug button - only show in development and when Mapbox is available */}
-            {__DEV__ && isMapboxAvailable() && (
-              <TouchableOpacity
-                onPress={() => setShowDebugPanel(true)}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                style={{ marginRight: 12 }}
-              >
-                <Icon name="bug-report" size={20} color="#007AFF" />
-              </TouchableOpacity>
-            )}
+
             <View style={{ width: 24 }} />
           </View>
         </View>
@@ -265,11 +256,7 @@ const AddressModal: React.FC<AddressModalProps> = ({
         </View>
       </View>
 
-      {/* Debug Panel */}
-      <MapboxDebugPanel
-        isVisible={showDebugPanel}
-        onClose={() => setShowDebugPanel(false)}
-      />
+
     </Modal>
   )
 }

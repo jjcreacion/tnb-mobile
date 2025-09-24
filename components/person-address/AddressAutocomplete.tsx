@@ -76,9 +76,6 @@ export const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
         setSuggestions(results)
         setShowSuggestions(true)
         setHasSearched(true)
-        
-        // 🔍 DEBUG: Log how many suggestions are being set for display
-        console.log(`🎨 [AddressAutocomplete] Setting ${results.length} suggestions for display`)
       }
     } catch (err) {
       if (isMounted.current) {
@@ -89,11 +86,9 @@ export const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
           // For timeout errors, just clear suggestions and allow manual entry
           // Don't show a red error message as timeouts are common
           setError(null)
-          console.log('🕐 [AddressAutocomplete] Search timed out, allowing manual entry')
         } else {
           // For other errors, show the error message
           setError(mapboxError.message)
-          console.warn('❌ [AddressAutocomplete] Search failed:', mapboxError.message)
         }
         
         setSuggestions([])
@@ -122,24 +117,11 @@ export const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
   const handleTextChange = (text: string) => {
     onChangeText(text)
     
-    // Debug logging
-    if (__DEV__) {
-      console.log('🔍 [AddressAutocomplete] Text changed:', text)
-      console.log('🔍 [AddressAutocomplete] Mapbox available:', isMapboxAvailable())
-      console.log('🔍 [AddressAutocomplete] Config enabled:', MAPBOX_CONFIG.enabled)
-    }
-    
     if (!isMapboxAvailable()) {
-      if (__DEV__) {
-        console.log('🔍 [AddressAutocomplete] Mapbox not available, falling back to manual')
-      }
       return // Fall back to manual input
     }
 
     if (text.length >= MAPBOX_CONFIG.minChars) {
-      if (__DEV__) {
-        console.log('🔍 [AddressAutocomplete] Starting search for:', text)
-      }
       setIsLoading(true)
       setShowSuggestions(true)
       debouncedSearch(text)
@@ -233,7 +215,7 @@ export const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
       <View style={addressStyles.autocompleteInputContainer}>
         <TextInput
           ref={textInputRef}
-          style={[addressStyles.formInput, style]}
+          style={[addressStyles.formInput, { flex: 1 }, style]}
           placeholder={placeholder}
           value={value}
           onChangeText={handleTextChange}

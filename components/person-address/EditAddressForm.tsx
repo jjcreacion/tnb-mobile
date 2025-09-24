@@ -126,14 +126,7 @@ export const EditAddressForm = forwardRef<EditAddressFormRef, EditAddressFormPro
       // Clear any existing warnings since we're not doing local mapping
       setMappingWarnings([])
       
-      console.log('✅ [EditAddressForm] Using Mapbox data directly (no local mapping):', {
-        ...directFormData,
-        debug: {
-          originalState: mapboxAddress.state,
-          usedStateCode: mapboxAddress.stateCode,
-          finalState: directFormData.state
-        }
-      })
+
     } else {
       // When Mapbox is disabled OR local DB mapping is enabled, use local database mapping
       const mappingResult = AddressMappingService.mapToFormData(mapboxAddress, cities, states)
@@ -144,15 +137,7 @@ export const EditAddressForm = forwardRef<EditAddressFormRef, EditAddressFormPro
       // Store warnings for user feedback
       setMappingWarnings(mappingResult.warnings)
       
-      // 🔍 DEBUG: Log mapping warnings for debugging
-      if (mappingResult.warnings.length > 0) {
-        console.log('🚨 [EditAddressForm] MAPPING WARNINGS:', mappingResult.warnings)
-      }
-      
       // If mapping is incomplete, provide feedback but don't force manual mode
-      if (!mappingResult.isComplete) {
-        console.warn('Incomplete address mapping:', mappingResult.missingFields)
-      }
     }
   }
 
@@ -224,11 +209,7 @@ export const EditAddressForm = forwardRef<EditAddressFormRef, EditAddressFormPro
           <Text style={addressStyles.warningText}>
             Note: Some address details need verification
           </Text>
-          {__DEV__ && (
-            <Text style={[addressStyles.warningText, { fontSize: 12, fontStyle: 'italic' }]}>
-              Debug: {mappingWarnings.join('; ')}
-            </Text>
-          )}
+
         </View>
       )}
 
@@ -313,3 +294,5 @@ export const EditAddressForm = forwardRef<EditAddressFormRef, EditAddressFormPro
     </View>
   )
 })
+
+EditAddressForm.displayName = 'EditAddressForm'
