@@ -7,6 +7,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react'
 import {
   ActivityIndicator,
   Keyboard,
+  Platform,
   ScrollView,
   Text,
   TextInput,
@@ -22,11 +23,12 @@ import { addressStyles } from './styles'
 interface AddressAutocompleteProps {
   value: string
   onChangeText: (text: string) => void
-  onAddressSelect: (address: ParsedMapboxAddress) => void
+  onAddressSelect: (address: ParsedMapboxAddress, selectedText: string) => void
   onFallbackToManual: () => void
   placeholder?: string
   disabled?: boolean
   style?: any
+  addressLine2Ref?: React.RefObject<TextInput>
 }
 
 export const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
@@ -36,13 +38,18 @@ export const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
   onFallbackToManual,
   placeholder = "Start typing an address...",
   disabled = false,
-  style
+  style,
+  addressLine2Ref,
 }) => {
   const [suggestions, setSuggestions] = useState<AddressAutocompleteSuggestion[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [showSuggestions, setShowSuggestions] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [hasSearched, setHasSearched] = useState(false)
+  const [hasCompletedSelection, setHasCompletedSelection] = useState(false)
+  const [selectedValue, setSelectedValue] = useState<string>('')
+  const [isSelectionInProgress, setIsSelectionInProgress] = useState(false)
+  const [internalValue, setInternalValue] = useState<string>(value)
 
   const textInputRef = useRef<TextInput>(null)
   const isMounted = useRef(true)
@@ -59,12 +66,36 @@ export const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
     }
   }, [])
 
+  // Sync external value with internal value
+  useEffect(() => {
+    if (value !== internalValue && !isSelectionInProgress) {
+      setInternalValue(value)
+    }
+  }, [value, internalValue, isSelectionInProgress])
+
+  // Reset selection state when value is cleared externally
+  useEffect(() => {
+    if (internalValue === '' && (hasCompletedSelection || selectedValue !== '')) {
+      setHasCompletedSelection(false)
+      setSelectedValue('')
+      setIsSelectionInProgress(false)
+      setSuggestions([])
+      setShowSuggestions(false)
+    }
+  }, [internalValue, hasCompletedSelection, selectedValue])
+
   // Debounced search function
   const searchAddresses = useCallback(async (query: string) => {
     if (!isMounted.current || query.length < MAPBOX_CONFIG.minChars) {
       setSuggestions([])
       setIsLoading(false)
       setHasSearched(false)
+      return
+    }
+
+    // Don't search if we have a completed selection with the same value or selection is in progress
+    if ((hasCompletedSelection && query === selectedValue) || isSelectionInProgress) {
+      setIsLoading(false)
       return
     }
 
@@ -99,7 +130,8 @@ export const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
         setIsLoading(false)
       }
     }
-  }, [])
+  // }, [hasCompletedSelection, selectedValue, isSelectionInProgress])
+  }, [hasCompletedSelection, selectedValue, isSelectionInProgress])
 
   const debouncedSearch = useCallback((query: string) => {
     // Clear existing timer
@@ -115,10 +147,41 @@ export const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
 
   // Handle text input changes
   const handleTextChange = (text: string) => {
+    // Update internal value immediately for responsive UI
+    setInternalValue(text)
+
+    // Notify parent component of the change
     onChangeText(text)
-    
+
+    // Don't process if selection is currently in progress
+    if (isSelectionInProgress) {
+      return
+    }
+
+    // Reset selection state if text is manually changed after a selection
+    // Add small delay on iOS to prevent race condition with external value updates
+    if (hasCompletedSelection && text !== selectedValue) {
+      if (Platform.OS === 'ios') {
+        setTimeout(() => {
+          if (internalValue !== selectedValue) {
+            setHasCompletedSelection(false)
+            setSelectedValue('')
+          }
+        }, 50)
+      } else {
+        setHasCompletedSelection(false)
+        setSelectedValue('')
+      }
+    }
+
     if (!isMapboxAvailable()) {
       return // Fall back to manual input
+    }
+
+    // Don't search if this is the same value as a completed selection
+    if (hasCompletedSelection && text === selectedValue) {
+      setShowSuggestions(false)
+      return
     }
 
     if (text.length >= MAPBOX_CONFIG.minChars) {
@@ -131,24 +194,56 @@ export const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
       setSuggestions([])
       setHasSearched(false)
       setError(null)
+      setHasCompletedSelection(false)
+      setSelectedValue('')
+      setIsSelectionInProgress(false)
     }
   }
 
   // Handle suggestion selection
   const handleSuggestionSelect = (suggestion: AddressAutocompleteSuggestion) => {
-    // Update input value with selected address
-    onChangeText(suggestion.displayText)
-    
-    // Hide suggestions
+    const selectedText = suggestion.displayText
+
+    // Immediately mark selection in progress to prevent race conditions
+    setIsSelectionInProgress(true)
+
+    // Cancel any pending debounced search immediately
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current)
+      debounceTimerRef.current = null
+    }
+
+    // Hide suggestions and clear search state immediately
     setShowSuggestions(false)
     setSuggestions([])
     setHasSearched(false)
-    
+    setIsLoading(false)
+    setError(null)
+
+    // Mark selection as completed and set selected value
+    setHasCompletedSelection(true)
+    setSelectedValue(selectedText)
+
+    // Update internal value immediately to show in input
+    setInternalValue(selectedText)
+
+    // Force TextInput update on iOS using setNativeProps
+    if (Platform.OS === 'ios' && textInputRef.current) {
+      textInputRef.current.setNativeProps({ text: selectedText })
+    }
+
     // Dismiss keyboard
     Keyboard.dismiss()
-    
-    // Notify parent component
-    onAddressSelect(suggestion.parsedAddress)
+
+    // Notify parent component with both the parsed address and the selected text
+    onAddressSelect(suggestion.parsedAddress, selectedText)
+
+    // Clear selection in progress flag after a short delay to allow state settling
+    // Use longer delay on iOS to prevent race conditions with state updates
+    const selectionDelay = Platform.OS === 'ios' ? 200 : 100
+    setTimeout(() => {
+      setIsSelectionInProgress(false)
+    }, selectionDelay)
 
     // Log selection telemetry
     mapboxSearchService['logTelemetry']?.({
@@ -157,6 +252,13 @@ export const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
       selectedSuggestionIndex: suggestions.findIndex(s => s.id === suggestion.id),
       wasSuccessful: true
     })
+
+    // Focus Address Line 2 if ref provided
+    if (addressLine2Ref && addressLine2Ref.current) {
+      setTimeout(() => {
+        addressLine2Ref.current?.focus()
+      }, 300)
+    }
   }
 
   // Handle manual entry fallback
@@ -165,6 +267,9 @@ export const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
     setSuggestions([])
     setError(null)
     setHasSearched(false)
+    setHasCompletedSelection(false)
+    setSelectedValue('')
+    setIsSelectionInProgress(false)
     onFallbackToManual()
 
     // Log fallback telemetry
@@ -177,17 +282,33 @@ export const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
 
   // Hide suggestions when input loses focus
   const handleBlur = () => {
+    // Don't hide suggestions if selection is in progress
+    if (isSelectionInProgress) {
+      return
+    }
+
     // Small delay to allow suggestion selection
     setTimeout(() => {
-      if (isMounted.current) {
+      if (isMounted.current && !isSelectionInProgress) {
         setShowSuggestions(false)
       }
-    }, 150)
+    }, 200) // Increased delay slightly for better UX
   }
 
   // Show suggestions when input gains focus
   const handleFocus = () => {
-    if (suggestions.length > 0 && value.length >= MAPBOX_CONFIG.minChars) {
+    // Don't show suggestions if selection is in progress
+    if (isSelectionInProgress) {
+      return
+    }
+
+    // Don't show suggestions if we have a completed selection with the same value
+    if (hasCompletedSelection && internalValue === selectedValue) {
+      return
+    }
+
+    // Only show existing suggestions if we have them and haven't completed a selection
+    if (suggestions.length > 0 && internalValue.length >= MAPBOX_CONFIG.minChars && !hasCompletedSelection && !isSelectionInProgress) {
       setShowSuggestions(true)
     }
   }
@@ -217,7 +338,7 @@ export const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
           ref={textInputRef}
           style={[addressStyles.formInput, { flex: 1 }, style]}
           placeholder={placeholder}
-          value={value}
+          value={internalValue}
           onChangeText={handleTextChange}
           onFocus={handleFocus}
           onBlur={handleBlur}
@@ -235,7 +356,7 @@ export const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
         )}
         
         {/* Manual entry button */}
-        {value.length >= MAPBOX_CONFIG.minChars && (hasSearched || error) && (
+        {internalValue.length >= MAPBOX_CONFIG.minChars && (hasSearched || error) && (
           <TouchableOpacity
             style={addressStyles.manualEntryButton}
             onPress={handleManualEntry}

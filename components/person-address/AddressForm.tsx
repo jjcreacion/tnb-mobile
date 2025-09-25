@@ -47,13 +47,11 @@ export const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(({
   }, [formData.zipCode])
 
   // Handle Mapbox address selection
-  const handleAddressSelect = (mapboxAddress: ParsedMapboxAddress) => {
+  const handleAddressSelect = (mapboxAddress: ParsedMapboxAddress, selectedText: string) => {
     if (MAPBOX_CONFIG.enabled && !MAPBOX_CONFIG.useLocalDatabaseMapping) {
       // When Mapbox is enabled WITHOUT local DB mapping, use Mapbox data directly
       const directFormData: AddressFormData = {
-        address: mapboxAddress.houseNumber && mapboxAddress.street 
-          ? `${mapboxAddress.houseNumber} ${mapboxAddress.street}`
-          : mapboxAddress.street || mapboxAddress.fullAddress,
+        address: selectedText, // Use the exact text that was selected from the suggestion
         addressLine2: '',
         city: mapboxAddress.city || '',
         cityId: null, // Don't map to local DB when useLocalDatabaseMapping is false
@@ -75,13 +73,17 @@ export const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(({
     } else {
       // When Mapbox is disabled OR local DB mapping is enabled, use local database mapping
       const mappingResult = AddressMappingService.mapToFormData(mapboxAddress, cities, states)
-      
-      // Update form with mapped data
-      onFormDataChange(mappingResult.formData)
-      
+
+      // Update form with mapped data but use the selected text for the address field
+      const formDataWithSelectedText = {
+        ...mappingResult.formData,
+        address: selectedText // Use the exact text that was selected from the suggestion
+      }
+      onFormDataChange(formDataWithSelectedText)
+
       // Store warnings for user feedback
       setMappingWarnings(mappingResult.warnings)
-      
+
       // If mapping is incomplete, provide feedback but don't force manual mode
     }
   }

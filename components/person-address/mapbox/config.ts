@@ -34,7 +34,7 @@ export const MAPBOX_CONFIG: MapboxConfig = {
  */
 export const getMapboxToken = (): string | null => {
   // Get token from expo config (app.json extra field)
-  const token = Constants.expoConfig?.extra?.MAPBOX_TOKEN || process.env.MAPBOX_TOKEN
+  const token = Constants.expoConfig?.extra?.GOOGLE_MAP_TOKEN || process.env.GOOGLE_MAP_TOKEN
   return token || null
 }
 
