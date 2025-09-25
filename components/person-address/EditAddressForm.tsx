@@ -36,6 +36,7 @@ export const EditAddressForm = forwardRef<EditAddressFormRef, EditAddressFormPro
 }, ref) => {
   const hasInitialized = useRef(false)
   const zipCodeRef = useRef<TextInput>(null)
+  const addressLine2Ref = useRef<TextInput>(null)
   const [useManualEntry, setUseManualEntry] = useState(false)
   const [mappingWarnings, setMappingWarnings] = useState<string[]>([])
 
@@ -193,6 +194,8 @@ export const EditAddressForm = forwardRef<EditAddressFormRef, EditAddressFormPro
           onFallbackToManual={handleFallbackToManual}
           placeholder="e.g 108 Jackson St"
           style={addressStyles.formInput}
+          addressLine2Ref={addressLine2Ref}
+          addressLine2Value={externalFormData.addressLine2}
         />
       ) : (
         <TextInput
@@ -214,6 +217,7 @@ export const EditAddressForm = forwardRef<EditAddressFormRef, EditAddressFormPro
       )}
 
       <TextInput
+        ref={addressLine2Ref}
         style={[addressStyles.formInput, addressStyles.formInputSecondary]}
         placeholder="Apt, suite, unit, building, floor, etc."
         value={externalFormData.addressLine2}
