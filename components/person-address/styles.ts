@@ -342,7 +342,6 @@ export const addressStyles = StyleSheet.create({
   // Address Autocomplete Styles
   autocompleteContainer: {
     position: 'relative',
-    zIndex: 1000,
   },
   autocompleteInputContainer: {
     position: 'relative',
