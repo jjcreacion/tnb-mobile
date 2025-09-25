@@ -121,6 +121,16 @@ export const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(({
     }
   }, [formData.address, useManualEntry])
 
+  // Validation function to check if all required fields are filled
+  const isFormValid = () => {
+    return (
+      formData.address.trim() !== '' &&
+      formData.city.trim() !== '' &&
+      formData.state.trim() !== '' &&
+      formData.zipCode.trim() !== ''
+    )
+  }
+
   return (
     <View style={addressStyles.newAddressFormContainer}>
       <ScrollView
@@ -227,11 +237,22 @@ export const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(({
       </View>
 
         <TouchableOpacity
-          style={addressStyles.saveAddressButton}
-          onPress={onSaveAddress}
-          activeOpacity={0.7}
+          style={[
+            addressStyles.saveAddressButton,
+            !isFormValid() && addressStyles.saveAddressButtonDisabled
+          ]}
+          onPress={isFormValid() ? onSaveAddress : undefined}
+          activeOpacity={isFormValid() ? 0.7 : 1}
+          disabled={!isFormValid()}
         >
-          <Text style={addressStyles.saveAddressButtonText}>Save Address</Text>
+          <Text
+            style={[
+              addressStyles.saveAddressButtonText,
+              !isFormValid() && addressStyles.saveAddressButtonTextDisabled
+            ]}
+          >
+            Save Address
+          </Text>
         </TouchableOpacity>
       </ScrollView>
     </View>

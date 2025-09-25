@@ -255,6 +255,13 @@ export const addressStyles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
+  saveAddressButtonDisabled: {
+    backgroundColor: '#cccccc',
+    opacity: 0.6,
+  },
+  saveAddressButtonTextDisabled: {
+    color: '#888888',
+  },
   primarySwitchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
