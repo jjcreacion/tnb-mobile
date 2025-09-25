@@ -29,6 +29,7 @@ interface AddressAutocompleteProps {
   disabled?: boolean
   style?: any
   addressLine2Ref?: React.RefObject<TextInput>
+  addressLine2Value?: string
 }
 
 export const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
@@ -40,6 +41,7 @@ export const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
   disabled = false,
   style,
   addressLine2Ref,
+  addressLine2Value = '',
 }) => {
   const [suggestions, setSuggestions] = useState<AddressAutocompleteSuggestion[]>([])
   const [isLoading, setIsLoading] = useState(false)
@@ -253,10 +255,19 @@ export const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
       wasSuccessful: true
     })
 
-    // Focus Address Line 2 if ref provided
+    // Focus Address Line 2 if ref provided and position cursor at end of existing text
     if (addressLine2Ref && addressLine2Ref.current) {
       setTimeout(() => {
-        addressLine2Ref.current?.focus()
+        const addressLine2Input = addressLine2Ref.current
+        if (addressLine2Input) {
+          addressLine2Input.focus()
+
+          // Position cursor at the end of existing text
+          if (addressLine2Value.length > 0) {
+            // Use setSelection to position cursor at end of text
+            addressLine2Input.setSelection(addressLine2Value.length, addressLine2Value.length)
+          }
+        }
       }, 300)
     }
   }
