@@ -123,7 +123,7 @@ export const useAddressModal = (isVisible: boolean, addresses: any[], focusCallb
           ...prev,
           city: city.name,
           cityId: city.pkCity,
-          state: cityState?.internalCode ?? '',
+          state: cityState?.name ?? '',
           stateId: cityState?.pkState ?? null,
         }
         return newForm
@@ -140,7 +140,7 @@ export const useAddressModal = (isVisible: boolean, addresses: any[], focusCallb
           ...prev,
           city: city.name,
           cityId: city.pkCity,
-          state: cityState?.internalCode ?? '',
+          state: cityState?.name ?? '',
           stateId: cityState?.pkState ?? null,
         }
         return newForm
@@ -165,7 +165,7 @@ export const useAddressModal = (isVisible: boolean, addresses: any[], focusCallb
       setEditAddressForm((prev) => {
         const newForm = {
           ...prev,
-          state: state.internalCode,
+          state: state.name,
           stateId: state.pkState,
           city: '',
           cityId: null,
@@ -177,7 +177,7 @@ export const useAddressModal = (isVisible: boolean, addresses: any[], focusCallb
       setNewAddressForm((prev) => {
         const newForm = {
           ...prev,
-          state: state.internalCode,
+          state: state.name,
           stateId: state.pkState,
           city: '',
           cityId: null,

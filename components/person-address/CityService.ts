@@ -1,8 +1,3 @@
-/**
- * City Service
- * Handles CRUD operations for cities in the database
- */
-
 import Constants from 'expo-constants'
 
 export interface CreateCityRequest {
@@ -14,6 +9,9 @@ export interface CreateCityResponse {
   pkCity: number
   name: string
   fkState: number
+  status: number
+  createdAt: string
+  updatedAt: string
 }
 
 export class CityService {

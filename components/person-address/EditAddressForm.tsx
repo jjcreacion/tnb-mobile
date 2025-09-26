@@ -83,7 +83,7 @@ export const EditAddressForm = forwardRef<EditAddressFormRef, EditAddressFormPro
       if (address.state && states.length > 0) {
         const stateData = states.find(s => s.pkState === address.state)
         if (stateData) {
-          initialData.state = stateData.internalCode
+          initialData.state = stateData.name
         }
       }
 

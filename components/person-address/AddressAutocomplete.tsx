@@ -1,8 +1,3 @@
-/**
- * AddressAutocomplete Component
- * Provides address autocomplete functionality using Mapbox Search API
- */
-
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import {
   ActivityIndicator,
@@ -28,7 +23,7 @@ interface AddressAutocompleteProps {
   placeholder?: string
   disabled?: boolean
   style?: any
-  addressLine2Ref?: React.RefObject<TextInput>
+  addressLine2Ref?: React.RefObject<TextInput | null>
   addressLine2Value?: string
 }
 

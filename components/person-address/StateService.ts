@@ -1,8 +1,3 @@
-/**
- * State Service
- * Handles CRUD operations for states in the database
- */
-
 import Constants from 'expo-constants'
 
 export interface CreateStateRequest {
@@ -16,6 +11,9 @@ export interface CreateStateResponse {
   fkCountry: number
   name: string
   internalCode: string
+  status: number
+  createdAt: string
+  updatedAt: string
 }
 
 export class StateService {

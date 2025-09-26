@@ -1,14 +1,8 @@
-/**
- * Address Mapping Service
- * Maps Mapbox address data to local city/state IDs and validates the results
- * Auto-creates missing cities and states when needed
- */
-
+import { CityService } from './CityService'
 import type { ParsedMapboxAddress } from './mapbox'
 import { isValidUSZipCode } from './mapbox/config'
-import type { AddressFormData, City, State } from './types'
 import { StateService } from './StateService'
-import { CityService } from './CityService'
+import type { AddressFormData, City, State } from './types'
 
 export interface AddressMappingResult {
   formData: AddressFormData
@@ -51,7 +45,10 @@ export class AddressMappingService {
           pkState: createdState.pkState,
           fkCountry: createdState.fkCountry,
           name: createdState.name,
-          internalCode: createdState.internalCode
+          internalCode: createdState.internalCode,
+          status: createdState.status,
+          createdAt: createdState.createdAt,
+          updatedAt: createdState.updatedAt
         }
         updatedStates.push(newState)
         matchingState = newState
@@ -75,7 +72,10 @@ export class AddressMappingService {
         const newCity: City = {
           pkCity: createdCity.pkCity,
           name: createdCity.name,
-          fkState: createdCity.fkState
+          fkState: createdCity.fkState,
+          status: createdCity.status,
+          createdAt: createdCity.createdAt,
+          updatedAt: createdCity.updatedAt
         }
         updatedCities.push(newCity)
         matchingCity = newCity

@@ -41,8 +41,8 @@
       "typedRoutes": true
     },
     "extra": {
-      "API_BASE_URL": "https://tnb-backend.zeabur.app:443",
-      "URL_SHARE_AND_EARN": "https://tnb-backend.zeabur.app:443",
+      "API_BASE_URL": "http://216.246.113.71:8080",
+      "URL_SHARE_AND_EARN": "http://localhost/redirect_tnb/",
       "GOOGLE_MAP_TOKEN": "pk.eyJ1IjoicnVkeS1yb2phcyIsImEiOiJjbWZ3cmRxczUwMmZ2MndwemU5Mmt6b2dhIn0.QL1xIOjXEgBUgJa9gtYS1g",
       "router": {},
       "eas": {
