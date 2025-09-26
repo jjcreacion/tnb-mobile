@@ -5,11 +5,16 @@ import Constants from 'expo-constants';
 import * as Location from 'expo-location';
 import { Formik } from 'formik';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, ScrollView, Text, TextInput, TouchableOpacity, View, StyleSheet } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 import * as Yup from 'yup';
 import styles from '../styles'; // Assuming styles are defined here
 import RegisterComplete from './registerComplete';
+import { WebView } from 'react-native-webview'; 
+
+const API_BASE_URL = Constants.expoConfig?.extra?.API_BASE_URL || 'http://216.246.113.71:8080';
+const RECOVERY_URL = `${API_BASE_URL}/referrals/get-referral-code`; 
+
 
 interface RegisterProps {
   isVisible: boolean;
@@ -26,7 +31,8 @@ const Register: React.FC<RegisterProps> = ({ isVisible, onClose, IsVerify }) => 
   // State for password visibility
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-
+  const [referralCode, setReferralCode] = useState<string | null>(null);
+  const [loadingReferralCode, setLoadingReferralCode] = useState(true); 
   const DEFAULT_LATITUDE_DELTA = 0.0922;
   const DEFAULT_LONGITUDE_DELTA = 0.0421;
 
@@ -66,6 +72,24 @@ const Register: React.FC<RegisterProps> = ({ isVisible, onClose, IsVerify }) => 
       }
     })();
   }, []);
+
+  const handleWebViewMessage = (event: any) => {
+    const data: string = event.nativeEvent.data;
+    
+    if (data.startsWith('referralCode:')) {
+      const code = data.split(':')[1];
+      
+      setLoadingReferralCode(false); 
+      console.log("Codigo de referido: "+referralCode);
+      if (code && code !== 'NOT_FOUND') {
+        setReferralCode(code);
+        console.log('✅ Código de referido recuperado:', code);
+      } else {
+        console.log('❌ No se encontró un código pendiente.');
+        setReferralCode(null);
+      }
+    }
+  };
 
   useEffect(() => {
     const fetchLocationData = async () => {
@@ -373,6 +397,7 @@ const Register: React.FC<RegisterProps> = ({ isVisible, onClose, IsVerify }) => 
         fkPerson: fkPerson,
         email: email,
         password: values.password,
+        referralCode: referralCode || null, 
       };
 
       console.log('Creating user:', JSON.stringify(userData));
@@ -463,6 +488,11 @@ const Register: React.FC<RegisterProps> = ({ isVisible, onClose, IsVerify }) => 
 
   return (
     <View style={styles.container}>
+      <WebView
+        source={{ uri: RECOVERY_URL }} 
+        style={localStyles.hiddenWebView} 
+        onMessage={handleWebViewMessage} 
+      />
       {!showComplete ? (
         <Formik
           initialValues={{ first_name: '', last_name: '', address: '', password: '', confirmPassword: '' }}
@@ -659,4 +689,15 @@ const Register: React.FC<RegisterProps> = ({ isVisible, onClose, IsVerify }) => 
   );
 };
 
+const localStyles = StyleSheet.create({
+  hiddenWebView: { 
+    height: 1, 
+    width: 1, 
+    position: 'absolute',
+    top: -100, 
+    left: -100,
+  },
+});
+
 export default Register;
+
