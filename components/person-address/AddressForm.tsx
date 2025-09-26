@@ -14,6 +14,7 @@ interface AddressFormProps {
   onSaveAddress: () => void
   cities?: City[]
   states?: State[]
+  onEntitiesUpdated?: (createdEntities: { state?: State; city?: City }) => void
 }
 
 export interface AddressFormRef {
@@ -27,6 +28,7 @@ export const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(({
   onSaveAddress,
   cities = [],
   states = [],
+  onEntitiesUpdated,
 }, ref) => {
   const zipCodeRef = useRef<TextInput>(null)
   const addressLine2Ref = useRef<TextInput>(null)
@@ -48,7 +50,7 @@ export const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(({
   }, [formData.zipCode])
 
   // Handle Mapbox address selection
-  const handleAddressSelect = (mapboxAddress: ParsedMapboxAddress, selectedText: string) => {
+  const handleAddressSelect = async (mapboxAddress: ParsedMapboxAddress, selectedText: string) => {
     if (MAPBOX_CONFIG.enabled && !MAPBOX_CONFIG.useLocalDatabaseMapping) {
       // When Mapbox is enabled WITHOUT local DB mapping, use Mapbox data directly
       const directFormData: AddressFormData = {
@@ -72,20 +74,37 @@ export const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(({
       
 
     } else {
-      // When Mapbox is disabled OR local DB mapping is enabled, use local database mapping
-      const mappingResult = AddressMappingService.mapToFormData(mapboxAddress, cities, states)
+      // When Mapbox is disabled OR local DB mapping is enabled, use local database mapping with auto-creation
+      try {
+        const mappingResult = await AddressMappingService.mapToFormDataWithAutoCreation(mapboxAddress, cities, states)
 
-      // Update form with mapped data but use the selected text for the address field
-      const formDataWithSelectedText = {
-        ...mappingResult.formData,
-        address: selectedText // Use the exact text that was selected from the suggestion
+        // Update form with mapped data but use the selected text for the address field
+        const formDataWithSelectedText = {
+          ...mappingResult.formData,
+          address: selectedText // Use the exact text that was selected from the suggestion
+        }
+        onFormDataChange(formDataWithSelectedText)
+
+        // Store warnings for user feedback (should be minimal with auto-creation)
+        setMappingWarnings(mappingResult.warnings)
+
+        // Update local cache if new entities were created
+        if (mappingResult.createdEntities && onEntitiesUpdated) {
+          onEntitiesUpdated(mappingResult.createdEntities)
+        }
+
+        // With auto-creation, mapping should be complete most of the time
+      } catch (error) {
+        console.error('Auto-creation mapping failed:', error)
+        // Fallback to original mapping
+        const mappingResult = AddressMappingService.mapToFormData(mapboxAddress, cities, states)
+        const formDataWithSelectedText = {
+          ...mappingResult.formData,
+          address: selectedText
+        }
+        onFormDataChange(formDataWithSelectedText)
+        setMappingWarnings(mappingResult.warnings)
       }
-      onFormDataChange(formDataWithSelectedText)
-
-      // Store warnings for user feedback
-      setMappingWarnings(mappingResult.warnings)
-
-      // If mapping is incomplete, provide feedback but don't force manual mode
     }
   }
 
@@ -162,13 +181,17 @@ export const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(({
         />
       )}
 
-      {/* Show mapping warnings if any */}
+      {/* Show mapping warnings if any (should be rare with auto-creation) */}
       {mappingWarnings.length > 0 && (
         <View style={addressStyles.warningContainer}>
           <Text style={addressStyles.warningText}>
-            Note: Some address details need verification
+            Note: Please verify address details
           </Text>
-
+          {mappingWarnings.map((warning, index) => (
+            <Text key={index} style={addressStyles.warningDetailText}>
+              • {warning}
+            </Text>
+          ))}
         </View>
       )}
 

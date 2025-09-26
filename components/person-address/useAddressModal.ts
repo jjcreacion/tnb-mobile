@@ -60,7 +60,7 @@ export const useAddressModal = (isVisible: boolean, addresses: any[], focusCallb
       const countriesData = await AddressService.loadCountries()
       setCountries(countriesData)
       const usa = AddressService.findUSACountry(countriesData)
-      
+
       if (usa) {
         setCountryId(usa.pkCountry || 1)
       } else {
@@ -78,6 +78,38 @@ export const useAddressModal = (isVisible: boolean, addresses: any[], focusCallb
       setStates(statesData)
     } catch {
       setCountryId(1)
+    }
+  }, [])
+
+  // Function to update local cities and states cache when new entities are created
+  const updateLocalEntities = useCallback((createdEntities: { state?: State; city?: City }) => {
+    if (createdEntities.state) {
+      setStates(prevStates => {
+        const exists = prevStates.find(s => s.pkState === createdEntities.state!.pkState)
+        if (!exists) {
+          return [...prevStates, createdEntities.state!]
+        }
+        return prevStates
+      })
+    }
+
+    if (createdEntities.city) {
+      setCities(prevCities => {
+        const exists = prevCities.find(c => c.pkCity === createdEntities.city!.pkCity)
+        if (!exists) {
+          const updatedCities = [...prevCities, createdEntities.city!]
+          // Also update filtered cities if we're currently viewing the city screen
+          setFilteredCities(prevFiltered => {
+            const filteredExists = prevFiltered.find(c => c.pkCity === createdEntities.city!.pkCity)
+            if (!filteredExists) {
+              return [...prevFiltered, createdEntities.city!]
+            }
+            return prevFiltered
+          })
+          return updatedCities
+        }
+        return prevCities
+      })
     }
   }, [])
 
@@ -416,5 +448,6 @@ export const useAddressModal = (isVisible: boolean, addresses: any[], focusCallb
     handleDeleteAddress,
     handleCancelEdit,
     resetForm,
+    updateLocalEntities,
   }
 }

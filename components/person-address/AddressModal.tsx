@@ -51,6 +51,7 @@ const AddressModal: React.FC<AddressModalProps> = ({
     handleUpdateAddress,
     handleDeleteAddress,
     handleCancelEdit,
+    updateLocalEntities,
   } = useAddressModal(isVisible, addresses, {
     focusAddFormZipCode: () => addFormRef.current?.focusZipCode(),
     focusEditFormZipCode: () => editFormRef.current?.focusZipCode(),
@@ -216,6 +217,7 @@ const AddressModal: React.FC<AddressModalProps> = ({
               onSaveAddress={handleSaveAddressWithAnimation}
               cities={cities}
               states={states}
+              onEntitiesUpdated={updateLocalEntities}
             />
           )}
           
@@ -231,6 +233,7 @@ const AddressModal: React.FC<AddressModalProps> = ({
               onNavigateToScreen={animateToScreen}
               onUpdateAddress={handleUpdateAddressWithAnimation}
               onCancel={handleCancelEdit}
+              onEntitiesUpdated={updateLocalEntities}
             />
           )}
           

@@ -1,22 +1,132 @@
 /**
  * Address Mapping Service
  * Maps Mapbox address data to local city/state IDs and validates the results
+ * Auto-creates missing cities and states when needed
  */
 
 import type { ParsedMapboxAddress } from './mapbox'
 import { isValidUSZipCode } from './mapbox/config'
 import type { AddressFormData, City, State } from './types'
+import { StateService } from './StateService'
+import { CityService } from './CityService'
 
 export interface AddressMappingResult {
   formData: AddressFormData
   isComplete: boolean
   missingFields: string[]
   warnings: string[]
+  createdEntities?: {
+    state?: State
+    city?: City
+  }
 }
 
 export class AddressMappingService {
   /**
-   * Map Mapbox address to local form data
+   * Map Mapbox address to local form data with auto-creation of missing cities/states
+   */
+  public static async mapToFormDataWithAutoCreation(
+    mapboxAddress: ParsedMapboxAddress,
+    localCities: City[],
+    localStates: State[]
+  ): Promise<AddressMappingResult> {
+    const warnings: string[] = []
+    const missingFields: string[] = []
+    let updatedCities = [...localCities]
+    let updatedStates = [...localStates]
+    const createdEntities: { state?: State; city?: City } = {}
+
+    try {
+      // Step 1: Handle state
+      let matchingState = this.findMatchingState(mapboxAddress.stateCode, updatedStates)
+
+      if (!matchingState && mapboxAddress.stateCode) {
+        // Create new state
+        console.log(`Creating new state: ${mapboxAddress.stateCode}`)
+        const stateData = StateService.createStateData(mapboxAddress.stateCode, mapboxAddress.state)
+        const createdState = await StateService.createState(stateData)
+
+        // Add to local list
+        const newState: State = {
+          pkState: createdState.pkState,
+          fkCountry: createdState.fkCountry,
+          name: createdState.name,
+          internalCode: createdState.internalCode
+        }
+        updatedStates.push(newState)
+        matchingState = newState
+        createdEntities.state = newState
+      }
+
+      // Step 2: Handle city
+      let matchingCity = this.findMatchingCity(
+        mapboxAddress.city,
+        matchingState?.pkState || null,
+        updatedCities
+      )
+
+      if (!matchingCity && mapboxAddress.city && matchingState) {
+        // Create new city
+        console.log(`Creating new city: ${mapboxAddress.city} in state ${matchingState.name}`)
+        const cityData = CityService.createCityData(mapboxAddress.city, matchingState.pkState)
+        const createdCity = await CityService.createCity(cityData)
+
+        // Add to local list
+        const newCity: City = {
+          pkCity: createdCity.pkCity,
+          name: createdCity.name,
+          fkState: createdCity.fkState
+        }
+        updatedCities.push(newCity)
+        matchingCity = newCity
+        createdEntities.city = newCity
+      }
+
+      // Step 3: Validate ZIP code
+      if (mapboxAddress.zipCode && !isValidUSZipCode(mapboxAddress.zipCode)) {
+        const warning = `ZIP code "${mapboxAddress.zipCode}" format is invalid`
+        warnings.push(warning)
+      }
+
+      // Step 4: Build form data
+      const formData: AddressFormData = {
+        address: this.buildAddressLine(mapboxAddress),
+        addressLine2: '', // User can fill this manually
+        city: mapboxAddress.city || '',
+        cityId: matchingCity?.pkCity || null,
+        state: matchingState?.name || mapboxAddress.state || '',
+        stateId: matchingState?.pkState || null,
+        zipCode: mapboxAddress.zipCode || '',
+        latitude: mapboxAddress.latitude,
+        longitude: mapboxAddress.longitude,
+        isMapboxResult: true
+      }
+
+      // Check for missing required fields
+      if (!formData.address) missingFields.push('address')
+      if (!formData.city) missingFields.push('city')
+      if (!formData.state) missingFields.push('state')
+      if (!formData.zipCode) missingFields.push('zipCode')
+
+      const isComplete = missingFields.length === 0 && formData.cityId !== null && formData.stateId !== null
+
+      return {
+        formData,
+        isComplete,
+        missingFields,
+        warnings,
+        createdEntities: Object.keys(createdEntities).length > 0 ? createdEntities : undefined
+      }
+
+    } catch (error) {
+      console.error('Auto-creation failed, falling back to original mapping:', error)
+      // Fallback to original method without auto-creation
+      return this.mapToFormData(mapboxAddress, localCities, localStates)
+    }
+  }
+
+  /**
+   * Map Mapbox address to local form data (original method without auto-creation)
    */
   public static mapToFormData(
     mapboxAddress: ParsedMapboxAddress,

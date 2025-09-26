@@ -17,6 +17,7 @@ interface EditAddressFormProps {
   onNavigateToScreen: (screen: ScreenType) => void
   onUpdateAddress: (isPrimaryChanged?: boolean) => void
   onCancel: () => void
+  onEntitiesUpdated?: (createdEntities: { state?: State; city?: City }) => void
 }
 
 export interface EditAddressFormRef {
@@ -33,6 +34,7 @@ export const EditAddressForm = forwardRef<EditAddressFormRef, EditAddressFormPro
   onNavigateToScreen,
   onUpdateAddress,
   onCancel,
+  onEntitiesUpdated,
 }, ref) => {
   const hasInitialized = useRef(false)
   const zipCodeRef = useRef<TextInput>(null)
@@ -103,7 +105,7 @@ export const EditAddressForm = forwardRef<EditAddressFormRef, EditAddressFormPro
   }
 
   // Handle Mapbox address selection
-  const handleAddressSelect = (mapboxAddress: ParsedMapboxAddress) => {
+  const handleAddressSelect = async (mapboxAddress: ParsedMapboxAddress) => {
     if (MAPBOX_CONFIG.enabled && !MAPBOX_CONFIG.useLocalDatabaseMapping) {
       // When Mapbox is enabled WITHOUT local DB mapping, use Mapbox data directly
       const directFormData: AddressFormData = {
@@ -129,16 +131,29 @@ export const EditAddressForm = forwardRef<EditAddressFormRef, EditAddressFormPro
       
 
     } else {
-      // When Mapbox is disabled OR local DB mapping is enabled, use local database mapping
-      const mappingResult = AddressMappingService.mapToFormData(mapboxAddress, cities, states)
-      
-      // Update form with mapped data
-      onFormDataChange(mappingResult.formData)
-      
-      // Store warnings for user feedback
-      setMappingWarnings(mappingResult.warnings)
-      
-      // If mapping is incomplete, provide feedback but don't force manual mode
+      // When Mapbox is disabled OR local DB mapping is enabled, use local database mapping with auto-creation
+      try {
+        const mappingResult = await AddressMappingService.mapToFormDataWithAutoCreation(mapboxAddress, cities, states)
+
+        // Update form with mapped data
+        onFormDataChange(mappingResult.formData)
+
+        // Store warnings for user feedback (should be minimal with auto-creation)
+        setMappingWarnings(mappingResult.warnings)
+
+        // Update local cache if new entities were created
+        if (mappingResult.createdEntities && onEntitiesUpdated) {
+          onEntitiesUpdated(mappingResult.createdEntities)
+        }
+
+        // With auto-creation, mapping should be complete most of the time
+      } catch (error) {
+        console.error('Auto-creation mapping failed:', error)
+        // Fallback to original mapping
+        const mappingResult = AddressMappingService.mapToFormData(mapboxAddress, cities, states)
+        onFormDataChange(mappingResult.formData)
+        setMappingWarnings(mappingResult.warnings)
+      }
     }
   }
 
@@ -206,13 +221,17 @@ export const EditAddressForm = forwardRef<EditAddressFormRef, EditAddressFormPro
         />
       )}
 
-      {/* Show mapping warnings if any */}
+      {/* Show mapping warnings if any (should be rare with auto-creation) */}
       {mappingWarnings.length > 0 && (
         <View style={addressStyles.warningContainer}>
           <Text style={addressStyles.warningText}>
-            Note: Some address details need verification
+            Note: Please verify address details
           </Text>
-
+          {mappingWarnings.map((warning, index) => (
+            <Text key={index} style={addressStyles.warningDetailText}>
+              • {warning}
+            </Text>
+          ))}
         </View>
       )}
 

@@ -491,6 +491,13 @@ export const addressStyles = StyleSheet.create({
     color: '#B8860B',
     fontWeight: '500',
   },
+  warningDetailText: {
+    fontSize: 12,
+    color: '#B8860B',
+    fontWeight: '400',
+    marginTop: 4,
+    marginLeft: 8,
+  },
 
   // Debug Panel Styles (Development only)
   debugContainer: {
