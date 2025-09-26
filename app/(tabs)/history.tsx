@@ -2,10 +2,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import Constants from 'expo-constants';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Platform, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import { useRouter } from 'expo-router';
 
 
 // Definición de tipos para los datos de las APIs
@@ -54,7 +54,7 @@ const HistoryScreen = () => {
   // Función para obtener la lista de estados de la API
   const fetchStatusList = useCallback(async () => {
     try {
-      const response = await axios.get<Status[]>('http://216.246.113.71:8080/status-list');
+      const response = await axios.get<Status[]>(`${API_URL}/status-list`);
       if (response.status === 200) {
         setStatusList(response.data);
       }

@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from 'react'
-import { Alert, Animated } from 'react-native'
+import { useCallback, useEffect, useState } from 'react'
+import { Alert } from 'react-native'
 import { AddressService } from './AddressService'
 import { Address, AddressFormData, City, Country, ScreenType, State } from './types'
 
@@ -12,7 +12,7 @@ export const useAddressModal = (isVisible: boolean, addresses: any[], focusCallb
   const [currentScreen, setCurrentScreen] = useState<ScreenType>('list')
   const [editingAddress, setEditingAddress] = useState<Address | null>(null)
   const [countries, setCountries] = useState<Country[]>([])
-  const slideAnim = useRef(new Animated.Value(0)).current
+  const [hasInitialized, setHasInitialized] = useState(false)
   
   // Form data for new address
   const [newAddressForm, setNewAddressForm] = useState<AddressFormData>({
@@ -23,6 +23,9 @@ export const useAddressModal = (isVisible: boolean, addresses: any[], focusCallb
     state: '',
     stateId: null,
     zipCode: '',
+    latitude: undefined,
+    longitude: undefined,
+    isMapboxResult: false,
   })
 
   // Form data for editing address
@@ -34,6 +37,9 @@ export const useAddressModal = (isVisible: boolean, addresses: any[], focusCallb
     state: '',
     stateId: null,
     zipCode: '',
+    latitude: undefined,
+    longitude: undefined,
+    isMapboxResult: false,
   })
 
   // Data for city and state selection
@@ -45,42 +51,16 @@ export const useAddressModal = (isVisible: boolean, addresses: any[], focusCallb
   const [countryId, setCountryId] = useState<number>(1)
 
   const animateToScreen = (screen: ScreenType) => {
-    let animValue = 0
-    
-    switch (screen) {
-      case 'list':
-        animValue = 0
-        break
-      case 'add-form':
-        animValue = 1
-        break
-      case 'edit-form':
-        animValue = 1
-        break
-      case 'city':
-      case 'state':
-        animValue = 2
-        break
-    }
-    
     setCurrentScreen(screen)
-    
-    requestAnimationFrame(() => {
-      Animated.timing(slideAnim, {
-        toValue: animValue,
-        duration: 250,
-        useNativeDriver: true,
-      }).start()
-    })
   }
 
-  const loadCitiesAndStates = async () => {
+  const loadCitiesAndStates = useCallback(async () => {
     try {
       // Load countries first to get USA ID
       const countriesData = await AddressService.loadCountries()
       setCountries(countriesData)
       const usa = AddressService.findUSACountry(countriesData)
-      
+
       if (usa) {
         setCountryId(usa.pkCountry || 1)
       } else {
@@ -96,11 +76,42 @@ export const useAddressModal = (isVisible: boolean, addresses: any[], focusCallb
       setCities(citiesData)
       setFilteredCities(citiesData)
       setStates(statesData)
-    } catch (error) {
-      console.error('Error loading cities and states:', error)
+    } catch {
       setCountryId(1)
     }
-  }
+  }, [])
+
+  // Function to update local cities and states cache when new entities are created
+  const updateLocalEntities = useCallback((createdEntities: { state?: State; city?: City }) => {
+    if (createdEntities.state) {
+      setStates(prevStates => {
+        const exists = prevStates.find(s => s.pkState === createdEntities.state!.pkState)
+        if (!exists) {
+          return [...prevStates, createdEntities.state!]
+        }
+        return prevStates
+      })
+    }
+
+    if (createdEntities.city) {
+      setCities(prevCities => {
+        const exists = prevCities.find(c => c.pkCity === createdEntities.city!.pkCity)
+        if (!exists) {
+          const updatedCities = [...prevCities, createdEntities.city!]
+          // Also update filtered cities if we're currently viewing the city screen
+          setFilteredCities(prevFiltered => {
+            const filteredExists = prevFiltered.find(c => c.pkCity === createdEntities.city!.pkCity)
+            if (!filteredExists) {
+              return [...prevFiltered, createdEntities.city!]
+            }
+            return prevFiltered
+          })
+          return updatedCities
+        }
+        return prevCities
+      })
+    }
+  }, [])
 
   const handleCitySelect = (city: City) => {
     const cityState = AddressService.findStateByCity(states, city)
@@ -112,7 +123,7 @@ export const useAddressModal = (isVisible: boolean, addresses: any[], focusCallb
           ...prev,
           city: city.name,
           cityId: city.pkCity,
-          state: cityState?.internalCode ?? '',
+          state: cityState?.name ?? '',
           stateId: cityState?.pkState ?? null,
         }
         return newForm
@@ -129,7 +140,7 @@ export const useAddressModal = (isVisible: boolean, addresses: any[], focusCallb
           ...prev,
           city: city.name,
           cityId: city.pkCity,
-          state: cityState?.internalCode ?? '',
+          state: cityState?.name ?? '',
           stateId: cityState?.pkState ?? null,
         }
         return newForm
@@ -154,7 +165,7 @@ export const useAddressModal = (isVisible: boolean, addresses: any[], focusCallb
       setEditAddressForm((prev) => {
         const newForm = {
           ...prev,
-          state: state.internalCode,
+          state: state.name,
           stateId: state.pkState,
           city: '',
           cityId: null,
@@ -166,7 +177,7 @@ export const useAddressModal = (isVisible: boolean, addresses: any[], focusCallb
       setNewAddressForm((prev) => {
         const newForm = {
           ...prev,
-          state: state.internalCode,
+          state: state.name,
           stateId: state.pkState,
           city: '',
           cityId: null,
@@ -218,7 +229,7 @@ export const useAddressModal = (isVisible: boolean, addresses: any[], focusCallb
     setStateSearchText(text)
   }
 
-  const resetForm = () => {
+  const resetForm = useCallback(() => {
     // First clear immediately
     const emptyForm = {
       address: '',
@@ -228,6 +239,9 @@ export const useAddressModal = (isVisible: boolean, addresses: any[], focusCallb
       state: '',
       stateId: null,
       zipCode: '',
+      latitude: undefined,
+      longitude: undefined,
+      isMapboxResult: false,
     }
     
     setNewAddressForm(emptyForm)
@@ -240,7 +254,7 @@ export const useAddressModal = (isVisible: boolean, addresses: any[], focusCallb
     setFilteredCities(cities)
     setCitySearchText('')
     setStateSearchText('')
-  }
+  }, [cities])
 
   const handleSaveAddress = async (onAddressAdded?: (addressId?: number) => void) => {
     if (
@@ -355,18 +369,19 @@ export const useAddressModal = (isVisible: boolean, addresses: any[], focusCallb
     animateToScreen('list')
   }
 
-  // Reset to list view when modal opens
+  // Reset to list view when modal opens/closes
   useEffect(() => {
-    if (isVisible) {
+    if (isVisible && !hasInitialized) {
+      // Only initialize once when modal opens for the first time
       setCurrentScreen('list')
-      slideAnim.setValue(0)
       loadCitiesAndStates()
+      setHasInitialized(true)
       // Reset form when modal opens with extra delay for iOS
       setTimeout(() => {
         resetForm()
       }, 150)
-    } else {
-      // When modal closes, also reset to ensure clean state for next open
+    } else if (!isVisible && hasInitialized) {
+      // When modal closes, reset to ensure clean state for next open
       setTimeout(() => {
         setNewAddressForm({
           address: '',
@@ -379,9 +394,10 @@ export const useAddressModal = (isVisible: boolean, addresses: any[], focusCallb
         })
         setEditingAddress(null)
         setCurrentScreen('list')
+        setHasInitialized(false) // Reset for next open
       }, 100)
     }
-  }, [isVisible])
+  }, [isVisible, hasInitialized, loadCitiesAndStates, resetForm])
 
   // Effect to initialize filtered cities when entering city screen
   useEffect(() => {
@@ -406,11 +422,10 @@ export const useAddressModal = (isVisible: boolean, addresses: any[], focusCallb
     } else if (currentScreen === 'state') {
       setStateSearchText('')
     }
-  }, [currentScreen, cities.length, newAddressForm.stateId, editAddressForm.stateId, editingAddress])
+  }, [currentScreen, cities, newAddressForm, editAddressForm, editingAddress])
 
   return {
     currentScreen,
-    slideAnim,
     newAddressForm,
     setNewAddressForm,
     editAddressForm,
@@ -433,5 +448,6 @@ export const useAddressModal = (isVisible: boolean, addresses: any[], focusCallb
     handleDeleteAddress,
     handleCancelEdit,
     resetForm,
+    updateLocalEntities,
   }
 }

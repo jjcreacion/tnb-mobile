@@ -565,6 +565,10 @@ const HomeScreen: React.FC = () => {
         <Text style={styles.sectionTitle}>Recommended for you</Text>
       </View>
 
+      <View style={[styles.sectionHeader, styles.recommendedSectionHeader]}>
+        <Text style={styles.sectionTitle}>Recommended for you</Text>
+      </View>
+
       <View style={styles.sectionHeader}>
       <Text style={styles.sectionTitle}>Recommended for you</Text>
       </View>

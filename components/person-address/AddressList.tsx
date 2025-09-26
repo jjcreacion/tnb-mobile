@@ -223,7 +223,7 @@ export const AddressList: React.FC<AddressListProps> = ({
         ref={scrollViewRef}
         style={addressStyles.addressList}
         contentContainerStyle={{ 
-          paddingBottom: shouldFloatButton ? 80 : 20, // Más espacio si el botón flota
+          paddingBottom: shouldFloatButton ? 120 : 20, // Más espacio si el botón flota
           flexGrow: 1 
         }}
         showsVerticalScrollIndicator={false}
