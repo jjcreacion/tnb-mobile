@@ -108,28 +108,61 @@ const Request: React.FC<ModalProps> = ({
   const [showSubCategoryPicker, setShowSubCategoryPicker] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isMapExpanded, setIsMapExpanded] = useState(false);
-  const mapHeight = useRef(new Animated.Value(200)).current; 
+  const [isMapInteracting, setIsMapInteracting] = useState(false);
+  const [shouldPreventNextPress, setShouldPreventNextPress] = useState(false);
+  const [initialScrollPosition, setInitialScrollPosition] = useState(0);
+  const mapHeight = useRef(new Animated.Value(200)).current;
+  const scrollViewRef = useRef<ScrollView>(null);
+  const mapContainerRef = useRef<View>(null);
+  const saveButtonRef = useRef<View>(null);
 
   const API_URL = Constants.expoConfig?.extra?.API_BASE_URL;
   
-  // Función para expandir el mapa
+  // Función para expandir el mapa CADA VEZ que se toca en tamaño original
   const expandMap = () => {
+    if (isMapExpanded) return; // Ya está expandido
+    
     setIsMapExpanded(true);
+    
+    // Expandir el mapa con animación
     Animated.timing(mapHeight, {
       toValue: 450,
-      duration: 300,
+      duration: 400,
       useNativeDriver: false,
-    }).start();
+    }).start(() => {
+      // SIEMPRE hacer auto-scroll cuando se expande
+      setTimeout(() => {
+        if (scrollViewRef.current) {
+          scrollViewRef.current.scrollToEnd({ animated: true });
+        }
+      }, 100);
+    });
   };
 
-  // Función para contraer el mapa
+  // Función para contraer el mapa y volver al estado inicial
   const collapseMap = () => {
+    if (!isMapExpanded) return; // Ya está colapsado
+    
     setIsMapExpanded(false);
+    setIsMapInteracting(false);
+    setShouldPreventNextPress(false); // Resetear la bandera para el próximo ciclo
+    
+    // Contraer el mapa con animación
     Animated.timing(mapHeight, {
       toValue: 200,
-      duration: 300,
+      duration: 400,
       useNativeDriver: false,
-    }).start();
+    }).start(() => {
+      // Después de colapsar, restaurar scroll a posición inicial
+      setTimeout(() => {
+        if (scrollViewRef.current) {
+          scrollViewRef.current.scrollTo({
+            y: initialScrollPosition,
+            animated: true,
+          });
+        }
+      }, 100);
+    });
   };
   
   // Función para construir la descripción completa de la dirección (igual que en AddressList)
@@ -288,6 +321,9 @@ const Request: React.FC<ModalProps> = ({
       setShowSubCategoryPicker(false);
       // Resetear el estado del mapa
       setIsMapExpanded(false);
+      setIsMapInteracting(false);
+      setShouldPreventNextPress(false);
+      setInitialScrollPosition(0);
       mapHeight.setValue(200);
     }
   }, [isVisible, mapHeight]);
@@ -792,12 +828,15 @@ const Request: React.FC<ModalProps> = ({
                     <Text style={styles.fieldLabel}>Location on Map</Text>
                     <Text style={styles.fieldHint}>
                       {isMapExpanded 
-                        ? 'Tap on the map to select your exact location, then it will return to normal size' 
-                        : 'Tap on the map to expand and adjust the exact location, or use the GPS button'}
+                        ? 'Tap on the map to select your service location. The map will minimize after selection.' 
+                        : 'Tap the map to expand and select your service location.'}
                     </Text>
                   </View>
 
-                  <Animated.View style={[styles.mapContainer, { height: mapHeight }]}>
+                  <Animated.View 
+                    ref={mapContainerRef}
+                    style={[styles.mapContainer, { height: mapHeight }]}
+                  >
                     <MapView
                       style={styles.map}
                       region={region}
@@ -824,18 +863,21 @@ const Request: React.FC<ModalProps> = ({
                         }
                       }}
                       onPress={(event) => {
-                        const { latitude: lat, longitude: lng } = event.nativeEvent.coordinate;
-                        setLatitude(lat);
-                        setLongitude(lng);
-                        // Colapsar el mapa cuando se selecciona una ubicación
-                        if (isMapExpanded) {
-                          collapseMap();
+                        // Si debemos prevenir este press (fue el tap de expansión), ignorarlo
+                        if (shouldPreventNextPress) {
+                          setShouldPreventNextPress(false);
+                          return;
                         }
-                      }}
-                      onTouchStart={() => {
-                        // Expandir el mapa cuando el usuario toca el mapa
-                        if (!isMapExpanded) {
-                          expandMap();
+                        
+                        // Solo procesar selección de ubicación cuando el mapa está expandido
+                        if (isMapExpanded) {
+                          const { latitude: lat, longitude: lng } = event.nativeEvent.coordinate;
+                          setLatitude(lat);
+                          setLongitude(lng);
+                          // Colapsar el mapa después de seleccionar ubicación
+                          setTimeout(() => {
+                            collapseMap();
+                          }, 300);
                         }
                       }}
                     >
@@ -847,19 +889,41 @@ const Request: React.FC<ModalProps> = ({
                         />
                       )}
                     </MapView>
+                    
                     <TouchableOpacity 
                       style={styles.gpsButton} 
                       onPress={() => {
                         getLocation();
-                        // Colapsar el mapa cuando se usa el botón GPS
+                        // Si el mapa está expandido, colapsarlo después de obtener ubicación
                         if (isMapExpanded) {
-                          collapseMap();
+                          setTimeout(() => {
+                            collapseMap();
+                          }, 300);
                         }
                       }}
+                      accessible={true}
+                      accessibilityLabel="Use my current location"
+                      accessibilityHint="Gets your current GPS location"
                     >
                       <MaterialIcons name="my-location" size={24} color="white" />
                     </TouchableOpacity>
                   </Animated.View>
+
+                  {/* Área para detectar taps fuera del mapa (solo cuando está expandido) */}
+                  {isMapExpanded && (
+                    <TouchableOpacity
+                      activeOpacity={1}
+                      onPress={() => {
+                        collapseMap();
+                      }}
+                      style={styles.outsideMapTouchArea}
+                      accessible={true}
+                      accessibilityLabel="Minimize map"
+                      accessibilityHint="Tap to minimize the map to its original size"
+                    >
+                      <Text style={styles.outsideMapText}>Tap here to minimize the map</Text>
+                    </TouchableOpacity>
+                  )}
 
                   <View style={styles.imagePreviewContainer}>
                     {images.map((uri) => (
@@ -885,9 +949,13 @@ const Request: React.FC<ModalProps> = ({
                     </TouchableOpacity>
                     
                     <TouchableOpacity 
+                      ref={saveButtonRef}
                       style={[styles.customButton, styles.saveButton]} 
                       onPress={() => handleSubmit()}
                       activeOpacity={0.8}
+                      accessible={true}
+                      accessibilityLabel="Save service request"
+                      accessibilityHint="Saves your service request with the selected location"
                     >
                       <Text style={[styles.buttonText, styles.saveButtonText]}>Save</Text>
                     </TouchableOpacity>
@@ -1022,6 +1090,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     marginBottom: 10,
     position: 'relative',
+    backgroundColor: '#e0e0e0',
     ...Platform.select({
       ios: {
         shadowColor: '#000',
