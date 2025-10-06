@@ -633,22 +633,18 @@ const Request: React.FC<ModalProps> = ({
                     </View>
                   )}
 
-                  {/* Description Field */}
-                  <View style={styles.fieldContainer}>
-                    <Text style={styles.fieldLabel}>Description</Text>
-                    <TextInput
-                      style={styles.descriptionInput}
-                      placeholder="Describe the service you need (e.g., repair details, specific requirements...)"
-                      placeholderTextColor="#999"
-                      onChangeText={handleChange('description')}
-                      onBlur={handleBlur('description')}
-                      value={values.description}
-                      multiline
-                    />
-                    {touched.description && errors.description && (
-                      <Text style={styles.errorText}>{errors.description}</Text>
-                    )}
-                  </View>
+                  <TextInput
+                    style={styles.descriptionInput}
+                    placeholder="Description"
+                    placeholderTextColor="#999"
+                    onChangeText={handleChange('description')}
+                    onBlur={handleBlur('description')}
+                    value={values.description}
+                    multiline
+                  />
+                  {touched.description && errors.description && (
+                    <Text style={styles.errorText}>{errors.description}</Text>
+                  )}
 
                   <TextInput
                     style={[styles.input, styles.readOnlyInput]}
