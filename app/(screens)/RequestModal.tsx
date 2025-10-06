@@ -727,31 +727,45 @@ const Request: React.FC<ModalProps> = ({
                     </View>
                   )}
 
-                  <TextInput
-                    style={styles.descriptionInput}
-                    placeholder="Description"
-                    placeholderTextColor="#999"
-                    onChangeText={handleChange('description')}
-                    onBlur={handleBlur('description')}
-                    value={values.description}
-                    multiline
-                  />
-                  {touched.description && errors.description && (
-                    <Text style={styles.errorText}>{errors.description}</Text>
-                  )}
+                  {/* Description Field */}
+                  <View style={styles.fieldContainer}>
+                    <Text style={styles.fieldLabel}>Description</Text>
+                    <TextInput
+                      style={styles.descriptionInput}
+                      placeholder="Describe the service you need (e.g., repair details, specific requirements...)"
+                      placeholderTextColor="#999"
+                      onChangeText={handleChange('description')}
+                      onBlur={handleBlur('description')}
+                      value={values.description}
+                      multiline
+                    />
+                    {touched.description && errors.description && (
+                      <Text style={styles.errorText}>{errors.description}</Text>
+                    )}
+                  </View>
 
-                  <TextInput
-                    style={[styles.input, styles.readOnlyInput]}
-                    placeholder="Address"
-                    onChangeText={handleChange('address')}
-                    onBlur={handleBlur('address')}
-                    value={values.address}
-                    editable={false}
-                    selectTextOnFocus={false}
-                  />
-                  {touched.address && errors.address && (
-                    <Text style={styles.errorText}>{errors.address}</Text>
-                  )}
+                  {/* Service Address Field */}
+                  <View style={styles.fieldContainer}>
+                    <Text style={styles.fieldLabel}>Service Address</Text>
+                    <TextInput
+                      style={[styles.input, styles.readOnlyInput]}
+                      placeholder="Address"
+                      onChangeText={handleChange('address')}
+                      onBlur={handleBlur('address')}
+                      value={values.address}
+                      editable={false}
+                      selectTextOnFocus={false}
+                    />
+                    {touched.address && errors.address && (
+                      <Text style={styles.errorText}>{errors.address}</Text>
+                    )}
+                  </View>
+
+                  {/* Location on Map */}
+                  <View style={styles.fieldContainer}>
+                    <Text style={styles.fieldLabel}>Location on Map</Text>
+                    <Text style={styles.fieldHint}>Tap on the map to adjust the exact location or use the GPS button</Text>
+                  </View>
 
                   {/* Location on Map */}
                   <View style={styles.fieldContainer}>
@@ -944,10 +958,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#f5f5f5',
     color: '#666',
   },
-  readOnlyInput: {
-    backgroundColor: '#f5f5f5',
-    color: '#666',
-  },
   descriptionInput: {
     borderWidth: 1,
     borderColor: '#ccc',
@@ -1112,11 +1122,21 @@ const styles = StyleSheet.create({
   subCategoryContainer: {
     marginBottom: 15,
   },
+  fieldContainer: {
+    marginBottom: 20,
+  },
   fieldLabel: {
     fontSize: 16,
     fontWeight: '600',
     marginBottom: 8,
     color: '#333',
+  },
+  fieldHint: {
+    fontSize: 13,
+    color: '#666',
+    marginBottom: 8,
+    lineHeight: 18,
+    fontStyle: 'italic',
   },
   pickerButton: {
     flexDirection: 'row',
