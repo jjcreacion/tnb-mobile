@@ -4,9 +4,10 @@ import Constants from 'expo-constants';
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
 import { Formik } from 'formik';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Animated,
   Image,
   Modal,
   Platform,
@@ -105,9 +106,31 @@ const Request: React.FC<ModalProps> = ({
   const [subCategories, setSubCategories] = useState<SubCategory[]>([]);
   const [selectedSubCategory, setSelectedSubCategory] = useState<number | null>(null);
   const [showSubCategoryPicker, setShowSubCategoryPicker] = useState(false);
-  const [searchQuery, setSearchQuery] = useState(''); 
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isMapExpanded, setIsMapExpanded] = useState(false);
+  const mapHeight = useRef(new Animated.Value(200)).current; 
 
   const API_URL = Constants.expoConfig?.extra?.API_BASE_URL;
+  
+  // Función para expandir el mapa
+  const expandMap = () => {
+    setIsMapExpanded(true);
+    Animated.timing(mapHeight, {
+      toValue: 450,
+      duration: 300,
+      useNativeDriver: false,
+    }).start();
+  };
+
+  // Función para contraer el mapa
+  const collapseMap = () => {
+    setIsMapExpanded(false);
+    Animated.timing(mapHeight, {
+      toValue: 200,
+      duration: 300,
+      useNativeDriver: false,
+    }).start();
+  };
   
   // Función para construir la descripción completa de la dirección (igual que en AddressList)
   const buildFullAddressDescription = (address: Address): string => {
@@ -263,6 +286,9 @@ const Request: React.FC<ModalProps> = ({
       setSubCategories([]); 
       setSelectedSubCategory(null);
       setShowSubCategoryPicker(false);
+      // Resetear el estado del mapa
+      setIsMapExpanded(false);
+      mapHeight.setValue(200);
     }
   }, [isVisible, mapHeight]);
 
@@ -764,23 +790,14 @@ const Request: React.FC<ModalProps> = ({
                   {/* Location on Map */}
                   <View style={styles.fieldContainer}>
                     <Text style={styles.fieldLabel}>Location on Map</Text>
-                    <Text style={styles.fieldHint}>Tap on the map to adjust the exact location or use the GPS button</Text>
-                  </View>
-
-                  {/* Location on Map */}
-                  <View style={styles.fieldContainer}>
-                    <Text style={styles.fieldLabel}>Location on Map</Text>
                     <Text style={styles.fieldHint}>
                       {isMapExpanded 
-                        ? 'Tap on the map to select your service location. The map will minimize after selection.' 
-                        : 'Tap the map to expand and select your service location.'}
+                        ? 'Tap on the map to select your exact location, then it will return to normal size' 
+                        : 'Tap on the map to expand and adjust the exact location, or use the GPS button'}
                     </Text>
                   </View>
 
-                  <Animated.View 
-                    ref={mapContainerRef}
-                    style={[styles.mapContainer, { height: mapHeight }]}
-                  >
+                  <Animated.View style={[styles.mapContainer, { height: mapHeight }]}>
                     <MapView
                       style={styles.map}
                       region={region}
@@ -807,21 +824,18 @@ const Request: React.FC<ModalProps> = ({
                         }
                       }}
                       onPress={(event) => {
-                        // Si debemos prevenir este press (fue el tap de expansión), ignorarlo
-                        if (shouldPreventNextPress) {
-                          setShouldPreventNextPress(false);
-                          return;
-                        }
-                        
-                        // Solo procesar selección de ubicación cuando el mapa está expandido
+                        const { latitude: lat, longitude: lng } = event.nativeEvent.coordinate;
+                        setLatitude(lat);
+                        setLongitude(lng);
+                        // Colapsar el mapa cuando se selecciona una ubicación
                         if (isMapExpanded) {
-                          const { latitude: lat, longitude: lng } = event.nativeEvent.coordinate;
-                          setLatitude(lat);
-                          setLongitude(lng);
-                          // Colapsar el mapa después de seleccionar ubicación
-                          setTimeout(() => {
-                            collapseMap();
-                          }, 300);
+                          collapseMap();
+                        }
+                      }}
+                      onTouchStart={() => {
+                        // Expandir el mapa cuando el usuario toca el mapa
+                        if (!isMapExpanded) {
+                          expandMap();
                         }
                       }}
                     >
@@ -833,41 +847,19 @@ const Request: React.FC<ModalProps> = ({
                         />
                       )}
                     </MapView>
-                    
                     <TouchableOpacity 
                       style={styles.gpsButton} 
                       onPress={() => {
                         getLocation();
-                        // Si el mapa está expandido, colapsarlo después de obtener ubicación
+                        // Colapsar el mapa cuando se usa el botón GPS
                         if (isMapExpanded) {
-                          setTimeout(() => {
-                            collapseMap();
-                          }, 300);
+                          collapseMap();
                         }
                       }}
-                      accessible={true}
-                      accessibilityLabel="Use my current location"
-                      accessibilityHint="Gets your current GPS location"
                     >
                       <MaterialIcons name="my-location" size={24} color="white" />
                     </TouchableOpacity>
                   </Animated.View>
-
-                  {/* Área para detectar taps fuera del mapa (solo cuando está expandido) */}
-                  {isMapExpanded && (
-                    <TouchableOpacity
-                      activeOpacity={1}
-                      onPress={() => {
-                        collapseMap();
-                      }}
-                      style={styles.outsideMapTouchArea}
-                      accessible={true}
-                      accessibilityLabel="Minimize map"
-                      accessibilityHint="Tap to minimize the map to its original size"
-                    >
-                      <Text style={styles.outsideMapText}>Tap here to minimize the map</Text>
-                    </TouchableOpacity>
-                  )}
 
                   <View style={styles.imagePreviewContainer}>
                     {images.map((uri) => (
@@ -1030,7 +1022,6 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     marginBottom: 10,
     position: 'relative',
-    backgroundColor: '#e0e0e0',
     ...Platform.select({
       ios: {
         shadowColor: '#000',
