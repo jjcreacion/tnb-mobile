@@ -1,6 +1,5 @@
 import { FontAwesome, MaterialIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Picker } from '@react-native-picker/picker';
 import Constants from 'expo-constants';
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
@@ -157,6 +156,9 @@ const Request: React.FC<ModalProps> = ({
   
   // Función para obtener el nombre de la subcategoría seleccionada
   const getSelectedSubCategoryName = () => {
+    if (!selectedSubCategory || selectedSubCategory === -1) {
+      return 'Select a subcategory';
+    }
     const selected = subCategories.find(sub => sub.pkSubCategory === selectedSubCategory);
     return selected ? selected.name : 'Select a subcategory';
   };
@@ -168,6 +170,7 @@ const Request: React.FC<ModalProps> = ({
 
       try {
         console.log('-------API_URL', API_URL);
+        console.log(`Fetching subcategories for category: ${selectedCategory.pkCategory}`);
         const response = await fetch(`${API_URL}/sub_category/by-category/${selectedCategory.pkCategory}`);
         const data = await response.json();
         console.log('Subcategories received:', data);
@@ -467,9 +470,16 @@ const Request: React.FC<ModalProps> = ({
                       <Text style={styles.fieldLabel}>Select a subcategory:</Text>
                       
                       {/* Touch area to show picker */}
-                      <TouchableOpacity 
+                      <TouchableOpacity
                         style={styles.pickerButton}
-                        onPress={() => setShowSubCategoryPicker(true)}
+                        onPress={() => {
+                          console.log('🔍 [DEBUG] Opening subcategory picker');
+                          console.log('🔍 [DEBUG] Platform:', Platform.OS);
+                          console.log('🔍 [DEBUG] SubCategories count:', subCategories.length);
+                          console.log('🔍 [DEBUG] SubCategories data:', JSON.stringify(subCategories, null, 2));
+                          console.log('🔍 [DEBUG] Selected subcategory:', selectedSubCategory);
+                          setShowSubCategoryPicker(true);
+                        }}
                       >
                         <Text style={[
                           styles.pickerButtonText,
@@ -477,10 +487,10 @@ const Request: React.FC<ModalProps> = ({
                         ]}>
                           {getSelectedSubCategoryName()}
                         </Text>
-                        <MaterialIcons 
-                          name={Platform.OS === 'android' ? 'arrow-drop-down' : 'arrow-drop-down'} 
-                          size={24} 
-                          color={Platform.OS === 'android' ? '#757575' : '#666'} 
+                        <MaterialIcons
+                          name={Platform.OS === 'android' ? 'arrow-drop-down' : 'arrow-drop-down'}
+                          size={24}
+                          color={Platform.OS === 'android' ? '#757575' : '#666'}
                         />
                       </TouchableOpacity>
 
@@ -496,33 +506,66 @@ const Request: React.FC<ModalProps> = ({
                             <View style={styles.pickerModalContent}>
                               <View style={styles.pickerHeader}>
                                 <TouchableOpacity
-                                  onPress={() => setShowSubCategoryPicker(false)}
+                                  onPress={() => {
+                                    console.log('🔍 [DEBUG] iOS Picker: Cancel pressed');
+                                    setShowSubCategoryPicker(false);
+                                  }}
                                   style={styles.pickerHeaderButton}
                                 >
                                   <Text style={styles.pickerHeaderButtonText}>Cancel</Text>
                                 </TouchableOpacity>
                                 <Text style={styles.pickerHeaderTitle}>Select Subcategory</Text>
                                 <TouchableOpacity
-                                  onPress={() => setShowSubCategoryPicker(false)}
+                                  onPress={() => {
+                                    console.log('🔍 [DEBUG] iOS Picker: Done pressed, selected:', selectedSubCategory);
+                                    setShowSubCategoryPicker(false);
+                                  }}
                                   style={styles.pickerHeaderButton}
                                 >
                                   <Text style={[styles.pickerHeaderButtonText, styles.pickerDoneButton]}>Done</Text>
                                 </TouchableOpacity>
                               </View>
-                              <Picker
-                                selectedValue={selectedSubCategory}
-                                onValueChange={(itemValue) => setSelectedSubCategory(itemValue)}
-                                style={styles.iosPicker}
-                                itemStyle={styles.iosPickerItem}
-                              >
-                                {subCategories.map((sub) => (
-                                  <Picker.Item
-                                    key={sub.pkSubCategory}
-                                    label={sub.name}
-                                    value={sub.pkSubCategory}
-                                  />
-                                ))}
-                              </Picker>
+                              <ScrollView style={styles.iosPickerScrollView}>
+                                {[{ pkSubCategory: -1, name: 'Select a subcategory...' }, ...subCategories].map((sub, index) => {
+                                  const isSelected = (sub.pkSubCategory === (selectedSubCategory ?? -1));
+                                  const isPlaceholder = sub.pkSubCategory === -1;
+
+                                  console.log(`🔍 [DEBUG] iOS Item ${index}:`, {
+                                    id: sub.pkSubCategory,
+                                    name: sub.name,
+                                    isSelected,
+                                    isPlaceholder
+                                  });
+
+                                  return (
+                                    <TouchableOpacity
+                                      key={sub.pkSubCategory}
+                                      style={[
+                                        styles.iosPickerItemButton,
+                                        isSelected && styles.iosPickerItemSelected,
+                                      ]}
+                                      onPress={() => {
+                                        console.log('🔍 [DEBUG] iOS Item pressed:', sub.pkSubCategory, sub.name);
+                                        if (!isPlaceholder) {
+                                          setSelectedSubCategory(sub.pkSubCategory);
+                                        }
+                                        setShowSubCategoryPicker(false);
+                                      }}
+                                    >
+                                      <Text style={[
+                                        styles.iosPickerItemText,
+                                        isSelected && styles.iosPickerItemSelectedText,
+                                        isPlaceholder && styles.iosPickerItemPlaceholderText,
+                                      ]}>
+                                        {sub.name}
+                                      </Text>
+                                      {isSelected && !isPlaceholder && (
+                                        <MaterialIcons name="check" size={24} color="#007AFF" />
+                                      )}
+                                    </TouchableOpacity>
+                                  );
+                                })}
+                              </ScrollView>
                             </View>
                           </View>
                         </Modal>
@@ -1058,10 +1101,40 @@ const styles = StyleSheet.create({
   },
   iosPicker: {
     backgroundColor: '#fff',
+    width: '100%',
+  },
+  iosPickerScrollView: {
+    maxHeight: 300,
+  },
+  iosPickerItemButton: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+    backgroundColor: '#fff',
+  },
+  iosPickerItemSelected: {
+    backgroundColor: '#f0f8ff',
+  },
+  iosPickerItemText: {
+    fontSize: 17,
+    color: '#000',
+    flex: 1,
+  },
+  iosPickerItemSelectedText: {
+    color: '#007AFF',
+    fontWeight: '600',
+  },
+  iosPickerItemPlaceholderText: {
+    color: '#999',
   },
   iosPickerItem: {
-    fontSize: 18,
-    height: 120,
+    fontSize: 20,
+    height: 44,
+    color: '#000',
   },
   // Android Picker Modal Styles
   androidPickerOverlay: {
