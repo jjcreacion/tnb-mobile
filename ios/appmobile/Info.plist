@@ -28,7 +28,7 @@
         <key>CFBundleURLSchemes</key>
         <array>
           <string>myapp</string>
-          <string>com.anonymous.appmobile</string>
+          <string>com.thenationalbuilders.tnb</string>
         </array>
       </dict>
     </array>
