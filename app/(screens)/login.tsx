@@ -4,36 +4,33 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Formik } from 'formik';
 import React, { useState } from 'react';
-import { ActivityIndicator, Image, ImageBackground, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Image, ImageBackground, StyleSheet, Text, View, KeyboardAvoidingView, Platform } from 'react-native';
 import * as Animatable from 'react-native-animatable';
-import Icon from 'react-native-vector-icons/Ionicons';
 import * as Yup from 'yup';
+import { Button, Input, Screen } from '@/components/common';
+import { Theme } from '@/constants/Theme';
 import ResetModal from './resetPassword';
 import SignUpModal from './singup';
 
 const API_URL = Constants.expoConfig?.extra?.API_BASE_URL;
 
-const cardBackgroundColor = 'rgba(255, 255, 255, 0.9)';
-const primaryButtonColor = '#007AFF';
-const textColorPrimary = '#333';
-const textColorLink = '#007AFF';
-const inputBackgroundColor = '#f2f2f2';
-
 const validationSchema = Yup.object().shape({
-  email: Yup.string().email('Por favor, introduce un correo electrónico válido').required('El correo electrónico es requerido'),
-  password: Yup.string().required('La contraseña es requerida'),
+  email: Yup.string()
+    .email('Please enter a valid email address')
+    .required('Email is required'),
+  password: Yup.string()
+    .required('Password is required')
+    .min(6, 'Password must be at least 6 characters'),
 });
 
 export default function LoginScreen() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
   const [isSignUpModalVisible, setSignUpModalVisible] = useState(false);
   const [resetModalVisible, setResetModalVisible] = useState(false);
 
-
-  const handleLogin = async (values: any) => {
+  const handleLogin = async (values: { email: string; password: string }) => {
     setLoading(true);
     setErrorMessage('');
     try {
@@ -47,227 +44,264 @@ export default function LoginScreen() {
 
       const data = await response.json();
 
-      if (response.ok && data.accessToken) { 
+      if (response.ok && data.accessToken) {
         AsyncStorage.setItem('accessToken', data.accessToken);
         AsyncStorage.setItem('userId', String(data.pkUser));
         router.push('/(tabs)');
       } else {
-        setErrorMessage(data.message || 'Credenciales incorrectas');
+        setErrorMessage(data.message || 'Invalid credentials. Please try again.');
       }
     } catch (error) {
-      setErrorMessage('Hubo un error al iniciar sesión');
-      console.error('Error de inicio de sesión:', error);
+      setErrorMessage('Unable to connect to the server. Please try again.');
+      console.error('Login error:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const toggleShowPassword = () => {
-    setShowPassword(!showPassword);
-  };
-
   return (
     <ImageBackground
       source={require('@/assets/images/ingenieros.jpeg')}
-      style={styles.backgroundImageLogin}
+      style={styles.backgroundImage}
     >
-      <View style={styles.container}>
-        <LinearGradient
-          colors={['rgba(76, 102, 159, 0.5)', '#ADD8E6', '#FFDAB9']}
-          style={styles.backgroundGradient}
-          start={{ x: 0.5, y: 0 }}
-          end={{ x: 0.5, y: 1 }}
-        />
-        <Animatable.View
-          animation="pulse" 
-          iterationCount="infinite" 
-          duration={2000} 
-          style={styles.iconContainer}
+      <LinearGradient
+        colors={['rgba(230, 57, 70, 0.3)', 'rgba(230, 57, 70, 0.6)', 'rgba(230, 57, 70, 0.8)']}
+        style={styles.overlay}
+      />
+
+      <Screen safeArea={true} edges={['top', 'bottom']} style={styles.screen}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.keyboardView}
         >
-          <Image
-            source={require('../../assets/images/icon-tnb.png')}
-            style={styles.imageSplash}
-          />
-        </Animatable.View>
-
-        <Animatable.View animation="fadeIn" duration={1000} style={styles.content}>
-          <View style={[styles.card, { backgroundColor: cardBackgroundColor }]}>
-            <Text style={[styles.title, { color: textColorPrimary }]}>Sign In</Text>
-            <Formik
-              initialValues={{ email: 'rudy.rs1@gmail.com', password: 'Qwerty.123' }}
-              validationSchema={validationSchema}
-              onSubmit={handleLogin}
+          <View style={styles.container}>
+            {/* Logo Section */}
+            <Animatable.View
+              animation="fadeInDown"
+              duration={1000}
+              style={styles.logoContainer}
             >
-              {({ handleChange, handleBlur, handleSubmit, values, errors, touched }) => (
-                <>
-                  <TextInput
-                    style={[styles.input, { backgroundColor: inputBackgroundColor }]}
-                    placeholder="Correo electrónico"
-                    placeholderTextColor="#888"
-                    onChangeText={handleChange('email')}
-                    onBlur={handleBlur('email')}
-                    value={values.email}
-                  />
-                  {touched.email && errors.email && (
-                    <Text style={styles.errorText}>{errors.email}</Text>
-                  )}
+              <Animatable.View
+                animation="pulse"
+                iterationCount="infinite"
+                duration={2000}
+              >
+                <Image
+                  source={require('../../assets/images/icon-tnb.png')}
+                  style={styles.logo}
+                />
+              </Animatable.View>
+              <Text style={styles.welcomeText}>Welcome Back</Text>
+              <Text style={styles.subtitle}>Sign in to continue</Text>
+            </Animatable.View>
 
-                  <View style={styles.passwordContainer}>
-                    <TextInput
-                      style={[styles.passwordInput, { backgroundColor: inputBackgroundColor }]}
-                      placeholder="Contraseña"
-                      placeholderTextColor="#888"
-                      secureTextEntry={!showPassword}
-                      onChangeText={handleChange('password')}
-                      onBlur={handleBlur('password')}
-                      value={values.password}
-                    />
-                    <TouchableOpacity onPress={toggleShowPassword} style={styles.eyeIcon}>
-                      <Icon
-                        name={showPassword ? 'eye-outline' : 'eye-off-outline'}
-                        size={24}
-                        color="#888"
+            {/* Form Section */}
+            <Animatable.View
+              animation="fadeInUp"
+              duration={1000}
+              delay={300}
+              style={styles.formContainer}
+            >
+              <View style={styles.card}>
+                <Formik
+                  initialValues={{ email: '', password: '' }}
+                  validationSchema={validationSchema}
+                  onSubmit={handleLogin}
+                >
+                  {({ handleChange, handleBlur, handleSubmit, values, errors, touched }) => (
+                    <>
+                      <Input
+                        placeholder="Email address"
+                        leftIcon="mail-outline"
+                        value={values.email}
+                        onChangeText={handleChange('email')}
+                        onBlur={handleBlur('email')}
+                        error={touched.email && errors.email ? errors.email : undefined}
+                        keyboardType="email-address"
+                        autoCapitalize="none"
+                        autoComplete="email"
                       />
-                    </TouchableOpacity>
-                  </View>
-                  {touched.password && errors.password && (
-                    <Text style={styles.errorText}>{errors.password}</Text>
-                  )}
 
-                  <TouchableOpacity
-                    style={[styles.button, { backgroundColor: primaryButtonColor }]}
-                    onPress={() => handleSubmit()}
-                    disabled={loading}
-                  >
-                    {loading ? (
-                      <ActivityIndicator color="white" />
-                    ) : (
-                      <Text style={styles.buttonText}>Log In</Text>
-                    )}
-                  </TouchableOpacity>
-                </>
-              )}
-            </Formik>
-            {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
-            <TouchableOpacity onPress={() => setSignUpModalVisible(true)}>
-              <Text style={[styles.link, { color: textColorLink }]}>Create account</Text>
-            </TouchableOpacity>
-            <Text>Forgot your password?</Text>
-            <TouchableOpacity onPress={() => setResetModalVisible(true)}>
-              <Text style={[styles.link, { color: textColorLink }]}>Reset</Text>
-            </TouchableOpacity>
+                      <Input
+                        placeholder="Password"
+                        leftIcon="lock-closed-outline"
+                        value={values.password}
+                        onChangeText={handleChange('password')}
+                        onBlur={handleBlur('password')}
+                        error={touched.password && errors.password ? errors.password : undefined}
+                        secureTextEntry
+                        autoCapitalize="none"
+                        autoComplete="password"
+                      />
+
+                      {errorMessage ? (
+                        <View style={styles.errorContainer}>
+                          <Text style={styles.errorText}>{errorMessage}</Text>
+                        </View>
+                      ) : null}
+
+                      <Button
+                        title="Sign In"
+                        onPress={() => handleSubmit()}
+                        loading={loading}
+                        fullWidth
+                        size="lg"
+                        variant="primary"
+                        style={styles.loginButton}
+                      />
+
+                      <Button
+                        title="Forgot Password?"
+                        onPress={() => setResetModalVisible(true)}
+                        variant="ghost"
+                        size="sm"
+                        style={styles.forgotButton}
+                      />
+                    </>
+                  )}
+                </Formik>
+
+                <View style={styles.divider}>
+                  <View style={styles.dividerLine} />
+                  <Text style={styles.dividerText}>OR</Text>
+                  <View style={styles.dividerLine} />
+                </View>
+
+                <Button
+                  title="Create New Account"
+                  onPress={() => setSignUpModalVisible(true)}
+                  variant="outline"
+                  fullWidth
+                  size="lg"
+                  style={styles.signupButton}
+                />
+              </View>
+            </Animatable.View>
           </View>
-        </Animatable.View>
-      </View>
-       <SignUpModal isVisible={isSignUpModalVisible} onClose={() => setSignUpModalVisible(false)} />
-       <ResetModal isVisible={resetModalVisible} onClose={() => setResetModalVisible(false)} />
+        </KeyboardAvoidingView>
+      </Screen>
+
+      <SignUpModal
+        isVisible={isSignUpModalVisible}
+        onClose={() => setSignUpModalVisible(false)}
+      />
+      <ResetModal
+        isVisible={resetModalVisible}
+        onClose={() => setResetModalVisible(false)}
+      />
     </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  backgroundImage: {
     flex: 1,
+    width: '100%',
+    height: '100%',
   },
-  backgroundGradient: {
+
+  overlay: {
     position: 'absolute',
     left: 0,
     right: 0,
     top: 0,
     bottom: 0,
   },
-  iconContainer: {
-    position: 'absolute',
-    top: '10%',
-    justifyContent: 'center',
-    alignItems: 'center',
-    width: '100%',
-    shadowColor: '#000', 
-    shadowOffset: { width: 0, height: 2 }, 
-    shadowOpacity: 0.25, 
-    shadowRadius: 3.84, 
-    elevation: 5, 
+
+  screen: {
+    backgroundColor: 'transparent',
   },
-  content: {
+
+  keyboardView: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
-  imageSplash: {
+
+  container: {
+    flex: 1,
+    justifyContent: 'space-between',
+    paddingVertical: Theme.spacing['2xl'],
+  },
+
+  logoContainer: {
+    alignItems: 'center',
+    marginTop: Theme.spacing['4xl'],
+  },
+
+  logo: {
     width: 120,
     height: 120,
-    margin: 10,
+    marginBottom: Theme.spacing.lg,
   },
-  card: {
-    borderRadius: 40,
-    padding: 30,
-    marginTop: 120,
-    width: '80%',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 8,
-    backgroundColor: 'transparent',
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-    borderWidth: 10,
+
+  welcomeText: {
+    fontSize: Theme.typography.fontSize['3xl'],
+    fontWeight: Theme.typography.fontWeight.bold,
+    color: Theme.colors.text.inverse,
+    marginBottom: Theme.spacing.xs,
+    textAlign: 'center',
   },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 20,
+
+  subtitle: {
+    fontSize: Theme.typography.fontSize.base,
+    color: Theme.colors.text.inverse,
+    opacity: 0.9,
+    textAlign: 'center',
   },
-  backgroundImageLogin: {
+
+  formContainer: {
     flex: 1,
-    resizeMode: 'cover',
-    justifyContent: 'center',
+    justifyContent: 'flex-end',
+    marginBottom: Theme.spacing.xl,
   },
-  input: {
-    borderRadius: 10,
-    paddingVertical: 15,
-    paddingHorizontal: 20,
-    marginBottom: 15,
-    fontSize: 16,
-    width: '100%',
-    color: textColorPrimary,
+
+  card: {
+    backgroundColor: Theme.colors.surface.primary,
+    borderRadius: Theme.borderRadius['3xl'],
+    padding: Theme.spacing.xl,
+    ...Theme.shadows.xl,
   },
-  button: {
-    borderRadius: 10,
-    paddingVertical: 15,
-    width: '100%',
-    alignItems: 'center',
-    marginBottom: 10,
+
+  loginButton: {
+    marginTop: Theme.spacing.md,
   },
-  buttonText: {
-    color: 'white',
-    fontSize: 18,
-    fontWeight: 'bold',
+
+  forgotButton: {
+    marginTop: Theme.spacing.sm,
   },
-  link: {
-    fontSize: 14,
+
+  errorContainer: {
+    backgroundColor: Theme.colors.error[50],
+    padding: Theme.spacing.md,
+    borderRadius: Theme.borderRadius.base,
+    marginBottom: Theme.spacing.md,
   },
+
   errorText: {
-    color: 'red',
-    marginBottom: 10,
+    color: Theme.colors.error[600],
+    fontSize: Theme.typography.fontSize.sm,
+    textAlign: 'center',
   },
-  passwordContainer: {
+
+  divider: {
     flexDirection: 'row',
     alignItems: 'center',
-    width: '100%',
-    borderRadius: 10,
-    backgroundColor: inputBackgroundColor,
-    marginBottom: 15,
+    marginVertical: Theme.spacing.xl,
   },
-  passwordInput: {
+
+  dividerLine: {
     flex: 1,
-    paddingVertical: 15,
-    paddingHorizontal: 20,
-    fontSize: 16,
-    color: textColorPrimary,
-    borderRadius: 10,
+    height: 1,
+    backgroundColor: Theme.colors.border.default,
   },
-  eyeIcon: {
-    padding: 15,
+
+  dividerText: {
+    marginHorizontal: Theme.spacing.md,
+    color: Theme.colors.text.tertiary,
+    fontSize: Theme.typography.fontSize.sm,
+    fontWeight: Theme.typography.fontWeight.medium,
+  },
+
+  signupButton: {
+    borderWidth: 1.5,
   },
 });

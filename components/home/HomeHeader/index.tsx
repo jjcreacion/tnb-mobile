@@ -1,61 +1,79 @@
-import React, { memo } from 'react'
-import { View, Image, TouchableOpacity, Text } from 'react-native'
-import { LinearGradient } from 'expo-linear-gradient'
-import { useRouter } from 'expo-router'
-import Icon from 'react-native-vector-icons/MaterialIcons'
-import { styles } from './styles'
+import React, { memo } from 'react';
+import { View, Image, TouchableOpacity, Text, Platform } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
+import Icon from 'react-native-vector-icons/MaterialIcons';
+import { Theme } from '@/constants/Theme';
+import { styles } from './styles';
 
-const tnbLogo = require('@/assets/images/icon-tnb.png')
+const tnbLogo = require('@/assets/images/icon-tnb.png');
 
 interface HomeHeaderProps {
-  onMenuPress: () => void
-  referralReward: string
-  userBalance: number | null
+  onMenuPress: () => void;
+  referralReward: string;
+  userBalance: number | null;
 }
 
 export const HomeHeader = memo<HomeHeaderProps>(
   ({ onMenuPress, referralReward, userBalance }) => {
-    const router = useRouter()
+    const router = useRouter();
 
     return (
-      <View style={styles.backgroundTop}>
+      <View style={styles.container}>
         <LinearGradient
-          colors={['#ea0e08', '#fa2d64']}
-          style={styles.linearGradientHeader}
+          colors={[Theme.colors.primary[500], Theme.colors.primary[600]]}
+          style={styles.gradient}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
         >
-          <View style={styles.headerContainer}>
-            <View style={styles.leftHeader}>
-              <TouchableOpacity onPress={onMenuPress} style={styles.menuButton}>
-                <Icon name="menu" size={30} color="#fff" />
-              </TouchableOpacity>
-              <Image source={tnbLogo} style={styles.companyLogo} />
-            </View>
-            <View style={styles.rightHeader}>
+          <View style={styles.content}>
+            <View style={styles.leftSection}>
               <TouchableOpacity
-                style={styles.getMoneyButton}
-                onPress={() => router.push('/(screens)/ShareAndEarn')}
+                onPress={onMenuPress}
+                style={styles.menuButton}
+                activeOpacity={0.7}
               >
-                <Text style={styles.getMoneyButtonText}>
-                  Get ${referralReward}
+                <Icon name="menu" size={28} color={Theme.colors.text.inverse} />
+              </TouchableOpacity>
+              <Image source={tnbLogo} style={styles.logo} />
+            </View>
+
+            <View style={styles.rightSection}>
+              <TouchableOpacity
+                style={styles.rewardButton}
+                onPress={() => router.push('/(screens)/ShareAndEarn')}
+                activeOpacity={0.8}
+              >
+                <Icon
+                  name="card-giftcard"
+                  size={16}
+                  color={Theme.colors.primary[600]}
+                />
+                <Text style={styles.rewardText}>
+                  ${referralReward}
                 </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
                 style={styles.balanceButton}
                 onPress={() => router.push('/(tabs)/billing')}
+                activeOpacity={0.8}
               >
-                <Text style={styles.balanceButtonText}>
-                  Balance: ${userBalance}
+                <Icon
+                  name="account-balance-wallet"
+                  size={16}
+                  color={Theme.colors.text.inverse}
+                />
+                <Text style={styles.balanceText}>
+                  ${userBalance || '0'}
                 </Text>
               </TouchableOpacity>
             </View>
           </View>
         </LinearGradient>
       </View>
-    )
+    );
   }
-)
+);
 
-HomeHeader.displayName = 'HomeHeader'
+HomeHeader.displayName = 'HomeHeader';
