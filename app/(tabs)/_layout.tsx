@@ -3,10 +3,12 @@ import { useColorScheme } from '@/hooks/useColorScheme';
 import { Tabs } from 'expo-router';
 import React from 'react';
 import { Platform } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 
 export default function TabsLayout() {
   const colorScheme = useColorScheme();
+  const insets = useSafeAreaInsets();
 
   return (
     <Tabs
@@ -15,18 +17,50 @@ export default function TabsLayout() {
         tabBarInactiveTintColor: '#ffffff',
         headerShown: false,
         tabBarButton: HapticTab,
-        tabBarStyle: {
-          backgroundColor: '#fe4944',
-          borderTopLeftRadius: 0,
-          borderTopRightRadius: 0,
-          overflow: 'hidden',
-          borderTopWidth: 0,
-          height: Platform.OS === 'ios' ? 85 : 60,
-        },
-        tabBarLabelStyle: {
-          fontSize: 12, 
-          color: '#ffffff', 
-        },
+        tabBarStyle: Platform.select({
+          ios: {
+            backgroundColor: '#fe4944',
+            borderTopLeftRadius: 0,
+            borderTopRightRadius: 0,
+            overflow: 'hidden',
+            borderTopWidth: 0,
+            height: 85,
+            paddingBottom: 0,
+            paddingTop: 5,
+          },
+          android: {
+            backgroundColor: '#fe4944',
+            borderTopLeftRadius: 0,
+            borderTopRightRadius: 0,
+            overflow: 'hidden',
+            borderTopWidth: 0,
+            height: 70 + insets.bottom,
+            paddingBottom: Math.max(insets.bottom, 10),
+            paddingTop: 8,
+            position: 'absolute',
+            bottom: 0,
+          },
+        }),
+        tabBarLabelStyle: Platform.select({
+          ios: {
+            fontSize: 12,
+            color: '#ffffff',
+            marginBottom: 0,
+          },
+          android: {
+            fontSize: 12,
+            color: '#ffffff',
+            marginBottom: 5,
+          },
+        }),
+        tabBarIconStyle: Platform.select({
+          ios: {
+            marginTop: 0,
+          },
+          android: {
+            marginTop: 5,
+          },
+        }),
         ...Platform.select({
           ios: {
             shadowColor: 'gray',

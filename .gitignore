@@ -41,3 +41,4 @@ FINAL_REPORT.txt
 index.backup.tsx.txt
 *.md
 !README.md
+captures/
