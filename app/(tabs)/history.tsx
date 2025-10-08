@@ -44,7 +44,7 @@ interface Status {
 const HistoryScreen = () => {
   const [services, setServices] = useState<ServiceRequest[]>([]);
   const [statusList, setStatusList] = useState<Status[]>([]);
-  const [selectedStatus, setSelectedStatus] = useState('All');
+  const [selectedStatus] = useState('All');
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
   const API_URL = Constants.expoConfig?.extra?.API_BASE_URL;
@@ -61,7 +61,7 @@ const HistoryScreen = () => {
     } catch (error) {
       console.error('Error fetching status list:', error);
     }
-  }, []);
+  }, [API_URL]);
 
   // Función para obtener las solicitudes de servicio del usuario
   const fetchServices = useCallback(async (currentUserId: string) => {

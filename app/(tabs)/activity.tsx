@@ -16,7 +16,7 @@ interface Service {
 
 const ActivityScreen = () => {
   const [services, setServices] = useState<Service[]>([]);
-  const [selectedStatus, setSelectedStatus] = useState('All');
+  const [selectedStatus] = useState('All');
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
   const API_URL = Constants.expoConfig?.extra?.API_BASE_URL;
@@ -41,7 +41,7 @@ const ActivityScreen = () => {
       } else {
         console.error('Error al obtener servicios:', response);
       }
-    } catch (error) {
+    } catch {
       // Handle network or other errors silently for now, as per original logic
     } finally {
       setLoading(false);
@@ -62,7 +62,7 @@ const ActivityScreen = () => {
           setLoading(false);
           setIsRefreshing(false);
         }
-      } catch (error) {
+      } catch {
         setLoading(false);
         setIsRefreshing(false);
       }
