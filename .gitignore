@@ -36,4 +36,8 @@ yarn-error.*
 # typescript
 *.tsbuildinfo
 
-app-example
+app-exampler
+FINAL_REPORT.txt
+index.backup.tsx.txt
+*.md
+!README.md
