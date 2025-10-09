@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, Alert, StyleSheet } from 'react-native';
-import styles from '../styles';
-import { FontAwesome } from '@expo/vector-icons'; 
+import { View, Text, Modal, StyleSheet, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import Icon from 'react-native-vector-icons/Ionicons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
+import { Button, Input } from '@/components/common';
+import { Theme } from '@/constants/Theme';
 
 interface SetNewPasswordProps {
   isVisible: boolean;
@@ -13,24 +14,35 @@ interface SetNewPasswordProps {
 const SetNewPassword: React.FC<SetNewPasswordProps> = ({ isVisible, onClose }) => {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [passwordError, setPasswordError] = useState('');
+  const [newPasswordError, setNewPasswordError] = useState('');
+  const [confirmPasswordError, setConfirmPasswordError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [showNewPassword, setShowNewPassword] = useState(false); 
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false); 
 
   const API_URL = Constants.expoConfig?.extra?.API_BASE_URL;
 
   const validatePassword = () => {
+    let isValid = true;
+
+    // Reset errors
+    setNewPasswordError('');
+    setConfirmPasswordError('');
+
+    // Validate new password
     if (newPassword.length < 8) {
-      setPasswordError('Password must be at least 8 characters long.');
-      return false;
+      setNewPasswordError('Password must be at least 8 characters long');
+      isValid = false;
+    } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(newPassword)) {
+      setNewPasswordError('Password must contain uppercase, lowercase and number');
+      isValid = false;
     }
-    if (newPassword !== confirmPassword) {
-      setPasswordError('Passwords do not match.');
-      return false;
+
+    // Validate confirm password
+    if (confirmPassword !== newPassword) {
+      setConfirmPasswordError('Passwords do not match');
+      isValid = false;
     }
-    setPasswordError('');
-    return true;
+
+    return isValid;
   };
 
   const handleChangePassword = async () => {
@@ -40,6 +52,7 @@ const SetNewPassword: React.FC<SetNewPasswordProps> = ({ isVisible, onClose }) =
 
     setLoading(true);
     let userEmail = '';
+
     try {
       userEmail = await AsyncStorage.getItem('emailForPasswordReset') || '';
       if (!userEmail) {
@@ -69,10 +82,14 @@ const SetNewPassword: React.FC<SetNewPasswordProps> = ({ isVisible, onClose }) =
       const data = await response.json();
 
       if (response.ok) {
-        Alert.alert('Success', 'Your password has been successfully changed!', [
-          { text: 'OK', onPress: onClose }
-        ]);
+        Alert.alert(
+          'Success',
+          'Your password has been successfully changed!',
+          [{ text: 'OK', onPress: onClose }]
+        );
         await AsyncStorage.removeItem('emailForPasswordReset');
+        setNewPassword('');
+        setConfirmPassword('');
       } else {
         Alert.alert('Error', data.message || 'Failed to change password. Please try again.');
       }
@@ -85,131 +102,231 @@ const SetNewPassword: React.FC<SetNewPasswordProps> = ({ isVisible, onClose }) =
   };
 
   return (
-    <View style={styles.modalContainer}>
-      <Text style={[{ marginBottom: 20, textAlign: 'center' }, styles.textH1]}>Set New Password</Text>
-
-      <Text style={styles.textH2Black}>New Password</Text>
-      <View style={localStyles.passwordInputContainer}>
-        <TextInput
-          style={[styles.input, localStyles.passwordInput, passwordError && { borderColor: 'red', borderWidth: 1 }]}
-          placeholder="Enter your new password"
-          secureTextEntry={!showNewPassword} 
-          value={newPassword}
-          onChangeText={setNewPassword}
-        />
-        <TouchableOpacity
-          onPress={() => setShowNewPassword(!showNewPassword)}
-          style={localStyles.eyeIcon}
+    <Modal
+      visible={isVisible}
+      transparent={true}
+      animationType="slide"
+      onRequestClose={onClose}
+    >
+      <View style={styles.modalOverlay}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.container}
         >
-          <FontAwesome
-            name={showNewPassword ? 'eye-slash' : 'eye'} 
-            size={20}
-            color="gray"
-          />
-        </TouchableOpacity>
+          <View style={styles.content}>
+            {/* Header */}
+            <View style={styles.header}>
+              <View style={styles.iconContainer}>
+                <Icon name="key" size={48} color={Theme.colors.primary[500]} />
+              </View>
+              <Text style={styles.title}>Set New Password</Text>
+              <Text style={styles.subtitle}>
+                Create a strong password to secure your account
+              </Text>
+            </View>
+
+            {/* Form */}
+            <View style={styles.form}>
+              <Input
+                label="New Password"
+                placeholder="Enter your new password"
+                value={newPassword}
+                onChangeText={(text) => {
+                  setNewPassword(text);
+                  setNewPasswordError('');
+                }}
+                error={newPasswordError}
+                leftIcon="lock-closed-outline"
+                secureTextEntry
+                autoCapitalize="none"
+              />
+
+              <Input
+                label="Confirm Password"
+                placeholder="Confirm your new password"
+                value={confirmPassword}
+                onChangeText={(text) => {
+                  setConfirmPassword(text);
+                  setConfirmPasswordError('');
+                }}
+                error={confirmPasswordError}
+                leftIcon="lock-closed-outline"
+                secureTextEntry
+                autoCapitalize="none"
+                onBlur={validatePassword}
+              />
+
+              {/* Password Requirements */}
+              <View style={styles.requirementsContainer}>
+                <Text style={styles.requirementsTitle}>Password must contain:</Text>
+                <View style={styles.requirementItem}>
+                  <Icon
+                    name={newPassword.length >= 8 ? "checkmark-circle" : "ellipse-outline"}
+                    size={16}
+                    color={newPassword.length >= 8 ? Theme.colors.success[500] : Theme.colors.text.tertiary}
+                  />
+                  <Text style={[
+                    styles.requirementText,
+                    newPassword.length >= 8 && styles.requirementTextMet
+                  ]}>
+                    At least 8 characters
+                  </Text>
+                </View>
+                <View style={styles.requirementItem}>
+                  <Icon
+                    name={/(?=.*[a-z])(?=.*[A-Z])/.test(newPassword) ? "checkmark-circle" : "ellipse-outline"}
+                    size={16}
+                    color={/(?=.*[a-z])(?=.*[A-Z])/.test(newPassword) ? Theme.colors.success[500] : Theme.colors.text.tertiary}
+                  />
+                  <Text style={[
+                    styles.requirementText,
+                    /(?=.*[a-z])(?=.*[A-Z])/.test(newPassword) && styles.requirementTextMet
+                  ]}>
+                    Uppercase and lowercase letters
+                  </Text>
+                </View>
+                <View style={styles.requirementItem}>
+                  <Icon
+                    name={/(?=.*\d)/.test(newPassword) ? "checkmark-circle" : "ellipse-outline"}
+                    size={16}
+                    color={/(?=.*\d)/.test(newPassword) ? Theme.colors.success[500] : Theme.colors.text.tertiary}
+                  />
+                  <Text style={[
+                    styles.requirementText,
+                    /(?=.*\d)/.test(newPassword) && styles.requirementTextMet
+                  ]}>
+                    At least one number
+                  </Text>
+                </View>
+              </View>
+
+              {/* Action Buttons */}
+              <View style={styles.buttonContainer}>
+                <Button
+                  title="Cancel"
+                  variant="outline"
+                  onPress={onClose}
+                  icon={<Icon name="close" size={20} color={Theme.colors.primary[500]} />}
+                  iconPosition="left"
+                  style={styles.cancelButton}
+                />
+
+                <Button
+                  title="Reset Password"
+                  variant="primary"
+                  onPress={handleChangePassword}
+                  loading={loading}
+                  disabled={!newPassword || !confirmPassword}
+                  icon={<Icon name="checkmark" size={20} color={Theme.colors.text.inverse} />}
+                  iconPosition="right"
+                  style={styles.resetButton}
+                />
+              </View>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
       </View>
-
-
-      <Text style={styles.textH2Black}>Confirm New Password</Text>
-      <View style={localStyles.passwordInputContainer}>
-        <TextInput
-          style={[styles.input, localStyles.passwordInput, passwordError && { borderColor: 'red', borderWidth: 1 }]}
-          placeholder="Confirm your new password"
-          secureTextEntry={!showConfirmPassword} 
-          value={confirmPassword}
-          onChangeText={setConfirmPassword}
-          onBlur={validatePassword}
-        />
-        <TouchableOpacity
-          onPress={() => setShowConfirmPassword(!showConfirmPassword)}
-          style={localStyles.eyeIcon}
-        >
-          <FontAwesome
-            name={showConfirmPassword ? 'eye-slash' : 'eye'} 
-            size={20}
-            color="gray"
-          />
-        </TouchableOpacity>
-      </View>
-
-
-      {passwordError ? <Text style={{ color: 'red', marginBottom: 10 }}>{passwordError}</Text> : null}
-
-      <View style={localStyles.buttonRow}>
-        <TouchableOpacity
-          style={[styles.button, localStyles.cancelButton]}
-          onPress={onClose}
-        >
-          <Text style={styles.buttonText}>Cancel</Text>
-          <FontAwesome name="times" size={24} color="white" style={{ marginLeft: 8 }} />
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.button, localStyles.resetPasswordButton]}
-          onPress={handleChangePassword}
-          disabled={loading}
-        >
-          {loading ? (
-            <ActivityIndicator color="white" />
-          ) : (
-            <>
-              <Text style={styles.buttonText}>Reset Password</Text>
-              <FontAwesome name="check" size={24} color="white" style={{ marginLeft: 8 }} />
-            </>
-          )}
-        </TouchableOpacity>
-      </View>
-    </View>
+    </Modal>
   );
 };
 
-const localStyles = StyleSheet.create({
-  buttonRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 20,
+const styles = StyleSheet.create({
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: Theme.colors.overlay.dark,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  container: {
+    width: '100%',
+    paddingHorizontal: Theme.spacing.base,
+  },
+
+  content: {
+    backgroundColor: Theme.colors.background.primary,
+    borderRadius: Theme.borderRadius['3xl'],
+    padding: Theme.spacing['2xl'],
+    ...Theme.shadows.xl,
+  },
+
+  header: {
+    alignItems: 'center',
+    marginBottom: Theme.spacing['2xl'],
+  },
+
+  iconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: Theme.borderRadius.full,
+    backgroundColor: Theme.colors.primary[50],
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: Theme.spacing.lg,
+  },
+
+  title: {
+    fontSize: Theme.typography.fontSize['3xl'],
+    fontWeight: Theme.typography.fontWeight.bold,
+    color: Theme.colors.text.primary,
+    marginBottom: Theme.spacing.xs,
+    textAlign: 'center',
+  },
+
+  subtitle: {
+    fontSize: Theme.typography.fontSize.base,
+    color: Theme.colors.text.secondary,
+    textAlign: 'center',
+    paddingHorizontal: Theme.spacing.base,
+  },
+
+  form: {
     width: '100%',
   },
+
+  requirementsContainer: {
+    backgroundColor: Theme.colors.background.secondary,
+    padding: Theme.spacing.base,
+    borderRadius: Theme.borderRadius.lg,
+    marginBottom: Theme.spacing.xl,
+  },
+
+  requirementsTitle: {
+    fontSize: Theme.typography.fontSize.sm,
+    fontWeight: Theme.typography.fontWeight.semiBold,
+    color: Theme.colors.text.primary,
+    marginBottom: Theme.spacing.sm,
+  },
+
+  requirementItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Theme.spacing.sm,
+    marginBottom: Theme.spacing.xs,
+  },
+
+  requirementText: {
+    fontSize: Theme.typography.fontSize.sm,
+    color: Theme.colors.text.tertiary,
+  },
+
+  requirementTextMet: {
+    color: Theme.colors.success[700],
+    fontWeight: Theme.typography.fontWeight.medium,
+  },
+
+  buttonContainer: {
+    flexDirection: 'row',
+    gap: Theme.spacing.md,
+    marginTop: Theme.spacing.lg,
+  },
+
   cancelButton: {
-    backgroundColor: '#dc3545',
     flex: 1,
-    marginRight: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 10,
-    borderRadius: 5,
   },
-  resetPasswordButton: {
-    backgroundColor: '#28a745',
-    flex: 1,
-    marginLeft: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 10,
-    borderRadius: 5,
-  },
-  passwordInputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    width: '100%',
-    marginBottom: 15,
-    borderColor: '#ccc', 
-    borderWidth: 1,      
-    borderRadius: 5,     
-    backgroundColor: '#fff', 
-  },
-  passwordInput: {
-    flex: 1, 
-    paddingRight: 40, 
-    borderWidth: 0, 
-    marginBottom: 0, 
-  },
-  eyeIcon: {
-    position: 'absolute',
-    right: 15,
-    padding: 10, 
+
+  resetButton: {
+    flex: 2,
   },
 });
 
