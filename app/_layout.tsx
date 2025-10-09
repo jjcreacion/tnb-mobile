@@ -11,6 +11,7 @@ import { PersistGate } from 'redux-persist/integration/react';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { persistor, store } from '@/store';
+import { Theme } from '@/constants/Theme';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -40,7 +41,7 @@ export default function RootLayout() {
               <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
               <Stack.Screen name="+not-found" />
             </Stack>
-            <StatusBar style="auto" />
+            <StatusBar style="light" backgroundColor={Theme.colors.primary[500]} />
           </ThemeProvider>
         </PersistGate>
       </Provider>
