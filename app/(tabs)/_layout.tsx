@@ -1,4 +1,5 @@
 import { HapticTab } from '@/components/HapticTab';
+import { Theme } from '@/constants/Theme';
 import { Tabs } from 'expo-router';
 import React from 'react';
 import { Platform } from 'react-native';
@@ -11,25 +12,29 @@ export default function TabsLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: '#A6230C',
-        tabBarInactiveTintColor: '#ffffff',
+        // tabBarActiveTintColor: Theme.colors.primary[800],
+        // tabBarInactiveTintColor: 'rgba(255, 255, 255, 0.8)',
+        
+        tabBarActiveTintColor: Theme.colors.primary[50],
+        tabBarInactiveTintColor: 'rgba(255, 255, 255, 0.4)',
         headerShown: false,
         tabBarButton: HapticTab,
         tabBarStyle: Platform.select({
           ios: {
-            backgroundColor: '#fe4944',
-            borderTopLeftRadius: 0,
-            borderTopRightRadius: 0,
+            backgroundColor: Theme.colors.primary[500],
+            borderTopLeftRadius: Theme.borderRadius.xl,
+            borderTopRightRadius: Theme.borderRadius.xl,
             overflow: 'hidden',
             borderTopWidth: 0,
             height: 85,
             paddingBottom: 0,
             paddingTop: 5,
+            ...Theme.shadows.lg,
           },
           android: {
-            backgroundColor: '#fe4944',
-            borderTopLeftRadius: 0,
-            borderTopRightRadius: 0,
+            backgroundColor: Theme.colors.primary[500],
+            borderTopLeftRadius: Theme.borderRadius.xl,
+            borderTopRightRadius: Theme.borderRadius.xl,
             overflow: 'hidden',
             borderTopWidth: 0,
             height: 70 + insets.bottom,
@@ -37,18 +42,21 @@ export default function TabsLayout() {
             paddingTop: 8,
             position: 'absolute',
             bottom: 0,
+            elevation: 12,
           },
         }),
         tabBarLabelStyle: Platform.select({
           ios: {
-            fontSize: 12,
-            color: '#ffffff',
+            fontSize: Theme.typography.fontSize.xs,
+            color: Theme.colors.text.inverse,
             marginBottom: 0,
+            fontWeight: Theme.typography.fontWeight.medium,
           },
           android: {
-            fontSize: 12,
-            color: '#ffffff',
+            fontSize: Theme.typography.fontSize.xs,
+            color: Theme.colors.text.inverse,
             marginBottom: 5,
+            fontWeight: Theme.typography.fontWeight.medium,
           },
         }),
         tabBarIconStyle: Platform.select({
@@ -57,17 +65,6 @@ export default function TabsLayout() {
           },
           android: {
             marginTop: 5,
-          },
-        }),
-        ...Platform.select({
-          ios: {
-            shadowColor: 'gray',
-            shadowOffset: { width: 0, height: -2 },
-            shadowOpacity: 0.3,
-            shadowRadius: 3,
-          },
-          android: {
-            elevation: 10,
           },
         }),
       }}

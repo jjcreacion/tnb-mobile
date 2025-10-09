@@ -63,6 +63,7 @@ export default function LoginScreen() {
     <ImageBackground
       source={require('@/assets/images/ingenieros.jpeg')}
       style={styles.backgroundImage}
+      blurRadius={10}
     >
       <LinearGradient
         // colors={['rgba(230, 57, 70, 0.3)', 'rgba(230, 57, 70, 0.6)', 'rgba(230, 57, 70, 0.8)']}

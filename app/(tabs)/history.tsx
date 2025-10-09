@@ -4,11 +4,11 @@ import Constants from 'expo-constants';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Platform, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import Icon from 'react-native-vector-icons/MaterialIcons';
+import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import Icon from 'react-native-vector-icons/Ionicons';
+import { Screen, Card } from '@/components/common';
+import { Theme } from '@/constants/Theme';
 
-
-// Definición de tipos para los datos de las APIs
 interface ServiceRequest {
   requestId: number;
   serviceDescription: string;
@@ -44,14 +44,12 @@ interface Status {
 const HistoryScreen = () => {
   const [services, setServices] = useState<ServiceRequest[]>([]);
   const [statusList, setStatusList] = useState<Status[]>([]);
-  const [selectedStatus] = useState('All');
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
   const API_URL = Constants.expoConfig?.extra?.API_BASE_URL;
   const [isRefreshing, setIsRefreshing] = useState(false);
   const router = useRouter();
 
-  // Función para obtener la lista de estados de la API
   const fetchStatusList = useCallback(async () => {
     try {
       const response = await axios.get<Status[]>(`${API_URL}/status-list`);
@@ -63,7 +61,6 @@ const HistoryScreen = () => {
     }
   }, [API_URL]);
 
-  // Función para obtener las solicitudes de servicio del usuario
   const fetchServices = useCallback(async (currentUserId: string) => {
     setIsRefreshing(true);
     setLoading(true);
@@ -85,7 +82,7 @@ const HistoryScreen = () => {
       }
     } catch (error) {
       console.error('Network or other error fetching services:', error);
-      setServices([]); // Establecer a un array vacío en caso de error
+      setServices([]);
     } finally {
       setLoading(false);
       setIsRefreshing(false);
@@ -128,209 +125,354 @@ const HistoryScreen = () => {
   const getStatusTextAndColor = (fkRequestStatus: number | null) => {
     const statusId = fkRequestStatus === null ? 1 : fkRequestStatus;
     const statusObject = statusList.find(status => status.statusId === statusId);
-  
-    const statusColor = statusObject ? statusObject.color : 'gray'; 
+    const statusColor = statusObject ? statusObject.color : Theme.colors.text.tertiary;
     const statusName = statusObject ? statusObject.name : 'Unknown';
-  
     return { text: statusName, color: statusColor };
   };
 
-  const renderServiceCard = (service: ServiceRequest) => {
+  const getStatusIcon = (statusName: string) => {
+    const name = statusName.toLowerCase();
+    if (name.includes('approved')) return 'checkmark-done-circle';
+    if (name.includes('progress')) return 'hourglass-outline';
+    if (name.includes('closed')) return 'close-circle-outline';
+    if (name.includes('finish')) return 'checkmark-circle-outline';
+    return 'time-outline';
+  };
+
+  const renderServiceCard = ({ item: service }: { item: ServiceRequest }) => {
     const statusInfo = getStatusTextAndColor(service.fkRequestStatus);
+    const statusIcon = getStatusIcon(statusInfo.text);
 
     return (
-      <TouchableOpacity key={service.requestId} style={styles.card} onPress={() => handleCardPress(service)}>
-        <View style={styles.cardHeader}>
-          <Text style={styles.cardTitle}>{service.serviceDescription || 'No Description'}</Text>
-        </View>
-        <Text style={styles.cardDescription}>{service.address || 'No Address'}</Text>
-        <View style={styles.cardFooter}>
-          <View style={[styles.statusBadge, { backgroundColor: statusInfo.color }]}>
-            <Text style={styles.statusBadgeText}>{statusInfo.text}</Text>
+      <TouchableOpacity onPress={() => handleCardPress(service)}>
+        <Card variant="elevated" padding="base" style={styles.card}>
+          <View style={styles.cardHeader}>
+            <View style={styles.cardHeaderLeft}>
+              <Text style={styles.cardTitle} numberOfLines={2}>
+                {service.serviceDescription || 'No Description'}
+              </Text>
+            </View>
+            <Icon name="chevron-forward" size={20} color={Theme.colors.text.tertiary} />
           </View>
-          <Text style={styles.cardDate}>Created: {new Date(service.createdAt).toLocaleDateString()}</Text>
-        </View>
+
+          <View style={styles.addressContainer}>
+            <Icon name="location" size={16} color={Theme.colors.text.tertiary} />
+            <Text style={styles.addressText} numberOfLines={2}>
+              {service.address || 'No Address'}
+            </Text>
+          </View>
+
+          <View style={styles.cardFooter}>
+            <View style={styles.statusContainer}>
+              <View style={[styles.statusBadge, { backgroundColor: statusInfo.color }]}>
+                <Icon name={statusIcon} size={14} color="#FFFFFF" />
+                <Text style={styles.statusBadgeText}>{statusInfo.text}</Text>
+              </View>
+            </View>
+            <View style={styles.dateContainer}>
+              <Icon name="calendar-outline" size={14} color={Theme.colors.text.tertiary} />
+              <Text style={styles.dateText}>
+                {new Date(service.createdAt).toLocaleDateString()}
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.requestIdContainer}>
+            <Text style={styles.requestIdText}>Request #{service.requestId}</Text>
+          </View>
+        </Card>
       </TouchableOpacity>
     );
   };
 
-  const filteredServices = selectedStatus === 'All'
-    ? services
-    : services.filter(service => getStatusTextAndColor(service.fkRequestStatus).text === selectedStatus);
+  const renderEmptyState = () => (
+    <View style={styles.emptyContainer}>
+      <View style={styles.emptyIconContainer}>
+        <Icon name="file-tray-outline" size={64} color={Theme.colors.text.tertiary} />
+      </View>
+      <Text style={styles.emptyTitle}>No Service History</Text>
+      <Text style={styles.emptySubtitle}>Your completed services will appear here</Text>
+    </View>
+  );
+
+  const renderErrorState = () => (
+    <View style={styles.emptyContainer}>
+      <View style={styles.emptyIconContainer}>
+        <Icon name="alert-circle-outline" size={64} color={Theme.colors.error[500]} />
+      </View>
+      <Text style={styles.emptyTitle}>Unable to Load</Text>
+      <Text style={styles.emptySubtitle}>Could not load user information</Text>
+    </View>
+  );
 
   return (
-    <ScrollView
-      style={styles.container}
-      refreshControl={
-        <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} />
-      }
-    >
-      <View style={styles.backgroundTop}>
-        <LinearGradient
-          colors={['#ea0e08', '#fa2d64']}
-          style={styles.linearGradientHeader}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-        >
-          <View style={styles.headerContainer}>
-            <View style={styles.leftHeader}>
-              <Text style={styles.companyName}>Service History</Text>
+    <Screen safeArea edges={['top', 'bottom']}>
+      {/* Header */}
+      <LinearGradient
+        colors={[Theme.colors.primary[500], Theme.colors.primary[600]]}
+        style={styles.header}
+      >
+        <View style={styles.headerContent}>
+          <View style={styles.headerIcon}>
+            <Icon name="document-text" size={28} color={Theme.colors.text.inverse} />
+          </View>
+          <View style={styles.headerTextContainer}>
+            <Text style={styles.headerTitle}>Services</Text>
+            <Text style={styles.headerSubtitle}>View your service history</Text>
+          </View>
+        </View>
+        {services.length > 0 && (
+          <View style={styles.statsContainer}>
+            <View style={styles.statItem}>
+              <Text style={styles.statNumber}>{services.length}</Text>
+              <Text style={styles.statLabel}>Total Services</Text>
             </View>
           </View>
-        </LinearGradient>
-      </View>
+        )}
+      </LinearGradient>
 
+      {/* Content */}
       {loading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#007AFF" />
-          <Text style={styles.loadingText}>Loading...</Text>
+          <ActivityIndicator size="large" color={Theme.colors.primary[500]} />
+          <Text style={styles.loadingText}>Loading your services...</Text>
         </View>
-      ) : userId ? (
-        filteredServices.length > 0 ? (
-          filteredServices.map(renderServiceCard)
-        ) : (
-          <View style={styles.noServicesContainer}>
-            <Icon name="sentiment-dissatisfied" size={60} color="#666" />
-            <Text style={styles.noServicesText}>No activity</Text>
-          </View>
-        )
+      ) : !userId ? (
+        renderErrorState()
       ) : (
-        <View style={styles.noServicesContainer}>
-          <Icon name="error-outline" size={60} color="#666" />
-          <Text style={styles.noServicesText}>Could not load user information.</Text>
-        </View>
+        <FlatList
+          data={services}
+          renderItem={renderServiceCard}
+          keyExtractor={(item) => item.requestId.toString()}
+          contentContainerStyle={[
+            styles.listContent,
+            services.length === 0 && styles.listContentEmpty
+          ]}
+          ListEmptyComponent={renderEmptyState}
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefreshing}
+              onRefresh={onRefresh}
+              tintColor={Theme.colors.primary[500]}
+              colors={[Theme.colors.primary[500]]}
+            />
+          }
+          showsVerticalScrollIndicator={false}
+        />
       )}
-    </ScrollView>
+    </Screen>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
+  header: {
+    paddingTop: Theme.spacing.lg,
+    paddingBottom: Theme.spacing.xl,
+    paddingHorizontal: Theme.spacing.base,
+    marginBottom: Theme.spacing.base,
+    ...Theme.shadows.md,
+  },
+
+  headerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Theme.spacing.md,
+    marginBottom: Theme.spacing.md,
+  },
+
+  headerIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: Theme.borderRadius.full,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  headerTextContainer: {
     flex: 1,
   },
-  backgroundTop: {
-    borderBottomWidth: 0,
-    backgroundColor: 'transparent',
+
+  headerTitle: {
+    fontSize: Theme.typography.fontSize['2xl'],
+    fontWeight: Theme.typography.fontWeight.bold,
+    color: Theme.colors.text.inverse,
+    marginBottom: 2,
   },
+
+  headerSubtitle: {
+    fontSize: Theme.typography.fontSize.sm,
+    color: 'rgba(255, 255, 255, 0.9)',
+    fontWeight: Theme.typography.fontWeight.medium,
+  },
+
+  statsContainer: {
+    flexDirection: 'row',
+    gap: Theme.spacing.md,
+    marginTop: Theme.spacing.sm,
+  },
+
+  statItem: {
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    paddingVertical: Theme.spacing.sm,
+    paddingHorizontal: Theme.spacing.base,
+    borderRadius: Theme.borderRadius.lg,
+    minWidth: 100,
+  },
+
+  statNumber: {
+    fontSize: Theme.typography.fontSize.xl,
+    fontWeight: Theme.typography.fontWeight.bold,
+    color: Theme.colors.text.inverse,
+    marginBottom: 2,
+  },
+
+  statLabel: {
+    fontSize: Theme.typography.fontSize.xs,
+    color: 'rgba(255, 255, 255, 0.8)',
+  },
+
+  listContent: {
+    paddingHorizontal: Theme.spacing.base,
+    paddingBottom: Theme.spacing.xl,
+  },
+
+  listContentEmpty: {
+    flexGrow: 1,
+  },
+
   card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 8,
-    padding: 16,
-    marginBottom: 12,
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+    marginBottom: Theme.spacing.md,
   },
-  companyName: {
-    color: '#fff7f9',
-    fontSize: 22,
-    fontWeight: 'bold',
-    marginLeft: 8,
-  },
+
   cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
+    alignItems: 'flex-start',
+    marginBottom: Theme.spacing.md,
+    gap: Theme.spacing.sm,
   },
-  headerContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 15,
-    paddingTop: 0,
-    marginBottom: 0,
-    width: '100%',
-    backgroundColor: 'transparent',
+
+  cardHeaderLeft: {
+    flex: 1,
   },
+
   cardTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 8,
+    fontSize: Theme.typography.fontSize.lg,
+    fontWeight: Theme.typography.fontWeight.bold,
+    color: Theme.colors.text.primary,
+    lineHeight: Theme.typography.lineHeight.md,
   },
-  cardDescription: {
-    fontSize: 16,
-    marginBottom: 8,
+
+  addressContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: Theme.spacing.xs,
+    marginBottom: Theme.spacing.md,
+    paddingVertical: Theme.spacing.sm,
+    paddingHorizontal: Theme.spacing.md,
+    backgroundColor: Theme.colors.background.secondary,
+    borderRadius: Theme.borderRadius.md,
   },
-  linearGradientHeader: {
-    width: '100%',
-    paddingTop: 40,
-    paddingBottom: 20,
-    overflow: 'hidden',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 5,
-      },
-      android: {
-        elevation: 3,
-      },
-    }),
+
+  addressText: {
+    flex: 1,
+    fontSize: Theme.typography.fontSize.sm,
+    color: Theme.colors.text.secondary,
+    lineHeight: Theme.typography.lineHeight.md,
   },
+
   cardFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 8,
+    alignItems: 'center',
+    marginTop: Theme.spacing.sm,
+    paddingTop: Theme.spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: Theme.colors.border.light,
   },
-  cardDate: {
-    fontSize: 14,
-    color: 'gray',
-  },
-  leftHeader: {
+
+  statusContainer: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  header: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 16,
-  },
-  pickerContainer: {
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-    borderRadius: 8,
-    marginBottom: 16,
-  },
-  picker: {
-    height: 50,
-    width: '100%',
-  },
+
   statusBadge: {
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    borderRadius: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Theme.spacing.xs,
+    paddingVertical: Theme.spacing.xs,
+    paddingHorizontal: Theme.spacing.sm,
+    borderRadius: Theme.borderRadius.full,
   },
+
   statusBadgeText: {
-    color: 'white',
-    fontWeight: 'bold',
+    color: '#FFFFFF',
+    fontSize: Theme.typography.fontSize.xs,
+    fontWeight: Theme.typography.fontWeight.bold,
   },
+
+  dateContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Theme.spacing.xs,
+  },
+
+  dateText: {
+    fontSize: Theme.typography.fontSize.xs,
+    color: Theme.colors.text.tertiary,
+  },
+
+  requestIdContainer: {
+    marginTop: Theme.spacing.sm,
+  },
+
+  requestIdText: {
+    fontSize: Theme.typography.fontSize.xs,
+    color: Theme.colors.text.tertiary,
+    fontWeight: Theme.typography.fontWeight.medium,
+  },
+
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 20,
+    gap: Theme.spacing.md,
   },
+
   loadingText: {
-    marginTop: 10,
-    fontSize: 16,
-    color: 'gray',
+    fontSize: Theme.typography.fontSize.base,
+    color: Theme.colors.text.secondary,
   },
-  noServicesContainer: {
+
+  emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 50,
-    width: '100%',
-    backgroundColor: 'transparent',
+    paddingHorizontal: Theme.spacing.xl,
+    paddingVertical: Theme.spacing['5xl'],
   },
-  noServicesText: {
-    marginTop: 15,
-    fontSize: 25,
-    fontWeight: 'bold',
-    color: '#666',
+
+  emptyIconContainer: {
+    width: 120,
+    height: 120,
+    borderRadius: Theme.borderRadius.full,
+    backgroundColor: Theme.colors.background.secondary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: Theme.spacing.xl,
+  },
+
+  emptyTitle: {
+    fontSize: Theme.typography.fontSize.xl,
+    fontWeight: Theme.typography.fontWeight.bold,
+    color: Theme.colors.text.primary,
+    marginBottom: Theme.spacing.sm,
+  },
+
+  emptySubtitle: {
+    fontSize: Theme.typography.fontSize.base,
+    color: Theme.colors.text.secondary,
     textAlign: 'center',
   },
 });

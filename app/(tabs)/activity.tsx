@@ -3,8 +3,10 @@ import axios from 'axios';
 import Constants from 'expo-constants';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Platform, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import Icon from 'react-native-vector-icons/MaterialIcons';
+import { ActivityIndicator, FlatList, Platform, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import Icon from 'react-native-vector-icons/Ionicons';
+import { Screen, Card, StatusBadge } from '@/components/common';
+import { Theme } from '@/constants/Theme';
 
 interface Service {
   requestId: string;
@@ -16,7 +18,6 @@ interface Service {
 
 const ActivityScreen = () => {
   const [services, setServices] = useState<Service[]>([]);
-  const [selectedStatus] = useState('All');
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
   const API_URL = Constants.expoConfig?.extra?.API_BASE_URL;
@@ -78,221 +79,341 @@ const ActivityScreen = () => {
     }
   }, [fetchServices]);
 
-  const getStatusTextAndColor = (status: number) => {
+  const getStatusConfig = (status: number) => {
     switch (status) {
       case 1:
-        return { text: 'Finish', color: '#FFC107' };
+        return { text: 'Finish', variant: 'warning' as const, icon: 'checkmark-circle-outline' };
       case 2:
-        return { text: 'Approved', color: '#4CAF50' };
+        return { text: 'Approved', variant: 'success' as const, icon: 'checkmark-done-circle' };
       case 3:
-        return { text: 'In Progress', color: '#2196F3' };
+        return { text: 'In Progress', variant: 'info' as const, icon: 'hourglass-outline' };
       case 4:
-        return { text: 'Closed', color: '#9E9E9E' };
+        return { text: 'Closed', variant: 'neutral' as const, icon: 'close-circle-outline' };
       default:
-        return { text: 'Pending', color: 'gray' };
+        return { text: 'Pending', variant: 'warning' as const, icon: 'time-outline' };
     }
   };
 
-  const renderServiceCard = (service: Service) => {
-    const statusInfo = getStatusTextAndColor(service.status);
+  const renderServiceCard = ({ item: service }: { item: Service }) => {
+    const statusConfig = getStatusConfig(service.status);
 
     return (
-      <TouchableOpacity key={service.requestId} style={styles.card}>
+      <Card variant="elevated" padding="base" style={styles.card}>
         <View style={styles.cardHeader}>
-          <Text style={styles.cardTitle}>{service.serviceDescription || 'No Description'}</Text>
-          <TouchableOpacity onPress={() => console.log(`Open chat modal for request ${service.requestId}`)}>
-            <Icon name="chat" size={24} color="#007AFF" />
+          <View style={styles.cardHeaderLeft}>
+            <Text style={styles.cardTitle} numberOfLines={2}>
+              {service.serviceDescription || 'No Description'}
+            </Text>
+          </View>
+          <TouchableOpacity
+            style={styles.chatButton}
+            onPress={() => console.log(`Open chat modal for request ${service.requestId}`)}
+          >
+            <Icon name="chatbubble-ellipses" size={22} color={Theme.colors.primary[500]} />
           </TouchableOpacity>
         </View>
-        <Text style={styles.cardDescription}>{service.address || 'No Address'}</Text>
-        <View style={styles.cardFooter}>
-          <View style={[styles.statusBadge, { backgroundColor: statusInfo.color }]}>
-            <Text style={styles.statusBadgeText}>{statusInfo.text}</Text>
-          </View>
-          <Text style={styles.cardDate}>Created: {new Date(service.createdAt).toLocaleDateString()}</Text>
+
+        <View style={styles.addressContainer}>
+          <Icon name="location" size={16} color={Theme.colors.text.tertiary} />
+          <Text style={styles.addressText} numberOfLines={2}>
+            {service.address || 'No Address'}
+          </Text>
         </View>
-      </TouchableOpacity>
+
+        <View style={styles.cardFooter}>
+          <StatusBadge label={statusConfig.text} variant={statusConfig.variant} icon={statusConfig.icon} />
+          <View style={styles.dateContainer}>
+            <Icon name="calendar-outline" size={14} color={Theme.colors.text.tertiary} />
+            <Text style={styles.dateText}>
+              {new Date(service.createdAt).toLocaleDateString()}
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.requestIdContainer}>
+          <Text style={styles.requestIdText}>Request #{service.requestId}</Text>
+        </View>
+      </Card>
     );
   };
 
-  const filteredServices = selectedStatus === 'All'
-    ? services
-    : services.filter(service => getStatusTextAndColor(service.status).text === selectedStatus);
+  const renderEmptyState = () => (
+    <View style={styles.emptyContainer}>
+      <View style={styles.emptyIconContainer}>
+        <Icon name="notifications-off-outline" size={64} color={Theme.colors.text.tertiary} />
+      </View>
+      <Text style={styles.emptyTitle}>No Activity Yet</Text>
+      <Text style={styles.emptySubtitle}>Your service requests will appear here</Text>
+    </View>
+  );
+
+  const renderErrorState = () => (
+    <View style={styles.emptyContainer}>
+      <View style={styles.emptyIconContainer}>
+        <Icon name="alert-circle-outline" size={64} color={Theme.colors.error[500]} />
+      </View>
+      <Text style={styles.emptyTitle}>Unable to Load</Text>
+      <Text style={styles.emptySubtitle}>Could not load user information</Text>
+    </View>
+  );
 
   return (
-    <ScrollView
-      style={styles.container}
-      refreshControl={
-        <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} />
-      }
-    >
-     <View style={styles.backgroundTop}>
-        <LinearGradient
-          colors={['#ea0e08', '#fa2d64']}
-          style={styles.linearGradientHeader}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-        >
-          <View style={styles.headerContainer}>
-            <View style={styles.leftHeader}>
-              <Text style={styles.companyName}>Activity Notifications</Text>
+    <Screen safeArea edges={['top', 'bottom']}>
+      {/* Header */}
+      <LinearGradient
+        colors={[Theme.colors.primary[500], Theme.colors.primary[600]]}
+        style={styles.header}
+      >
+        <View style={styles.headerContent}>
+          <View style={styles.headerIcon}>
+            <Icon name="notifications" size={28} color={Theme.colors.text.inverse} />
+          </View>
+          <View style={styles.headerTextContainer}>
+            <Text style={styles.headerTitle}>Activity</Text>
+            <Text style={styles.headerSubtitle}>Track your service requests</Text>
+          </View>
+        </View>
+        {services.length > 0 && (
+          <View style={styles.statsContainer}>
+            <View style={styles.statItem}>
+              <Text style={styles.statNumber}>{services.length}</Text>
+              <Text style={styles.statLabel}>Total Requests</Text>
             </View>
           </View>
-        </LinearGradient>
+        )}
+      </LinearGradient>
 
-      </View>
-
+      {/* Content */}
       {loading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#007AFF" />
-          <Text style={styles.loadingText}>Loading...</Text>
+          <ActivityIndicator size="large" color={Theme.colors.primary[500]} />
+          <Text style={styles.loadingText}>Loading your activity...</Text>
         </View>
-      ) : userId ? (
-        filteredServices.length > 0 ? (
-          filteredServices.map(renderServiceCard)
-        ) : (
-          <View style={styles.noServicesContainer}>
-            <Icon name="sentiment-dissatisfied" size={60} color="#666" />
-            <Text style={styles.noServicesText}>No activity</Text>
-          </View>
-        )
+      ) : !userId ? (
+        renderErrorState()
       ) : (
-        <View style={styles.noServicesContainer}>
-          <Icon name="error-outline" size={60} color="#666" />
-          <Text style={styles.noServicesText}>Could not load user information.</Text>
-        </View>
+        <FlatList
+          data={services}
+          renderItem={renderServiceCard}
+          keyExtractor={(item) => item.requestId}
+          contentContainerStyle={[
+            styles.listContent,
+            services.length === 0 && styles.listContentEmpty
+          ]}
+          ListEmptyComponent={renderEmptyState}
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefreshing}
+              onRefresh={onRefresh}
+              tintColor={Theme.colors.primary[500]}
+              colors={[Theme.colors.primary[500]]}
+            />
+          }
+          showsVerticalScrollIndicator={false}
+        />
       )}
-    </ScrollView>
+    </Screen>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
+  header: {
+    paddingTop: Theme.spacing.lg,
+    paddingBottom: Theme.spacing.xl,
+    paddingHorizontal: Theme.spacing.base,
+    marginBottom: Theme.spacing.base,
+    ...Theme.shadows.md,
+  },
+
+  headerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Theme.spacing.md,
+    marginBottom: Theme.spacing.md,
+  },
+
+  headerIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: Theme.borderRadius.full,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  headerTextContainer: {
     flex: 1,
   },
-  backgroundTop: {
-    borderBottomWidth: 0,
-    backgroundColor: 'transparent',
+
+  headerTitle: {
+    fontSize: Theme.typography.fontSize['2xl'],
+    fontWeight: Theme.typography.fontWeight.bold,
+    color: Theme.colors.text.inverse,
+    marginBottom: 2,
   },
+
+  headerSubtitle: {
+    fontSize: Theme.typography.fontSize.sm,
+    color: 'rgba(255, 255, 255, 0.9)',
+    fontWeight: Theme.typography.fontWeight.medium,
+  },
+
+  statsContainer: {
+    flexDirection: 'row',
+    gap: Theme.spacing.md,
+    marginTop: Theme.spacing.sm,
+  },
+
+  statItem: {
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    paddingVertical: Theme.spacing.sm,
+    paddingHorizontal: Theme.spacing.base,
+    borderRadius: Theme.borderRadius.lg,
+    minWidth: 100,
+  },
+
+  statNumber: {
+    fontSize: Theme.typography.fontSize.xl,
+    fontWeight: Theme.typography.fontWeight.bold,
+    color: Theme.colors.text.inverse,
+    marginBottom: 2,
+  },
+
+  statLabel: {
+    fontSize: Theme.typography.fontSize.xs,
+    color: 'rgba(255, 255, 255, 0.8)',
+  },
+
+  listContent: {
+    paddingHorizontal: Theme.spacing.base,
+    paddingBottom: Theme.spacing.xl,
+  },
+
+  listContentEmpty: {
+    flexGrow: 1,
+  },
+
   card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 8,
-    padding: 16,
-    marginBottom: 12,
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+    marginBottom: Theme.spacing.md,
   },
-  companyName: {
-    color: '#fff7f9',
-    fontSize: 22,
-    fontWeight: 'bold',
-    marginLeft: 8,
-  },
+
   cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
+    alignItems: 'flex-start',
+    marginBottom: Theme.spacing.md,
+    gap: Theme.spacing.sm,
   },
-  headerContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 15,
-    paddingTop: 0,
-    marginBottom: 0,
-    width: '100%',
-    backgroundColor: 'transparent',
+
+  cardHeaderLeft: {
+    flex: 1,
   },
+
   cardTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 8,
+    fontSize: Theme.typography.fontSize.lg,
+    fontWeight: Theme.typography.fontWeight.bold,
+    color: Theme.colors.text.primary,
+    lineHeight: Theme.typography.lineHeight.md,
   },
-  cardDescription: {
-    fontSize: 16,
-    marginBottom: 8,
+
+  chatButton: {
+    width: 36,
+    height: 36,
+    borderRadius: Theme.borderRadius.md,
+    backgroundColor: Theme.colors.primary[50],
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  linearGradientHeader: {
-    width: '100%',
-    paddingTop: 40,
-    paddingBottom: 20,
-    overflow: 'hidden',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 5,
-      },
-      android: {
-        elevation: 3,
-      },
-    }),
+
+  addressContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: Theme.spacing.xs,
+    marginBottom: Theme.spacing.md,
+    paddingVertical: Theme.spacing.sm,
+    paddingHorizontal: Theme.spacing.md,
+    backgroundColor: Theme.colors.background.secondary,
+    borderRadius: Theme.borderRadius.md,
   },
+
+  addressText: {
+    flex: 1,
+    fontSize: Theme.typography.fontSize.sm,
+    color: Theme.colors.text.secondary,
+    lineHeight: Theme.typography.lineHeight.md,
+  },
+
   cardFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 8,
+    alignItems: 'center',
+    marginTop: Theme.spacing.sm,
+    paddingTop: Theme.spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: Theme.colors.border.light,
   },
-  cardDate: {
-    fontSize: 14,
-    color: 'gray',
-  },
-  leftHeader: {
+
+  dateContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: Theme.spacing.xs,
   },
-  header: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 16,
+
+  dateText: {
+    fontSize: Theme.typography.fontSize.xs,
+    color: Theme.colors.text.tertiary,
   },
-  pickerContainer: {
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-    borderRadius: 8,
-    marginBottom: 16,
+
+  requestIdContainer: {
+    marginTop: Theme.spacing.sm,
   },
-  picker: {
-    height: 50,
-    width: '100%',
+
+  requestIdText: {
+    fontSize: Theme.typography.fontSize.xs,
+    color: Theme.colors.text.tertiary,
+    fontWeight: Theme.typography.fontWeight.medium,
   },
-  statusBadge: {
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    borderRadius: 10,
-  },
-  statusBadgeText: {
-    color: 'white',
-    fontWeight: 'bold',
-  },
+
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 20,
+    gap: Theme.spacing.md,
   },
+
   loadingText: {
-    marginTop: 10,
-    fontSize: 16,
-    color: 'gray',
+    fontSize: Theme.typography.fontSize.base,
+    color: Theme.colors.text.secondary,
   },
-  noServicesContainer: {
+
+  emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 50, 
-    width: '100%', 
-    backgroundColor: 'transparent', 
+    paddingHorizontal: Theme.spacing.xl,
+    paddingVertical: Theme.spacing['5xl'],
   },
-  noServicesText: {
-    marginTop: 15, 
-    fontSize: 25, 
-    fontWeight: 'bold',
-    color: '#666', 
+
+  emptyIconContainer: {
+    width: 120,
+    height: 120,
+    borderRadius: Theme.borderRadius.full,
+    backgroundColor: Theme.colors.background.secondary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: Theme.spacing.xl,
+  },
+
+  emptyTitle: {
+    fontSize: Theme.typography.fontSize.xl,
+    fontWeight: Theme.typography.fontWeight.bold,
+    color: Theme.colors.text.primary,
+    marginBottom: Theme.spacing.sm,
+  },
+
+  emptySubtitle: {
+    fontSize: Theme.typography.fontSize.base,
+    color: Theme.colors.text.secondary,
     textAlign: 'center',
   },
 });
