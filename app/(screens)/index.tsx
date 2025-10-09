@@ -1,22 +1,20 @@
-import { Redirect } from 'expo-router'
-import React, { useEffect } from 'react';
-import { View, Text, Image, useWindowDimensions } from 'react-native';
-import styles from '../styles';
 import { useRouter } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
+import React, { useEffect } from 'react';
+import { Image, Text, View } from 'react-native';
+import styles from '../styles';
 
 
 export default function HomeScreens() {
   const router = useRouter();
-  const { width, height } = useWindowDimensions();
 
+  // Navegación automática a la versión migrada (comentar para usar los botones)
   useEffect(() => {
     const timer = setTimeout(() => {
-      router.push('/login');
+      router.push('/loginMigrated' as any);
     }, 4000);
 
     return () => clearTimeout(timer);
-  }, []);
+  }, [router]);
 
   return (
     <View style={styles.containerSplash}>
@@ -30,6 +28,25 @@ export default function HomeScreens() {
         source={require('../../assets/images/icon-index.png')}
         style={styles.imageIndex}
       />
+
+      {/* Botones temporales para comparar versiones */}
+      {/* 
+      <View style={{ position: 'absolute', bottom: 100, alignSelf: 'center', gap: 10 }}>
+        <TouchableOpacity 
+          style={{ backgroundColor: '#E63946', padding: 15, borderRadius: 10 }}
+          onPress={() => router.push('/login' as any)}
+        >
+          <Text style={{ color: 'white', textAlign: 'center' }}>Login Original</Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity 
+          style={{ backgroundColor: '#2A9D8F', padding: 15, borderRadius: 10 }}
+          onPress={() => router.push('/loginMigrated' as any)}
+        >
+          <Text style={{ color: 'white', textAlign: 'center' }}>Login Migrated</Text>
+        </TouchableOpacity>
+      </View>
+      */}
     </View>
   );
 }

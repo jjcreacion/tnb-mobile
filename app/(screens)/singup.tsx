@@ -1,13 +1,13 @@
-import React, { useState, useEffect } from 'react';
-import { Modal, View, Text, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { FontAwesome } from '@expo/vector-icons';
-import Icon from 'react-native-vector-icons/Ionicons';
-import Constants from 'expo-constants';
-import { Button, Input, Screen } from '@/components/common';
+import React, { useEffect, useState } from 'react';
+import { KeyboardAvoidingView, Modal, Platform, StyleSheet, Text, View } from 'react-native';
+
+import { Button, Input } from '@/components/common';
 import { Theme } from '@/constants/Theme';
-import VerifyCode from './verificode';
+import Constants from 'expo-constants';
+import Icon from 'react-native-vector-icons/Ionicons';
 import { validateEmail } from '../../scripts/validator';
+import VerifyCode from './verificode';
 
 interface ModalProps {
   isVisible: boolean;

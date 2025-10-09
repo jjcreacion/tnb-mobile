@@ -1,8 +1,8 @@
-import React, { useRef, useEffect } from 'react';
-import { View, StyleSheet, Text, Animated, Easing, TouchableOpacity } from 'react-native';
-import ConfettiCannon from 'react-native-confetti-cannon';
-import { Ionicons } from '@expo/vector-icons'; 
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import React, { useEffect, useRef } from 'react';
+import { Animated, Easing, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import ConfettiCannon from 'react-native-confetti-cannon';
 
 
 interface RegisterCompleteProps {
@@ -10,7 +10,7 @@ interface RegisterCompleteProps {
   onClose: () => void;
   IsVerify: () => void;
 }
-const registerComplete: React.FC<RegisterCompleteProps> = ({ isVisible, onClose, IsVerify}) => {
+const RegisterComplete: React.FC<RegisterCompleteProps> = ({ isVisible, onClose, IsVerify}) => {
 
   const confettiRef = useRef<ConfettiCannon>(null);
   const pulseAnimation = useRef(new Animated.Value(1)).current;
@@ -29,7 +29,7 @@ const registerComplete: React.FC<RegisterCompleteProps> = ({ isVisible, onClose,
           useNativeDriver: true,
         })
       ).start();
-    }, []);
+    }, [pulseAnimation]);
 
   const goToMainLayout = () => {
     console.log('Ir a principal'); 
@@ -98,4 +98,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default registerComplete;
+export default RegisterComplete;

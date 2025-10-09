@@ -1,9 +1,9 @@
+import { Button } from '@/components/common';
+import { Theme } from '@/constants/Theme';
 import React, { useEffect, useRef, useState } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
-import { Button } from '@/components/common';
-import { Theme } from '@/constants/Theme';
-import Register from './register';
+import Register from './registerMigrated';
 
 interface VerifyCodeProps {
   verificationCode: string;
@@ -17,7 +17,7 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
   const [timer, setTimer] = useState(300);
   const [isCodeCorrect, setIsCodeCorrect] = useState(false);
   const [showRegister, setShowRegister] = useState(false);
-  const inputsRef = useRef<Array<TextInput | null>>([]);
+  const inputsRef = useRef<(TextInput | null)[]>([]);
 
   useEffect(() => {
     // Auto-focus first input

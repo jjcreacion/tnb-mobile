@@ -4,7 +4,7 @@ import { Picker } from '@react-native-picker/picker';
 import Constants from 'expo-constants';
 import * as Location from 'expo-location';
 import { Formik } from 'formik';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 import { WebView } from 'react-native-webview';
@@ -32,6 +32,7 @@ const Register: React.FC<RegisterProps> = ({ isVisible, onClose, IsVerify }) => 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [referralCode, setReferralCode] = useState<string | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [loadingReferralCode, setLoadingReferralCode] = useState(true); 
   const DEFAULT_LATITUDE_DELTA = 0.0922;
   const DEFAULT_LONGITUDE_DELTA = 0.0421;
@@ -57,12 +58,12 @@ const Register: React.FC<RegisterProps> = ({ isVisible, onClose, IsVerify }) => 
 
   const API_URL = Constants.expoConfig?.extra?.API_BASE_URL || 'http://216.246.113.71:8080'; 
 
-  const countryDisplayNameToEnglishNameMap: { [key: string]: string } = {
+  const countryDisplayNameToEnglishNameMap = useMemo(() => ({
     'Estados Unidos': 'United States',
     'Canadá': 'Canada',
     'México': 'Mexico',
     // Add other mappings if necessary
-  };
+  } as { [key: string]: string }), []);
 
   useEffect(() => {
     (async () => {
@@ -170,7 +171,7 @@ const Register: React.FC<RegisterProps> = ({ isVisible, onClose, IsVerify }) => 
     fetchLocationData();
   }, [API_URL]);
 
-  const reverseGeocode = async (latitude: number, longitude: number, setFieldValue: ((field: string, value: any, shouldValidate?: boolean) => void) | null) => {
+  const reverseGeocode = useCallback(async (latitude: number, longitude: number, setFieldValue: ((field: string, value: any, shouldValidate?: boolean) => void) | null) => {
     setLoading(true); 
     setError('');
     try {
@@ -213,7 +214,7 @@ const Register: React.FC<RegisterProps> = ({ isVisible, onClose, IsVerify }) => 
     } finally {
       setLoading(false); 
     }
-  };
+  }, [countryDisplayNameToEnglishNameMap, countryNameToIdMap, stateNameToIdMap, dynamicCities]);
 
   // New function to handle address search and update map/pickers
   const handleAddressSearch = useCallback(async (address: string, setFieldValue: (field: string, value: any, shouldValidate?: boolean) => void) => {
@@ -588,7 +589,7 @@ const Register: React.FC<RegisterProps> = ({ isVisible, onClose, IsVerify }) => 
                 </View>
 
 
-                <Text style={styles.label}>State</Text>
+                <Text style={styles.label}>States</Text>
                 <View style={styles.pickerContainer}>
                   <Picker
                     selectedValue={selectedStateId}

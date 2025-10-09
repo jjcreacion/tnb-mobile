@@ -1,5 +1,4 @@
 import { Button, Input, Loading, Screen, Typography } from '@/components/common';
-import { GradientMigration } from '@/constants/ColorMigration';
 import { Theme } from '@/constants/Theme';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
@@ -13,7 +12,6 @@ import {
     KeyboardAvoidingView,
     Platform,
     StyleSheet,
-    TouchableOpacity,
     View
 } from 'react-native';
 import * as Animatable from 'react-native-animatable';
@@ -75,7 +73,7 @@ export default function LoginScreenMigrated() {
       blurRadius={10}
     >
       <LinearGradient
-        colors={GradientMigration.overlayGradient as any}
+       colors={['rgba(230, 57, 70, 0.2)', 'rgba(230, 57, 70, 0.3)', 'rgba(230, 57, 70, 0.6)']}
         style={styles.overlay}
       />
 
@@ -168,36 +166,34 @@ export default function LoginScreenMigrated() {
                         style={styles.loginButton}
                       />
 
-                      {/* Forgot Password */}
-                      <TouchableOpacity 
+                      <Button
+                        title="Forgot Password?"
                         onPress={() => setResetModalVisible(true)}
-                        style={styles.forgotPasswordContainer}
-                      >
-                        <Typography variant="body2" color="primary" style={styles.forgotPassword}>
-                          Forgot Password?
-                        </Typography>
-                      </TouchableOpacity>
+                        variant="ghost"
+                        size="sm"
+                        style={styles.forgotButton}
+                      />
                     </>
                   )}
                 </Formik>
-              </View>
-            </Animatable.View>
 
-            {/* Footer Actions */}
-            <Animatable.View
-              animation="fadeInUp"
-              duration={1000}
-              delay={600}
-              style={styles.footer}
-            >
-              <TouchableOpacity onPress={() => setSignUpModalVisible(true)}>
-                <Typography variant="body1" color="inverse" style={styles.signUpText}>
-                  Don't have an account?{' '}
-                  <Typography variant="body1" color="inverse" style={styles.signUpLink}>
-                    Sign Up
+                <View style={styles.divider}>
+                  <View style={styles.dividerLine} />
+                  <Typography variant="body2" color="tertiary" style={styles.dividerText}>
+                    OR
                   </Typography>
-                </Typography>
-              </TouchableOpacity>
+                  <View style={styles.dividerLine} />
+                </View>
+
+                <Button
+                  title="Create New Account"
+                  onPress={() => setSignUpModalVisible(true)}
+                  variant="outline"
+                  fullWidth
+                  size="lg"
+                  style={styles.signupButton}
+                />
+              </View>
             </Animatable.View>
           </View>
         </KeyboardAvoidingView>
@@ -276,55 +272,59 @@ const styles = StyleSheet.create({
   },
 
   formContainer: {
-    paddingHorizontal: Theme.spacing.lg,
-  },
-
-  card: {
-    backgroundColor: `${Theme.colors.background.primary}F0`, // 94% opacity
-    borderRadius: Theme.borderRadius.xl,
-    padding: Theme.spacing['2xl'],
-    ...Theme.shadows.xl,
-    backdropFilter: 'blur(10px)', // For web
-  },
-
-  errorContainer: {
-    marginVertical: Theme.spacing.md,
-    padding: Theme.spacing.md,
-    backgroundColor: `${Theme.colors.error[50]}E6`, // 90% opacity
-    borderRadius: Theme.borderRadius.md,
-    borderLeftWidth: 4,
-    borderLeftColor: Theme.colors.error[500],
-  },
-
-  errorText: {
-    textAlign: 'center',
-  },
-
-  loginButton: {
-    marginTop: Theme.spacing.lg,
-  },
-
-  forgotPasswordContainer: {
-    alignItems: 'center',
-    marginTop: Theme.spacing.lg,
-  },
-
-  forgotPassword: {
-    textDecorationLine: 'underline',
-  },
-
-  footer: {
-    alignItems: 'center',
-    paddingHorizontal: Theme.spacing.lg,
+    flex: 1,
+    justifyContent: 'flex-end',
     marginBottom: Theme.spacing.xl,
   },
 
-  signUpText: {
+  card: {
+    backgroundColor: Theme.colors.surface.primary,
+    borderRadius: Theme.borderRadius['3xl'],
+    padding: Theme.spacing.xl,
+    ...Theme.shadows.xl,
+  },
+
+  loginButton: {
+    marginTop: Theme.spacing.md,
+  },
+
+  forgotButton: {
+    marginTop: Theme.spacing.sm,
+  },
+
+  errorContainer: {
+    backgroundColor: Theme.colors.error[50],
+    padding: Theme.spacing.md,
+    borderRadius: Theme.borderRadius.base,
+    marginBottom: Theme.spacing.md,
+  },
+
+  errorText: {
+    color: Theme.colors.error[600],
+    fontSize: Theme.typography.fontSize.sm,
     textAlign: 'center',
   },
 
-  signUpLink: {
-    fontWeight: Theme.typography.fontWeight.semiBold,
-    textDecorationLine: 'underline',
+  divider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: Theme.spacing.xl,
+  },
+
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: Theme.colors.border.default,
+  },
+
+  dividerText: {
+    marginHorizontal: Theme.spacing.md,
+    color: Theme.colors.text.tertiary,
+    fontSize: Theme.typography.fontSize.sm,
+    fontWeight: Theme.typography.fontWeight.medium,
+  },
+
+  signupButton: {
+    borderWidth: 1.5,
   },
 });
