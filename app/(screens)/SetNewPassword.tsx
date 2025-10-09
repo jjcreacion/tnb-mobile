@@ -317,7 +317,7 @@ const styles = StyleSheet.create({
 
   buttonContainer: {
     flexDirection: 'row',
-    gap: Theme.spacing.md,
+    gap: 12,
     marginTop: Theme.spacing.lg,
   },
 

@@ -70,7 +70,7 @@ const styles = StyleSheet.create({
 
   // Padding
   padding_sm: {
-    padding: Theme.spacing.md,
+    padding: 12,
   },
 
   padding_md: {

@@ -246,7 +246,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Theme.spacing.sm,
     backgroundColor: Theme.colors.error[50],
-    padding: Theme.spacing.md,
+    padding: 12,
     borderRadius: Theme.borderRadius.lg,
     marginBottom: Theme.spacing.lg,
   },
@@ -258,7 +258,7 @@ const styles = StyleSheet.create({
   },
 
   continueButton: {
-    marginTop: Theme.spacing.md,
+    marginTop: 12,
   },
 
   footer: {

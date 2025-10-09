@@ -1,9 +1,9 @@
+import { Button, Card, Screen } from '@/components/common';
+import { Theme } from '@/constants/Theme';
 import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
 import { FlatList, Platform, StyleSheet, Text, View } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import { Button, Card, Screen } from '@/components/common';
-import { Theme } from '@/constants/Theme';
 
 interface Transaction {
   id: string;
@@ -202,7 +202,7 @@ const styles = StyleSheet.create({
   },
 
   transactionCard: {
-    marginBottom: Theme.spacing.md,
+    marginBottom: 12,
   },
 
   transactionContent: {
@@ -220,7 +220,7 @@ const styles = StyleSheet.create({
 
   transactionDetails: {
     flex: 1,
-    marginLeft: Theme.spacing.md,
+    marginLeft: 12,
   },
 
   serviceName: {
@@ -254,7 +254,7 @@ const styles = StyleSheet.create({
   paymentHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Theme.spacing.md,
+    gap: 12,
     marginBottom: Theme.spacing.sm,
   },
 
@@ -279,7 +279,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: Theme.spacing['3xl'],
-    paddingTop: Theme.spacing['6xl'],
+    paddingTop: Theme.spacing['5xl'],
   },
 
   emptyTitle: {

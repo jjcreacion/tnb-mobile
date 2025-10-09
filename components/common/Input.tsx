@@ -1,18 +1,16 @@
+import { Theme } from '@/constants/Theme';
 import React, { useState } from 'react';
 import {
-  NativeSyntheticEvent,
-  StyleProp,
-  StyleSheet,
-  Text,
-  TextInput,
-  TextInputFocusEventData,
-  TextInputProps,
-  TouchableOpacity,
-  View,
-  ViewStyle,
+    StyleProp,
+    StyleSheet,
+    Text,
+    TextInput,
+    TextInputProps,
+    TouchableOpacity,
+    View,
+    ViewStyle,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
-import { Theme } from '@/constants/Theme';
 
 export type InputSize = 'sm' | 'md' | 'lg';
 
@@ -49,12 +47,12 @@ export const Input: React.FC<CustomInputProps> = ({
   const [isFocused, setIsFocused] = useState(false);
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
 
-  const handleFocus = (e: NativeSyntheticEvent<TextInputFocusEventData>) => {
+  const handleFocus: TextInputProps['onFocus'] = (e) => {
     setIsFocused(true);
     onFocus?.(e);
   };
 
-  const handleBlur = (e: NativeSyntheticEvent<TextInputFocusEventData>) => {
+  const handleBlur: TextInputProps['onBlur'] = (e) => {
     setIsFocused(false);
     onBlur?.(e);
   };

@@ -3,10 +3,8 @@ import axios from 'axios';
 import Constants from 'expo-constants';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, Platform, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Platform, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import { Card, Screen, StatusBadge } from '@/components/common';
-import { Theme } from '@/constants/Theme';
 
 interface Service {
   requestId: string;
@@ -18,6 +16,7 @@ interface Service {
 
 const ActivityScreen = () => {
   const [services, setServices] = useState<Service[]>([]);
+  const [selectedStatus] = useState('All');
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
   const API_URL = Constants.expoConfig?.extra?.API_BASE_URL;
@@ -31,11 +30,19 @@ const ActivityScreen = () => {
 
       if (response.status === 200) {
         setServices(response.data);
+        console.log('Datos del usuario cargados:', response.data);
       } else if (response.status === 404) {
-        setServices([]);
+        if (response.data && response.data.message && response.data.message.includes('No requests found')) {
+          setServices([]);
+          console.log('No se encontraron solicitudes para este usuario.');
+        } else {
+          console.error('Error inesperado al obtener servicios:', response);
+        }
+      } else {
+        console.error('Error al obtener servicios:', response);
       }
     } catch {
-      setServices([]);
+      // Handle network or other errors silently for now, as per original logic
     } finally {
       setLoading(false);
       setIsRefreshing(false);
@@ -71,224 +78,223 @@ const ActivityScreen = () => {
     }
   }, [fetchServices]);
 
-  const getStatusConfig = (status: number) => {
+  const getStatusTextAndColor = (status: number) => {
     switch (status) {
       case 1:
-        return { label: 'Finish', variant: 'warning' as const, icon: 'check-circle' };
+        return { text: 'Finish', color: '#FFC107' };
       case 2:
-        return { label: 'Approved', variant: 'success' as const, icon: 'verified' };
+        return { text: 'Approved', color: '#4CAF50' };
       case 3:
-        return { label: 'In Progress', variant: 'info' as const, icon: 'pending' };
+        return { text: 'In Progress', color: '#2196F3' };
       case 4:
-        return { label: 'Closed', variant: 'neutral' as const, icon: 'cancel' };
+        return { text: 'Closed', color: '#9E9E9E' };
       default:
-        return { label: 'Pending', variant: 'neutral' as const, icon: 'schedule' };
+        return { text: 'Pending', color: 'gray' };
     }
   };
 
-  const renderServiceCard = ({ item }: { item: Service }) => {
-    const statusConfig = getStatusConfig(item.status);
-    const date = new Date(item.createdAt);
-    const formattedDate = date.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    });
+  const renderServiceCard = (service: Service) => {
+    const statusInfo = getStatusTextAndColor(service.status);
 
     return (
-      <Card variant="elevated" padding="md" style={styles.card}>
+      <TouchableOpacity key={service.requestId} style={styles.card}>
         <View style={styles.cardHeader}>
-          <StatusBadge
-            label={statusConfig.label}
-            variant={statusConfig.variant}
-            size="sm"
-          />
-          <View style={styles.dateContainer}>
-            <Icon name="schedule" size={14} color={Theme.colors.text.tertiary} />
-            <Text style={styles.date}>{formattedDate}</Text>
-          </View>
+          <Text style={styles.cardTitle}>{service.serviceDescription || 'No Description'}</Text>
+          <TouchableOpacity onPress={() => console.log(`Open chat modal for request ${service.requestId}`)}>
+            <Icon name="chat" size={24} color="#007AFF" />
+          </TouchableOpacity>
         </View>
-
-        <Text style={styles.description} numberOfLines={2}>
-          {item.serviceDescription}
-        </Text>
-
-        <View style={styles.addressContainer}>
-          <Icon name="location-on" size={16} color={Theme.colors.text.tertiary} />
-          <Text style={styles.address} numberOfLines={1}>
-            {item.address}
-          </Text>
-        </View>
-
+        <Text style={styles.cardDescription}>{service.address || 'No Address'}</Text>
         <View style={styles.cardFooter}>
-          <Text style={styles.requestId}>Request #{item.requestId}</Text>
+          <View style={[styles.statusBadge, { backgroundColor: statusInfo.color }]}>
+            <Text style={styles.statusBadgeText}>{statusInfo.text}</Text>
+          </View>
+          <Text style={styles.cardDate}>Created: {new Date(service.createdAt).toLocaleDateString()}</Text>
         </View>
-      </Card>
+      </TouchableOpacity>
     );
   };
 
-  const renderEmptyState = () => (
-    <View style={styles.emptyState}>
-      <Icon name="inbox" size={80} color={Theme.colors.neutral[300]} />
-      <Text style={styles.emptyTitle}>No Activity Yet</Text>
-      <Text style={styles.emptyText}>
-        Your service requests will appear here once you start using the app.
-      </Text>
-    </View>
-  );
+  const filteredServices = selectedStatus === 'All'
+    ? services
+    : services.filter(service => getStatusTextAndColor(service.status).text === selectedStatus);
 
   return (
-    <Screen safeArea edges={['top', 'bottom']}>
-      <LinearGradient
-        colors={[Theme.colors.primary[500], Theme.colors.primary[600]]}
-        style={styles.header}
-      >
-        <Text style={styles.headerTitle}>Activity</Text>
-        <Text style={styles.headerSubtitle}>Track your service requests</Text>
-      </LinearGradient>
+    <ScrollView
+      style={styles.container}
+      refreshControl={
+        <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} />
+      }
+    >
+     <View style={styles.backgroundTop}>
+        <LinearGradient
+          colors={['#ea0e08', '#fa2d64']}
+          style={styles.linearGradientHeader}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+        >
+          <View style={styles.headerContainer}>
+            <View style={styles.leftHeader}>
+              <Text style={styles.companyName}>Activity Notifications</Text>
+            </View>
+          </View>
+        </LinearGradient>
 
-      {loading && !isRefreshing ? (
+      </View>
+
+      {loading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={Theme.colors.primary[500]} />
-          <Text style={styles.loadingText}>Loading activities...</Text>
+          <ActivityIndicator size="large" color="#007AFF" />
+          <Text style={styles.loadingText}>Loading...</Text>
         </View>
+      ) : userId ? (
+        filteredServices.length > 0 ? (
+          filteredServices.map(renderServiceCard)
+        ) : (
+          <View style={styles.noServicesContainer}>
+            <Icon name="sentiment-dissatisfied" size={60} color="#666" />
+            <Text style={styles.noServicesText}>No activity</Text>
+          </View>
+        )
       ) : (
-        <FlatList
-          data={services}
-          renderItem={renderServiceCard}
-          keyExtractor={(item) => item.requestId}
-          contentContainerStyle={styles.listContent}
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl
-              refreshing={isRefreshing}
-              onRefresh={onRefresh}
-              tintColor={Theme.colors.primary[500]}
-              colors={[Theme.colors.primary[500]]}
-            />
-          }
-          ListEmptyComponent={renderEmptyState}
-        />
+        <View style={styles.noServicesContainer}>
+          <Icon name="error-outline" size={60} color="#666" />
+          <Text style={styles.noServicesText}>Could not load user information.</Text>
+        </View>
       )}
-    </Screen>
+    </ScrollView>
   );
 };
 
-export default ActivityScreen;
-
 const styles = StyleSheet.create({
-  header: {
-    paddingHorizontal: Theme.spacing.base,
-    paddingVertical: Theme.spacing.xl,
-    marginBottom: Theme.spacing.lg,
-    marginHorizontal: -Theme.spacing.base,
-    marginTop: Platform.OS === 'ios' ? -Theme.spacing.base : 0,
-  },
-
-  headerTitle: {
-    fontSize: Theme.typography.fontSize['3xl'],
-    fontWeight: Theme.typography.fontWeight.bold,
-    color: Theme.colors.text.inverse,
-    marginBottom: Theme.spacing.xs,
-  },
-
-  headerSubtitle: {
-    fontSize: Theme.typography.fontSize.base,
-    color: Theme.colors.text.inverse,
-    opacity: 0.9,
-  },
-
-  loadingContainer: {
+  container: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
-
-  loadingText: {
-    marginTop: Theme.spacing.base,
-    fontSize: Theme.typography.fontSize.base,
-    color: Theme.colors.text.secondary,
+  backgroundTop: {
+    borderBottomWidth: 0,
+    backgroundColor: 'transparent',
   },
-
-  listContent: {
-    paddingBottom: Platform.OS === 'ios' ? 100 : 80,
-  },
-
   card: {
-    marginBottom: Theme.spacing.base,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    padding: 16,
+    marginBottom: 12,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
   },
-
+  companyName: {
+    color: '#fff7f9',
+    fontSize: 22,
+    fontWeight: 'bold',
+    marginLeft: 8,
+  },
   cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: Theme.spacing.md,
+    marginBottom: 8,
   },
-
-  dateContainer: {
+  headerContainer: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: Theme.spacing.xs,
+    justifyContent: 'space-between',
+    paddingHorizontal: 15,
+    paddingTop: 0,
+    marginBottom: 0,
+    width: '100%',
+    backgroundColor: 'transparent',
   },
-
-  date: {
-    fontSize: Theme.typography.fontSize.xs,
-    color: Theme.colors.text.tertiary,
+  cardTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 8,
   },
-
-  description: {
-    fontSize: Theme.typography.fontSize.base,
-    fontWeight: Theme.typography.fontWeight.medium,
-    color: Theme.colors.text.primary,
-    marginBottom: Theme.spacing.md,
-    lineHeight: Theme.typography.lineHeight.lg,
+  cardDescription: {
+    fontSize: 16,
+    marginBottom: 8,
   },
-
-  addressContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Theme.spacing.xs,
-    marginBottom: Theme.spacing.md,
+  linearGradientHeader: {
+    width: '100%',
+    paddingTop: 40,
+    paddingBottom: 20,
+    overflow: 'hidden',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 5,
+      },
+      android: {
+        elevation: 3,
+      },
+    }),
   },
-
-  address: {
-    flex: 1,
-    fontSize: Theme.typography.fontSize.sm,
-    color: Theme.colors.text.secondary,
-  },
-
   cardFooter: {
-    paddingTop: Theme.spacing.md,
-    borderTopWidth: 1,
-    borderTopColor: Theme.colors.border.light,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 8,
   },
-
-  requestId: {
-    fontSize: Theme.typography.fontSize.xs,
-    color: Theme.colors.text.tertiary,
-    fontWeight: Theme.typography.fontWeight.medium,
+  cardDate: {
+    fontSize: 14,
+    color: 'gray',
   },
-
-  emptyState: {
+  leftHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  header: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 16,
+  },
+  pickerContainer: {
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    borderRadius: 8,
+    marginBottom: 16,
+  },
+  picker: {
+    height: 50,
+    width: '100%',
+  },
+  statusBadge: {
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 10,
+  },
+  statusBadgeText: {
+    color: 'white',
+    fontWeight: 'bold',
+  },
+  loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: Theme.spacing['3xl'],
-    paddingTop: Theme.spacing['6xl'],
+    paddingVertical: 20,
   },
-
-  emptyTitle: {
-    fontSize: Theme.typography.fontSize['2xl'],
-    fontWeight: Theme.typography.fontWeight.bold,
-    color: Theme.colors.text.primary,
-    marginTop: Theme.spacing.xl,
-    marginBottom: Theme.spacing.sm,
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: 'gray',
   },
-
-  emptyText: {
-    fontSize: Theme.typography.fontSize.base,
-    color: Theme.colors.text.secondary,
+  noServicesContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 50, 
+    width: '100%', 
+    backgroundColor: 'transparent', 
+  },
+  noServicesText: {
+    marginTop: 15, 
+    fontSize: 25, 
+    fontWeight: 'bold',
+    color: '#666', 
     textAlign: 'center',
-    lineHeight: Theme.typography.lineHeight.lg,
   },
 });
+
+export default ActivityScreen;

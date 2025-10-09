@@ -32,7 +32,7 @@ export const styles = StyleSheet.create({
   leftSection: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Theme.spacing.md,
+    gap: 12,
   },
 
   menuButton: {
@@ -61,7 +61,7 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 4,
     backgroundColor: Theme.colors.text.inverse,
-    paddingHorizontal: Theme.spacing.md,
+    paddingHorizontal: 12,
     paddingVertical: Theme.spacing.sm,
     borderRadius: Theme.borderRadius.full,
     ...Theme.shadows.sm,
@@ -78,7 +78,7 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 4,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    paddingHorizontal: Theme.spacing.md,
+    paddingHorizontal: 12,
     paddingVertical: Theme.spacing.sm,
     borderRadius: Theme.borderRadius.full,
     borderWidth: 1,

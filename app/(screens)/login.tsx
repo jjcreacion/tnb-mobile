@@ -1,14 +1,14 @@
+import { Button, Input, Screen } from '@/components/common';
+import { Theme } from '@/constants/Theme';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Formik } from 'formik';
 import React, { useState } from 'react';
-import { Image, ImageBackground, StyleSheet, Text, View, KeyboardAvoidingView, Platform } from 'react-native';
+import { Image, ImageBackground, KeyboardAvoidingView, Platform, StyleSheet, Text, View } from 'react-native';
 import * as Animatable from 'react-native-animatable';
 import * as Yup from 'yup';
-import { Button, Input, Screen } from '@/components/common';
-import { Theme } from '@/constants/Theme';
 import ResetModal from './resetPassword';
 import SignUpModal from './singup';
 
@@ -65,7 +65,8 @@ export default function LoginScreen() {
       style={styles.backgroundImage}
     >
       <LinearGradient
-        colors={['rgba(230, 57, 70, 0.3)', 'rgba(230, 57, 70, 0.6)', 'rgba(230, 57, 70, 0.8)']}
+        // colors={['rgba(230, 57, 70, 0.3)', 'rgba(230, 57, 70, 0.6)', 'rgba(230, 57, 70, 0.8)']}
+        colors={['rgba(230, 57, 70, 0.2)', 'rgba(230, 57, 70, 0.3)', 'rgba(230, 57, 70, 0.5)']}
         style={styles.overlay}
       />
 
@@ -262,7 +263,7 @@ const styles = StyleSheet.create({
   },
 
   loginButton: {
-    marginTop: Theme.spacing.md,
+    marginTop: 12,
   },
 
   forgotButton: {
@@ -271,9 +272,9 @@ const styles = StyleSheet.create({
 
   errorContainer: {
     backgroundColor: Theme.colors.error[50],
-    padding: Theme.spacing.md,
+    padding: 12,
     borderRadius: Theme.borderRadius.base,
-    marginBottom: Theme.spacing.md,
+    marginBottom: 12,
   },
 
   errorText: {
@@ -295,7 +296,7 @@ const styles = StyleSheet.create({
   },
 
   dividerText: {
-    marginHorizontal: Theme.spacing.md,
+    marginHorizontal: 12,
     color: Theme.colors.text.tertiary,
     fontSize: Theme.typography.fontSize.sm,
     fontWeight: Theme.typography.fontWeight.medium,

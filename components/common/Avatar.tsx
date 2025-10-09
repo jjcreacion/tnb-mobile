@@ -1,6 +1,6 @@
-import React from 'react';
-import { Image, ImageSourcePropType, StyleProp, StyleSheet, Text, View, ViewStyle } from 'react-native';
 import { Theme } from '@/constants/Theme';
+import React from 'react';
+import { Image, ImageSourcePropType, ImageStyle, StyleProp, StyleSheet, Text, View, ViewStyle } from 'react-native';
 
 export type AvatarSize = 'sm' | 'md' | 'lg' | 'xl';
 
@@ -23,10 +23,26 @@ export const Avatar: React.FC<AvatarProps> = ({
     return (names[0].charAt(0) + names[names.length - 1].charAt(0)).toUpperCase();
   };
 
-  const avatarStyles = [
+  const viewStyles = [
     styles.base,
     styles[size],
     style,
+  ];
+
+  // Para Image, necesitamos crear estilos compatibles con ImageStyle
+  const imageStyles: StyleProp<ImageStyle> = [
+    {
+      width: styles[size].width,
+      height: styles[size].height,
+      borderRadius: styles[size].borderRadius,
+    },
+    // Solo extraer propiedades compatibles con ImageStyle del style prop
+    style && {
+      width: (style as any)?.width,
+      height: (style as any)?.height,
+      borderRadius: (style as any)?.borderRadius,
+      opacity: (style as any)?.opacity,
+    },
   ];
 
   const textStyles = [
@@ -35,11 +51,11 @@ export const Avatar: React.FC<AvatarProps> = ({
   ];
 
   if (source) {
-    return <Image source={source} style={avatarStyles} />;
+    return <Image source={source} style={imageStyles} />;
   }
 
   return (
-    <View style={avatarStyles}>
+    <View style={viewStyles}>
       <Text style={textStyles}>{name ? getInitials(name) : '?'}</Text>
     </View>
   );
