@@ -1,17 +1,17 @@
+import { Card, Screen } from '@/components/common';
+import { Theme } from '@/constants/Theme';
 import { FontAwesome } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
 import {
-  Linking,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    Linking,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
 import Icon from 'react-native-vector-icons/Ionicons';
-import { Screen, Card } from '@/components/common';
-import { Theme } from '@/constants/Theme';
 
 interface SocialLink {
   icon: string;
@@ -254,7 +254,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: Theme.typography.fontSize.sm,
     color: Theme.colors.text.secondary,
-    lineHeight: Theme.typography.lineHeight.md,
+    lineHeight: Theme.typography.lineHeight.base,
   },
 
   section: {

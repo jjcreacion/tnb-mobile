@@ -1,6 +1,6 @@
-import React from 'react';
-import { Image, ImageSourcePropType, StyleProp, StyleSheet, Text, View, ViewStyle } from 'react-native';
 import { Theme } from '@/constants/Theme';
+import React from 'react';
+import { Image, ImageSourcePropType, ImageStyle, StyleProp, StyleSheet, Text, View, ViewStyle } from 'react-native';
 
 export type AvatarSize = 'sm' | 'md' | 'lg' | 'xl';
 
@@ -29,13 +29,18 @@ export const Avatar: React.FC<AvatarProps> = ({
     style,
   ];
 
+  const imageStyles: StyleProp<ImageStyle> = [
+    styles[size],
+    style as StyleProp<ImageStyle>,
+  ];
+
   const textStyles = [
     styles.text,
     styles[`${size}Text` as keyof typeof styles],
   ];
 
   if (source) {
-    return <Image source={source} style={avatarStyles} />;
+    return <Image source={source} style={imageStyles} />;
   }
 
   return (

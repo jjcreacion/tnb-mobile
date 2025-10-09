@@ -1,3 +1,4 @@
+import { Theme } from '@/constants/Theme';
 import React, { useState } from 'react';
 import {
   NativeSyntheticEvent,
@@ -12,7 +13,6 @@ import {
   ViewStyle,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
-import { Theme } from '@/constants/Theme';
 
 export type InputSize = 'sm' | 'md' | 'lg';
 
@@ -51,12 +51,16 @@ export const Input: React.FC<CustomInputProps> = ({
 
   const handleFocus = (e: NativeSyntheticEvent<TextInputFocusEventData>) => {
     setIsFocused(true);
-    onFocus?.(e);
+    if (onFocus) {
+      onFocus(e as any);
+    }
   };
 
   const handleBlur = (e: NativeSyntheticEvent<TextInputFocusEventData>) => {
     setIsFocused(false);
-    onBlur?.(e);
+    if (onBlur) {
+      onBlur(e as any);
+    }
   };
 
   const togglePasswordVisibility = () => {
@@ -104,7 +108,7 @@ export const Input: React.FC<CustomInputProps> = ({
           onFocus={handleFocus}
           onBlur={handleBlur}
           secureTextEntry={secureTextEntry && !isPasswordVisible}
-          {...rest}
+          {...(rest as any)}
         />
 
         {secureTextEntry && (
