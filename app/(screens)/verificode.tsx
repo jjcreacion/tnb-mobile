@@ -3,7 +3,7 @@ import { Theme } from '@/constants/Theme';
 import React, { useEffect, useRef, useState } from 'react';
 import { Clipboard, StyleSheet, Text, TextInput, View } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
-import Register from './registerMigrated';
+import Register from './register';
 
 interface VerifyCodeProps {
   verificationCode: string;

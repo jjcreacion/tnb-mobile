@@ -1,4 +1,4 @@
-import { Button, Input, Loading, Screen, Typography } from '@/components/common';
+import { Button, Input, Screen } from '@/components/common';
 import { Theme } from '@/constants/Theme';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
@@ -6,14 +6,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Formik } from 'formik';
 import React, { useState } from 'react';
-import {
-    Image,
-    ImageBackground,
-    KeyboardAvoidingView,
-    Platform,
-    StyleSheet,
-    View
-} from 'react-native';
+import { Image, ImageBackground, KeyboardAvoidingView, Platform, StyleSheet, Text, View } from 'react-native';
 import * as Animatable from 'react-native-animatable';
 import * as Yup from 'yup';
 import ResetModal from './resetPassword';
@@ -30,7 +23,7 @@ const validationSchema = Yup.object().shape({
     .min(6, 'Password must be at least 6 characters'),
 });
 
-export default function LoginScreenMigrated() {
+export default function LoginScreen() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
@@ -99,14 +92,8 @@ export default function LoginScreenMigrated() {
                   style={styles.logo}
                 />
               </Animatable.View>
-              
-              <Typography variant="h2" color="inverse" style={styles.welcomeText}>
-                Welcome Back
-              </Typography>
-              
-              <Typography variant="body1" color="inverse" style={styles.subtitle}>
-                Sign in to continue
-              </Typography>
+              <Text style={styles.welcomeText}>Welcome Back</Text>
+              <Text style={styles.subtitle}>Sign in to continue</Text>
             </Animatable.View>
 
             {/* Form Section */}
@@ -150,9 +137,7 @@ export default function LoginScreenMigrated() {
 
                       {errorMessage ? (
                         <View style={styles.errorContainer}>
-                          <Typography variant="body2" color="error" style={styles.errorText}>
-                            {errorMessage}
-                          </Typography>
+                          <Text style={styles.errorText}>{errorMessage}</Text>
                         </View>
                       ) : null}
 
@@ -179,9 +164,7 @@ export default function LoginScreenMigrated() {
 
                 <View style={styles.divider}>
                   <View style={styles.dividerLine} />
-                  <Typography variant="body2" color="tertiary" style={styles.dividerText}>
-                    OR
-                  </Typography>
+                  <Text style={styles.dividerText}>OR</Text>
                   <View style={styles.dividerLine} />
                 </View>
 
@@ -197,26 +180,16 @@ export default function LoginScreenMigrated() {
             </Animatable.View>
           </View>
         </KeyboardAvoidingView>
-
-        {/* Loading Overlay */}
-        <Loading
-          visible={loading}
-          variant="overlay"
-          message="Signing in..."
-          size="lg"
-        />
-
-        {/* Modals */}
-        <SignUpModal 
-          isVisible={isSignUpModalVisible} 
-          onClose={() => setSignUpModalVisible(false)} 
-        />
-        
-        <ResetModal 
-          isVisible={resetModalVisible} 
-          onClose={() => setResetModalVisible(false)} 
-        />
       </Screen>
+
+      <SignUpModal
+        isVisible={isSignUpModalVisible}
+        onClose={() => setSignUpModalVisible(false)}
+      />
+      <ResetModal
+        isVisible={resetModalVisible}
+        onClose={() => setResetModalVisible(false)}
+      />
     </ImageBackground>
   );
 }
@@ -262,13 +235,18 @@ const styles = StyleSheet.create({
   },
 
   welcomeText: {
+    fontSize: Theme.typography.fontSize['3xl'],
+    fontWeight: Theme.typography.fontWeight.bold,
+    color: Theme.colors.text.inverse,
     marginBottom: Theme.spacing.xs,
     textAlign: 'center',
   },
 
   subtitle: {
-    textAlign: 'center',
+    fontSize: Theme.typography.fontSize.base,
+    color: Theme.colors.text.inverse,
     opacity: 0.9,
+    textAlign: 'center',
   },
 
   formContainer: {

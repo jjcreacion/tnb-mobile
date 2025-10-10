@@ -6,16 +6,16 @@ export default function RootLayout() {
     <Stack>
         <Stack.Screen name="index" options={{ headerShown: false }} />
         <Stack.Screen name="login" options={{ headerShown: false }} />
-        <Stack.Screen name="loginMigrated" options={{ headerShown: false }} />
+
         <Stack.Screen name="register" options={{ headerShown: false }} />
-        <Stack.Screen name="registerMigrated" options={{ headerShown: false }} />
+
         <Stack.Screen name="RequestModal" options={{ headerShown: false }} />
-        <Stack.Screen name="RequestModalMigrated" options={{ headerShown: false }} />
+
         <Stack.Screen name="ShareAndEarn" options={{ headerShown: false }} />
         <Stack.Screen name="TermsAndPolicies" options={{ headerShown: false }} />
         <Stack.Screen name="policies" options={{ headerShown: false }} />
         <Stack.Screen name="profile" options={{ headerShown: false }} />
-        <Stack.Screen name="profileMigrated" options={{ headerShown: false }} />
+
         <Stack.Screen name="ServiceRequestDetail" options={{ headerShown: false }} />
         <Stack.Screen name="registerComplete" options={{ headerShown: false }} />
         <Stack.Screen name="resetPassword" options={{ headerShown: false }} />

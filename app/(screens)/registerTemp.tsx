@@ -32,7 +32,7 @@ interface RegisterProps {
   IsVerify: () => void;
 }
 
-const RegisterMigrated: React.FC<RegisterProps> = ({ isVisible, onClose, IsVerify }) => {
+const Register: React.FC<RegisterProps> = ({ isVisible, onClose, IsVerify }) => {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
@@ -701,4 +701,4 @@ const migratedStyles = {
   },
 };
 
-export default RegisterMigrated;
+export default Register;
