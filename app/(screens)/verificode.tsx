@@ -1,7 +1,7 @@
 import { Button } from '@/components/common';
 import { Theme } from '@/constants/Theme';
 import React, { useEffect, useRef, useState } from 'react';
-import { StyleSheet, Text, TextInput, View } from 'react-native';
+import { Clipboard, StyleSheet, Text, TextInput, View } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import Register from './registerMigrated';
 
@@ -35,24 +35,66 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
     }
   }, [timer]);
 
-  const handleInputChange = (value: string, index: number) => {
-    const newCode = [...code];
-    newCode[index] = value;
-    setCode(newCode);
-
-    if (value !== '' && index < inputsRef.current.length - 1) {
-      inputsRef.current[index + 1]?.focus();
-    }
-
-    const allFilled = newCode.every(digit => digit !== '');
-    if (allFilled) {
-      const enteredCode = newCode.join('');
-      if (enteredCode === verificationCode) {
-        setIsCodeCorrect(true);
-        setCodeValid(true);
+    const handleInputChange = (value: string, index: number) => {
+    // Clean the value to only contain digits
+    const cleanValue = value.replace(/\D/g, '');
+    
+    // If pasting multiple characters (6-digit code)
+    if (cleanValue.length > 1) {
+      const digits = cleanValue.slice(0, 6).split('');
+      const newCode = ['', '', '', '', '', ''];
+      
+      // Fill the code array with the pasted digits
+      for (let i = 0; i < digits.length && i < 6; i++) {
+        newCode[i] = digits[i];
+      }
+      
+      setCode(newCode);
+      
+      // Validate the complete code if 6 digits
+      if (digits.length === 6) {
+        const enteredCode = digits.join('');
+        if (enteredCode === verificationCode) {
+          setIsCodeCorrect(true);
+          setCodeValid(true);
+        } else {
+          setIsCodeCorrect(false);
+          setCodeValid(false);
+        }
+      }
+      
+      // Move focus to the last filled position or the next empty one
+      const focusIndex = Math.min(digits.length, 5);
+      setTimeout(() => {
+        inputsRef.current[focusIndex]?.focus();
+      }, 10);
+    } else {
+      // Single character input
+      const newCode = [...code];
+      newCode[index] = cleanValue;
+      setCode(newCode);
+      
+      // Check if code is complete and validate
+      const completeCode = newCode.join('');
+      if (completeCode.length === 6) {
+        if (completeCode === verificationCode) {
+          setIsCodeCorrect(true);
+          setCodeValid(true);
+        } else {
+          setIsCodeCorrect(false);
+          setCodeValid(false);
+        }
       } else {
+        // Reset validation states when code is incomplete
         setIsCodeCorrect(false);
-        setCodeValid(false);
+        setCodeValid(true);
+      }
+      
+      // Move to next input if digit entered
+      if (cleanValue && index < 5) {
+        setTimeout(() => {
+          inputsRef.current[index + 1]?.focus();
+        }, 10);
       }
     }
   };
@@ -83,6 +125,30 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
     setCodeValid(true);
     setIsCodeCorrect(false);
     inputsRef.current[0]?.focus();
+  };
+
+  const handlePasteFromClipboard = async () => {
+    try {
+      const clipboardContent = await Clipboard.getString();
+      if (clipboardContent && /^\d{6}$/.test(clipboardContent)) {
+        const newCode = clipboardContent.split('');
+        setCode(newCode);
+        
+        // Focus the last input
+        inputsRef.current[5]?.focus();
+        
+        // Validate the complete code
+        if (clipboardContent === verificationCode) {
+          setIsCodeCorrect(true);
+          setCodeValid(true);
+        } else {
+          setIsCodeCorrect(false);
+          setCodeValid(false);
+        }
+      }
+    } catch (error) {
+      console.error('Error reading clipboard:', error);
+    }
   };
 
   if (showRegister) {
@@ -118,13 +184,28 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
               value={digit}
               onChangeText={(value) => handleInputChange(value, index)}
               onKeyPress={(e) => handleKeyPress(e, index)}
-              maxLength={1}
+              maxLength={6} // Allow pasting but control display
               keyboardType="numeric"
               textAlign="center"
               selectTextOnFocus
             />
           ))}
         </View>
+
+        {/* Paste Button - Show only when no digits entered */}
+        {code.every(digit => digit === '') && (
+          <View style={styles.pasteContainer}>
+            <Button
+              title="Paste Code"
+              variant="ghost"
+              size="sm"
+              onPress={handlePasteFromClipboard}
+              icon={<Icon name="clipboard-outline" size={16} color={Theme.colors.primary[500]} />}
+              iconPosition="left"
+              style={styles.pasteButton}
+            />
+          </View>
+        )}
 
         {/* Status Messages */}
         {!codeValid && !isCodeCorrect && (
@@ -268,6 +349,15 @@ const styles = StyleSheet.create({
   codeInputSuccess: {
     borderColor: Theme.colors.success[500],
     backgroundColor: Theme.colors.success[50],
+  },
+
+  pasteContainer: {
+    alignItems: 'center',
+    marginBottom: Theme.spacing.lg,
+  },
+
+  pasteButton: {
+    paddingHorizontal: Theme.spacing.lg,
   },
 
   errorContainer: {

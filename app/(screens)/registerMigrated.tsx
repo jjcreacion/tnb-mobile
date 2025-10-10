@@ -103,8 +103,9 @@ const RegisterMigrated: React.FC<RegisterProps> = ({ isVisible, onClose, IsVerif
     return () => clearTimeout(timeout);
   }, [loadingReferralCode]);
 
+  // Load only countries initially - states and cities will load on demand
   useEffect(() => {
-    const fetchLocationData = async () => {
+    const fetchCountries = async () => {
       setLoading(true);
       try {
         const countriesResponse = await fetch(`${API_URL}/country/findAll`);
@@ -125,68 +126,68 @@ const RegisterMigrated: React.FC<RegisterProps> = ({ isVisible, onClose, IsVerif
 
         setDynamicCountries(countries);
         setCountryIdToNameMap(countryIdMap);
-
-        // Fetch states and cities for all countries
-        const statesData: { [countryName: string]: { label: string; value: number }[] } = {};
-        const citiesData: { [stateName: string]: { label: string; value: number }[] } = {};
-        const stateIdMap: { [key: number]: string } = {};
-
-        for (const country of rawCountries) {
-          try {
-            const statesResponse = await fetch(`${API_URL}/state/findAll?countryId=${country.id}`);
-            if (statesResponse.ok) {
-              const rawStates = await statesResponse.json();
-              console.log(`Raw states for ${country.name}:`, rawStates);
-
-              const states = rawStates.map((state: any) => ({
-                label: state.name,
-                value: state.id
-              }));
-
-              statesData[country.name] = states;
-
-              rawStates.forEach((state: any) => {
-                stateIdMap[state.id] = state.name;
-              });
-
-              // Fetch cities for each state
-              for (const state of rawStates) {
-                try {
-                  const citiesResponse = await fetch(`${API_URL}/city/findAll?stateId=${state.id}`);
-                  if (citiesResponse.ok) {
-                    const rawCities = await citiesResponse.json();
-                    console.log(`Raw cities for ${state.name}:`, rawCities);
-
-                    const cities = rawCities.map((city: any) => ({
-                      label: city.name,
-                      value: city.id
-                    }));
-
-                    citiesData[state.name] = cities;
-                  }
-                } catch (cityError) {
-                  console.error(`Error fetching cities for state ${state.name}:`, cityError);
-                }
-              }
-            }
-          } catch (stateError) {
-            console.error(`Error fetching states for country ${country.name}:`, stateError);
-          }
-        }
-
-        setDynamicStates(statesData);
-        setDynamicCities(citiesData);
-        setStateIdToNameMap(stateIdMap);
       } catch (error) {
-        console.error('Error fetching location data:', error);
-        setError('Failed to load location data. Please try again.');
+        console.error('Error fetching countries:', error);
+        setError('Failed to load countries');
       } finally {
         setLoading(false);
       }
     };
 
-    fetchLocationData();
+    fetchCountries();
   }, [API_URL]);
+
+  // Load states when country is selected
+  const loadStatesForCountry = useCallback(async (countryId: number) => {
+    try {
+      const countryName = countryIdToNameMap[countryId];
+      if (!countryName || dynamicStates[countryName]) return; // Already loaded
+
+      const statesResponse = await fetch(`${API_URL}/state/findAll?countryId=${countryId}`);
+      if (statesResponse.ok) {
+        const rawStates = await statesResponse.json();
+        console.log(`Loading states for ${countryName}:`, rawStates);
+
+        const states = rawStates.map((state: any) => ({
+          label: state.name,
+          value: state.id
+        }));
+
+        const newStateIdMap = { ...stateIdToNameMap };
+        rawStates.forEach((state: any) => {
+          newStateIdMap[state.id] = state.name;
+        });
+
+        setDynamicStates(prev => ({ ...prev, [countryName]: states }));
+        setStateIdToNameMap(newStateIdMap);
+      }
+    } catch (error) {
+      console.error('Error loading states:', error);
+    }
+  }, [API_URL, countryIdToNameMap, dynamicStates, stateIdToNameMap]);
+
+  // Load cities when state is selected
+  const loadCitiesForState = useCallback(async (stateId: number) => {
+    try {
+      const stateName = stateIdToNameMap[stateId];
+      if (!stateName || dynamicCities[stateName]) return; // Already loaded
+
+      const citiesResponse = await fetch(`${API_URL}/city/findAll?stateId=${stateId}`);
+      if (citiesResponse.ok) {
+        const rawCities = await citiesResponse.json();
+        console.log(`Loading cities for ${stateName}:`, rawCities);
+
+        const cities = rawCities.map((city: any) => ({
+          label: city.name,
+          value: city.id
+        }));
+
+        setDynamicCities(prev => ({ ...prev, [stateName]: cities }));
+      }
+    } catch (error) {
+      console.error('Error loading cities:', error);
+    }
+  }, [API_URL, stateIdToNameMap, dynamicCities]);
 
   const validationSchema = Yup.object().shape({
     first_name: Yup.string().required('First Name is required'),
@@ -428,9 +429,8 @@ const RegisterMigrated: React.FC<RegisterProps> = ({ isVisible, onClose, IsVerif
                   style={migratedStyles.gpsButton}
                   icon={<FontAwesome name="location-arrow" size={18} color={Theme.colors.primary[500]} />}
                   iconPosition="left"
-                >
-                  Use My Current GPS Location
-                </Button>
+                  title="Use My Current GPS Location"
+                />
 
                 <Typography variant="body1" color="primary" style={migratedStyles.sectionLabel}>
                   Country
@@ -443,6 +443,10 @@ const RegisterMigrated: React.FC<RegisterProps> = ({ isVisible, onClose, IsVerif
                       setSelectedCountryId(itemValue);
                       setSelectedStateId(null);
                       setSelectedCityId(null);
+                      // Load states for selected country
+                      if (itemValue) {
+                        loadStatesForCountry(itemValue);
+                      }
                     }}
                   >
                     <Picker.Item label="Select Country" value={null} />
@@ -462,6 +466,10 @@ const RegisterMigrated: React.FC<RegisterProps> = ({ isVisible, onClose, IsVerif
                     onValueChange={(itemValue) => {
                       setSelectedStateId(itemValue);
                       setSelectedCityId(null);
+                      // Load cities for selected state
+                      if (itemValue) {
+                        loadCitiesForState(itemValue);
+                      }
                     }}
                     enabled={!!selectedCountryId}
                   >
