@@ -2,7 +2,7 @@ import { FontAwesome } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 import Constants from 'expo-constants';
 import { useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Alert, Image, Share, Text, TouchableOpacity, View } from 'react-native';
 
 // Theme System Components
@@ -19,7 +19,7 @@ const ShareAndEarnScreen = () => {
 
   const inviteLink = `${URL_SHARE_AND_EARN}?code=${invitationCode}`;
 
-  const fetchReferralReward = async () => {
+  const fetchReferralReward = useCallback(async () => {
     try {
       const response = await fetch(
         `${API_BASE_URL}/app-settings/referral_reward_amount`
@@ -34,11 +34,11 @@ const ShareAndEarnScreen = () => {
     } catch (error) {
       console.error('Error fetching referral reward:', error);
     }
-  };
+  }, [API_BASE_URL]);
 
   useEffect(() => {
     fetchReferralReward();
-  }, [API_BASE_URL]);
+  }, [API_BASE_URL, fetchReferralReward]);
 
   const onShare = async () => {
     try {
@@ -80,7 +80,7 @@ const ShareAndEarnScreen = () => {
             resizeMode="cover"
           />
           <TouchableOpacity style={MigratedStyles.shareAndEarnShareImageButton} onPress={onShare}>
-            <FontAwesome name="share-alt" size={20} color="#fff" />
+            <FontAwesome name="share-alt" size={20} color={Theme.colors.text.inverse} />
           </TouchableOpacity>
         </View>
 
@@ -94,14 +94,14 @@ const ShareAndEarnScreen = () => {
               {inviteLink}
             </Text>
             <TouchableOpacity onPress={copyToClipboard} style={MigratedStyles.shareAndEarnCopyButton}>
-              <FontAwesome name="copy" size={18} color="#fff" />
+              <FontAwesome name="copy" size={18} color={Theme.colors.text.inverse} />
             </TouchableOpacity>
           </View>
         </View>
 
         <View style={MigratedStyles.shareAndEarnButtonContainer}>
           <TouchableOpacity style={MigratedStyles.shareAndEarnShareButton} onPress={onShare}>
-            <FontAwesome name="share-alt" size={24} color="#fff" style={MigratedStyles.shareAndEarnIcon} />
+            <FontAwesome name="share-alt" size={24} color={Theme.colors.text.inverse} style={MigratedStyles.shareAndEarnIcon} />
             <Text style={MigratedStyles.shareAndEarnButtonText}>Share link</Text>
           </TouchableOpacity>
         </View>

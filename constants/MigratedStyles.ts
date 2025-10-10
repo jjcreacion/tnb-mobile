@@ -4,7 +4,7 @@
  */
 
 import { Theme } from '@/constants/Theme';
-import { StyleSheet } from 'react-native';
+import { Platform, StyleSheet } from 'react-native';
 
 export const MigratedStyles = StyleSheet.create({
   // ===== CONTAINERS =====
@@ -1061,5 +1061,541 @@ export const MigratedStyles = StyleSheet.create({
     paddingTop: Theme.spacing.lg,
     borderTopWidth: 1,
     borderTopColor: Theme.colors.border.light,
+  },
+
+  // ===== REQUEST MODAL SCREEN =====
+  requestModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: Theme.spacing.lg,
+    paddingVertical: Theme.spacing.base,
+    borderBottomWidth: 1,
+    borderBottomColor: Theme.colors.border.light,
+    backgroundColor: Theme.colors.background.primary,
+  },
+
+  requestModalCloseButton: {
+    width: 40,
+    height: 40,
+    borderRadius: Theme.borderRadius.md,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: Theme.colors.background.secondary,
+  },
+
+  requestModalHeaderTitle: {
+    flex: 1,
+    textAlign: 'center',
+    marginHorizontal: Theme.spacing.base,
+  },
+
+  requestModalScrollView: {
+    flex: 1,
+    backgroundColor: Theme.colors.background.secondary,
+  },
+
+  requestModalFormContainer: {
+    padding: Theme.spacing.lg,
+  },
+
+  requestModalCategoryCard: {
+    marginBottom: Theme.spacing.xl,
+  },
+
+  requestModalCategoryContent: {
+    alignItems: 'center',
+    padding: Theme.spacing.lg,
+  },
+
+  requestModalCategoryImage: {
+    width: 80,
+    height: 80,
+    borderRadius: Theme.borderRadius.xl,
+    marginBottom: Theme.spacing.md,
+  },
+
+  requestModalCategoryTitle: {
+    marginBottom: Theme.spacing.xs,
+    textAlign: 'center',
+  },
+
+  requestModalCategoryDescription: {
+    textAlign: 'center',
+    lineHeight: Theme.typography.lineHeight.lg,
+  },
+
+  requestModalFieldContainer: {
+    marginBottom: Theme.spacing.xl,
+  },
+
+  requestModalFieldLabel: {
+    marginBottom: Theme.spacing.sm,
+    fontWeight: Theme.typography.fontWeight.medium,
+  },
+
+  requestModalSelectorButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: Theme.spacing.base,
+    paddingVertical: Theme.spacing.md,
+    backgroundColor: Theme.colors.background.primary,
+    borderWidth: 1,
+    borderColor: Theme.colors.border.default,
+    borderRadius: Theme.borderRadius.md,
+    marginBottom: Theme.spacing.sm,
+  },
+
+  requestModalLocationCard: {
+    padding: Theme.spacing.lg,
+    marginBottom: Theme.spacing.xl,
+  },
+
+  requestModalSectionTitle: {
+    marginBottom: Theme.spacing.lg,
+  },
+
+  requestModalMapContainer: {
+    height: 200,
+    borderRadius: Theme.borderRadius.md,
+    overflow: 'hidden',
+    marginTop: Theme.spacing.lg,
+    position: 'relative',
+    ...Theme.shadows.md,
+  },
+
+  requestModalMap: {
+    flex: 1,
+  },
+
+  requestModalGpsButton: {
+    position: 'absolute',
+    bottom: Theme.spacing.md,
+    right: Theme.spacing.md,
+    backgroundColor: Theme.colors.primary[500],
+    borderRadius: Theme.borderRadius.full,
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...Theme.shadows.md,
+  },
+
+  requestModalImageUploadButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: Theme.spacing.lg,
+    paddingHorizontal: Theme.spacing.xl,
+    backgroundColor: Theme.colors.background.primary,
+    borderWidth: 2,
+    borderColor: Theme.colors.primary[500],
+    borderStyle: 'dashed',
+    borderRadius: Theme.borderRadius.md,
+    gap: Theme.spacing.sm,
+  },
+
+  requestModalImagePreviewContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginTop: Theme.spacing.md,
+    gap: Theme.spacing.sm,
+  },
+
+  requestModalImageItem: {
+    width: 80,
+    height: 80,
+    borderRadius: Theme.borderRadius.md,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+
+  requestModalPreviewImage: {
+    width: '100%',
+    height: '100%',
+  },
+
+  requestModalRemoveImageButton: {
+    position: 'absolute',
+    top: -8,
+    right: -8,
+    backgroundColor: Theme.colors.background.primary,
+    borderRadius: Theme.borderRadius.full,
+    width: 24,
+    height: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: Theme.colors.border.default,
+    ...Theme.shadows.sm,
+  },
+
+  requestModalButtonContainer: {
+    flexDirection: 'row',
+    gap: Theme.spacing.md,
+    marginTop: Theme.spacing['2xl'],
+    marginBottom: Theme.spacing.lg,
+  },
+
+  requestModalCancelButton: {
+    flex: 1,
+  },
+
+  requestModalSubmitButton: {
+    flex: 2,
+  },
+
+  requestModalErrorText: {
+    marginTop: Theme.spacing.xs,
+  },
+
+  requestModalSuccessContainer: {
+    position: 'absolute',
+    top: Theme.spacing['4xl'],
+    left: Theme.spacing.lg,
+    right: Theme.spacing.lg,
+    backgroundColor: Theme.colors.success[50],
+    padding: Theme.spacing.base,
+    borderRadius: Theme.borderRadius.md,
+    borderLeftWidth: 4,
+    borderLeftColor: Theme.colors.success[500],
+  },
+
+  requestModalErrorContainer: {
+    position: 'absolute',
+    top: Theme.spacing['4xl'],
+    left: Theme.spacing.lg,
+    right: Theme.spacing.lg,
+    backgroundColor: Theme.colors.error[50],
+    padding: Theme.spacing.base,
+    borderRadius: Theme.borderRadius.md,
+    borderLeftWidth: 4,
+    borderLeftColor: Theme.colors.error[500],
+  },
+
+  requestModalReadOnlyInput: {
+    backgroundColor: Theme.colors.background.secondary,
+    color: Theme.colors.text.secondary,
+  },
+
+  requestModalFieldHint: {
+    marginTop: Theme.spacing.xs,
+    lineHeight: Theme.typography.lineHeight.sm,
+    fontStyle: 'italic',
+  },
+
+  requestModalOutsideMapTouchArea: {
+    marginTop: Theme.spacing.md,
+    padding: Theme.spacing.md,
+    backgroundColor: Theme.colors.primary[50],
+    borderRadius: Theme.borderRadius.md,
+    borderWidth: 1,
+    borderColor: Theme.colors.primary[500],
+    borderStyle: 'dashed',
+    alignItems: 'center',
+  },
+
+  requestModalBottomSheetContent: {
+    padding: Theme.spacing.lg,
+  },
+
+  requestModalSearchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Theme.colors.background.secondary,
+    borderRadius: Theme.borderRadius.md,
+    marginBottom: Theme.spacing.md,
+    paddingHorizontal: Theme.spacing.md,
+    paddingVertical: Theme.spacing.sm,
+    borderWidth: 1,
+    borderColor: Theme.colors.border.light,
+  },
+
+  requestModalSearchIcon: {
+    marginRight: Theme.spacing.sm,
+  },
+
+  requestModalSearchInput: {
+    flex: 1,
+    fontSize: Theme.typography.fontSize.base,
+    color: Theme.colors.text.primary,
+    paddingVertical: Theme.spacing.xs,
+  },
+
+  requestModalItemsCount: {
+    marginBottom: Theme.spacing.sm,
+    fontWeight: Theme.typography.fontWeight.medium,
+  },
+
+  requestModalSubCategoryList: {
+    maxHeight: 320,
+  },
+
+  requestModalSubCategoryItem: {
+    paddingHorizontal: Theme.spacing.lg,
+    paddingVertical: Theme.spacing.lg,
+    minHeight: 72,
+    borderBottomWidth: 0.5,
+    borderBottomColor: Theme.colors.border.light,
+    backgroundColor: Theme.colors.background.primary,
+  },
+
+  requestModalSubCategorySelectedItem: {
+    backgroundColor: Theme.colors.primary[50],
+  },
+
+  requestModalSubCategoryLastItem: {
+    borderBottomWidth: 0,
+  },
+
+  requestModalSubCategoryItemContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+
+  requestModalSubCategoryInfo: {
+    flex: 1,
+    marginRight: Theme.spacing.md,
+  },
+
+  requestModalSubCategorySelectedText: {
+    color: Theme.colors.primary[600],
+    fontWeight: Theme.typography.fontWeight.semiBold,
+  },
+
+  requestModalEmptyStateContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: Theme.spacing['4xl'],
+    paddingHorizontal: Theme.spacing.xl,
+  },
+
+  requestModalEmptyStateText: {
+    marginTop: Theme.spacing.lg,
+    marginBottom: Theme.spacing.xs,
+    fontWeight: Theme.typography.fontWeight.semiBold,
+  },
+
+  requestModalEmptyStateSubtext: {
+    textAlign: 'center',
+  },
+
+  requestModalSuccessText: {
+    fontWeight: Theme.typography.fontWeight.semiBold,
+    textAlign: 'center',
+  },
+
+  requestModalTextAreaContainer: {
+    backgroundColor: Theme.colors.background.primary,
+    borderWidth: 1,
+    borderColor: Theme.colors.border.default,
+    borderRadius: Theme.borderRadius.lg,
+    minHeight: 100,
+    maxHeight: 150,
+    paddingHorizontal: Theme.spacing.md,
+    paddingVertical: Theme.spacing.md,
+    ...Theme.shadows.sm,
+  },
+
+  requestModalTextAreaInput: {
+    flex: 1,
+    fontSize: Theme.typography.fontSize.base,
+    color: Theme.colors.text.primary,
+    lineHeight: Theme.typography.lineHeight.lg,
+    textAlignVertical: 'top',
+    padding: 0,
+  },
+
+  requestModalTextAreaError: {
+    borderColor: Theme.colors.error[500],
+    borderWidth: 1.5,
+  },
+
+  // ==============================================
+  // SERVICE REQUEST DETAIL SCREEN
+  // ==============================================
+
+  serviceDetailContainer: {
+    flex: 1,
+    backgroundColor: Theme.colors.background.secondary,
+  },
+
+  serviceDetailScrollContent: {
+    padding: Theme.spacing.base,
+    paddingBottom: Theme.spacing['2xl'],
+  },
+
+  serviceDetailImageModalContainer: {
+    flex: 1,
+    backgroundColor: Theme.colors.overlay.dark,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  serviceDetailModalCloseButton: {
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 60 : 40,
+    right: Theme.spacing.lg,
+    zIndex: 2,
+    backgroundColor: Theme.colors.overlay.medium,
+    borderRadius: Theme.borderRadius.full,
+    padding: Theme.spacing.xs,
+  },
+
+  serviceDetailModalImage: {
+    width: '100%',
+    height: '80%',
+  },
+
+  serviceDetailHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingTop: Platform.OS === 'ios' ? 50 : 40,
+    paddingBottom: Theme.spacing.base,
+    paddingHorizontal: Theme.spacing.base,
+    backgroundColor: Theme.colors.background.primary,
+    borderBottomWidth: 1,
+    borderBottomColor: Theme.colors.border.light,
+  },
+
+  serviceDetailImageCard: {
+    backgroundColor: Theme.colors.background.primary,
+    borderRadius: Theme.borderRadius.xl,
+    padding: Theme.spacing.lg,
+    marginTop: Theme.spacing.lg,
+    ...Theme.shadows.md,
+  },
+
+  serviceDetailImagePreviewContainer: {
+    flexDirection: 'row',
+    marginTop: Theme.spacing.sm,
+  },
+
+  serviceDetailPreviewImage: {
+    width: 100,
+    height: 100,
+    borderRadius: Theme.borderRadius.lg,
+    marginRight: Theme.spacing.sm,
+    borderWidth: 1,
+    borderColor: Theme.colors.border.default,
+  },
+
+  serviceDetailBackButton: {
+    padding: Theme.spacing.xs,
+    marginRight: Theme.spacing.base,
+  },
+
+  serviceDetailHeaderTitle: {
+    fontSize: Theme.typography.fontSize.xl,
+    fontWeight: Theme.typography.fontWeight.bold,
+    color: Theme.colors.text.primary,
+  },
+
+  serviceDetailCard: {
+    backgroundColor: Theme.colors.background.primary,
+    borderRadius: Theme.borderRadius.xl,
+    padding: Theme.spacing.lg,
+    marginBottom: Theme.spacing.lg,
+    ...Theme.shadows.md,
+  },
+
+  serviceDetailTitle: {
+    fontSize: Theme.typography.fontSize['2xl'],
+    fontWeight: Theme.typography.fontWeight.bold,
+    color: Theme.colors.text.primary,
+    marginBottom: Theme.spacing.xs,
+  },
+
+  serviceDetailRequestId: {
+    fontSize: Theme.typography.fontSize.sm,
+    color: Theme.colors.text.secondary,
+    marginBottom: Theme.spacing.base,
+  },
+
+  serviceDetailSeparator: {
+    height: 1,
+    backgroundColor: Theme.colors.border.light,
+    marginVertical: Theme.spacing.base,
+  },
+
+  serviceDetailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: Theme.spacing.base,
+  },
+
+  serviceDetailIcon: {
+    marginRight: Theme.spacing.base,
+  },
+
+  serviceDetailText: {
+    fontSize: Theme.typography.fontSize.base,
+    color: Theme.colors.text.primary,
+    flex: 1,
+  },
+
+  serviceDetailStatusBadge: {
+    paddingVertical: Theme.spacing.xs,
+    paddingHorizontal: Theme.spacing.md,
+    borderRadius: Theme.borderRadius.full,
+  },
+
+  serviceDetailStatusBadgeText: {
+    color: Theme.colors.text.inverse,
+    fontWeight: Theme.typography.fontWeight.bold,
+    fontSize: Theme.typography.fontSize.sm,
+  },
+
+  serviceDetailMapCard: {
+    backgroundColor: Theme.colors.background.primary,
+    borderRadius: Theme.borderRadius.xl,
+    padding: Theme.spacing.lg,
+    ...Theme.shadows.md,
+  },
+
+  serviceDetailMapTitle: {
+    fontSize: Theme.typography.fontSize.lg,
+    fontWeight: Theme.typography.fontWeight.bold,
+    marginBottom: Theme.spacing.base,
+    color: Theme.colors.text.primary,
+  },
+
+  serviceDetailMapContainer: {
+    height: 250,
+    borderRadius: Theme.borderRadius.md,
+    overflow: 'hidden',
+  },
+
+  serviceDetailMap: {
+    ...StyleSheet.absoluteFillObject,
+  },
+
+  serviceDetailNoMapContainer: {
+    height: 250,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: Theme.colors.background.secondary,
+    borderRadius: Theme.borderRadius.md,
+  },
+
+  serviceDetailNoMapText: {
+    marginTop: Theme.spacing.sm,
+    fontSize: Theme.typography.fontSize.base,
+    color: Theme.colors.text.secondary,
+    textAlign: 'center',
+  },
+
+  serviceDetailErrorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  serviceDetailBackLink: {
+    marginTop: Theme.spacing.lg,
+    color: Theme.colors.primary[500],
+    fontSize: Theme.typography.fontSize.base,
   },
 });

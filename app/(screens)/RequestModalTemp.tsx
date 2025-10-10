@@ -827,11 +827,11 @@ const RequestMigrated: React.FC<ModalProps> = ({
         <View style={styles.bottomSheetContent}>
           {/* Search Input */}
           <View style={styles.searchContainer}>
-            <MaterialIcons name="search" size={20} color={Theme.colors.text.tertiary} style={styles.searchIcon} />
+            <MaterialIcons name="search" size={20} color="#999" style={styles.searchIcon} />
             <TextInput
               style={styles.searchInput}
               placeholder="Search subcategories..."
-              placeholderTextColor={Theme.colors.text.tertiary}
+              placeholderTextColor="#999"
               value={searchQuery}
               onChangeText={setSearchQuery}
               autoCapitalize="none"
@@ -839,7 +839,7 @@ const RequestMigrated: React.FC<ModalProps> = ({
             />
             {searchQuery.length > 0 && (
               <TouchableOpacity onPress={() => setSearchQuery('')}>
-                <MaterialIcons name="clear" size={20} color={Theme.colors.text.tertiary} />
+                <MaterialIcons name="clear" size={20} color="#999" />
               </TouchableOpacity>
             )}
           </View>
@@ -895,7 +895,7 @@ const RequestMigrated: React.FC<ModalProps> = ({
               })
             ) : (
               <View style={styles.emptyStateContainer}>
-                <MaterialIcons name="search-off" size={48} color={Theme.colors.text.disabled} />
+                <MaterialIcons name="search-off" size={48} color="#ccc" />
                 <Typography variant="body1" color="secondary" style={styles.emptyStateText}>
                   No results found
                 </Typography>
