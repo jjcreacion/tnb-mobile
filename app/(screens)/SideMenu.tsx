@@ -1,12 +1,9 @@
+import { MigratedStyles } from '@/constants/MigratedStyles';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import React from 'react';
-import { Dimensions, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Modal, Text, TouchableOpacity, View } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-
-
-
-const { width } = Dimensions.get('window');
 
 interface SideMenuProps {
   isVisible: boolean;
@@ -47,96 +44,42 @@ const SideMenu: React.FC<SideMenuProps> = ({ isVisible, onClose }) => {
       onRequestClose={onClose}
     >
       <TouchableOpacity
-        style={styles.overlay}
+        style={MigratedStyles.sideMenuOverlay}
         activeOpacity={1}
         onPressOut={onClose}
       >
-        <View style={styles.menuContainer}>
-          <View style={styles.header}>
-            <Text style={styles.menuTitle}>Menu</Text>
-            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+        <View style={MigratedStyles.sideMenuContainer}>
+          <View style={MigratedStyles.sideMenuHeader}>
+            <Text style={MigratedStyles.sideMenuTitle}>Menu</Text>
+            <TouchableOpacity onPress={onClose} style={MigratedStyles.sideMenuCloseButton}>
               <Icon name="close" size={24} color="#333" />
             </TouchableOpacity>
           </View>
-          <TouchableOpacity style={styles.menuItem} onPress={() => handleItemPress('Profile')}>
+          <TouchableOpacity style={MigratedStyles.sideMenuItem} onPress={() => handleItemPress('Profile')}>
             <Icon name="account-circle" size={24} color="#333" />
-            <Text style={styles.menuItemText}>My Profile</Text>
+            <Text style={MigratedStyles.sideMenuItemText}>My Profile</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.menuItem} onPress={() => handleItemPress('Terms and Policies')}>
+          <TouchableOpacity style={MigratedStyles.sideMenuItem} onPress={() => handleItemPress('Terms and Policies')}>
             <Icon name="gavel" size={24} color="#333" />
-            <Text style={styles.menuItemText}>Terms and Policies</Text>
+            <Text style={MigratedStyles.sideMenuItemText}>Terms and Policies</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.menuItem} onPress={() => handleItemPress('Notifications')}>
+          <TouchableOpacity style={MigratedStyles.sideMenuItem} onPress={() => handleItemPress('Notifications')}>
             <Icon name="notifications" size={24} color="#333" />
-            <Text style={styles.menuItemText}>Notifications</Text>
+            <Text style={MigratedStyles.sideMenuItemText}>Notifications</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.menuItem} onPress={() => handleItemPress('Share and Earn')}>
+          <TouchableOpacity style={MigratedStyles.sideMenuItem} onPress={() => handleItemPress('Share and Earn')}>
             <Icon name="share" size={24} color="#333" />
-            <Text style={styles.menuItemText}>Share and Earn</Text>
+            <Text style={MigratedStyles.sideMenuItemText}>Share and Earn</Text>
           </TouchableOpacity>
-          <View style={styles.separator} />
-          <TouchableOpacity style={styles.menuItem} onPress={handleLogout}>
+          <View style={MigratedStyles.sideMenuSeparator} />
+          <TouchableOpacity style={MigratedStyles.sideMenuItem} onPress={handleLogout}>
             <Icon name="logout" size={24} color="#d9534f" />
-            <Text style={[styles.menuItemText, { color: '#d9534f' }]}>Log Out</Text>
+            <Text style={[MigratedStyles.sideMenuItemText, { color: '#d9534f' }]}>Log Out</Text>
           </TouchableOpacity>
         </View>
       </TouchableOpacity>
     </Modal>
   );
 };
-
-const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-start',
-    alignItems: 'flex-start',
-  },
-  menuContainer: {
-    width: width * 0.7, 
-    height: '100%',
-    backgroundColor: '#fff',
-    paddingTop: 50,
-    borderRightWidth: 1,
-    borderRightColor: '#ddd',
-  },
-  separator: {
-    height: 1,
-    backgroundColor: '#f0f0f0',
-    marginVertical: 10,
-    marginHorizontal: 20,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    marginBottom: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-    paddingBottom: 15,
-  },
-  menuTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  closeButton: {
-    padding: 5,
-  },
-  menuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 15,
-    paddingHorizontal: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-  },
-  menuItemText: {
-    fontSize: 16,
-    marginLeft: 15,
-    color: '#333',
-  },
-});
 
 export default SideMenu;

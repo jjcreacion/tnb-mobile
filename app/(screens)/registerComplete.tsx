@@ -1,8 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useRef } from 'react';
-import { Animated, Easing, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Animated, Easing, Text, TouchableOpacity, View } from 'react-native';
 import ConfettiCannon from 'react-native-confetti-cannon';
+
+// Theme System Components
+import { MigratedStyles } from '../../constants/MigratedStyles';
 
 
 interface RegisterCompleteProps {
@@ -39,7 +42,7 @@ const RegisterComplete: React.FC<RegisterCompleteProps> = ({ isVisible, onClose,
   };
   
   return (
-    <View style={styles.container}>
+    <View style={MigratedStyles.registerCompleteContainer}>
       <ConfettiCannon
         count={100}
         origin={{ x: 0, y: 0 }}
@@ -51,51 +54,18 @@ const RegisterComplete: React.FC<RegisterCompleteProps> = ({ isVisible, onClose,
         <Ionicons name="checkmark-circle-outline" size={80} color="green" />
       </Animated.View>
 
-      <Text style={styles.message1}>
+      <Text style={MigratedStyles.registerCompleteMessage1}>
         Welcome to the Family TNB
       </Text>
-      <Text style={styles.message2}>
+      <Text style={MigratedStyles.registerCompleteMessage2}>
         Sign Up Successful!
       </Text>
 
-       <TouchableOpacity style={styles.button} onPress={goToMainLayout}> 
-        <Text style={styles.buttonText}>Go to Login</Text>
+       <TouchableOpacity style={MigratedStyles.registerCompleteButton} onPress={goToMainLayout}> 
+        <Text style={MigratedStyles.registerCompleteButtonText}>Go to Login</Text>
       </TouchableOpacity>
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  message1: {
-    marginTop: 20,
-    fontSize: 30, 
-    fontWeight: 'bold',
-    color: 'black',
-    textAlign: 'center',
-  },
-  message2: {
-    marginTop: 8,
-    fontSize: 18,
-    color: 'black',
-    textAlign: 'center',
-  },
-  button: { 
-    marginTop: 20,
-    backgroundColor: '#ff0000',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 5,
-  },
-  buttonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-});
 
 export default RegisterComplete;

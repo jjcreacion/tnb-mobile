@@ -13,7 +13,6 @@ export const MigratedStyles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     position: 'relative',
-    backgroundColor: Theme.colors.background.primary,
   },
 
   container: {
@@ -54,7 +53,228 @@ export const MigratedStyles = StyleSheet.create({
   imageIndex: {
     width: 200,
     height: 200,
-    margin: Theme.spacing.sm,
+    margin: 10,
+  },
+
+  textIndex: {
+    fontSize: 50, 
+    fontWeight: 'bold',
+    position: 'relative',
+  },
+
+  symbolR: {
+    fontSize: 20, 
+    position: 'absolute',
+    top: 10, 
+    right: -20,
+  },
+
+  textWelcome: {
+    fontSize: 25, 
+    color: Theme.colors.error[500], 
+    fontWeight: '600', 
+    marginTop: -10,
+    marginBottom: 30,
+  },
+
+  // ===== REGISTER COMPLETE STYLES =====
+  registerCompleteContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  registerCompleteMessage1: {
+    marginTop: 20,
+    fontSize: 30, 
+    fontWeight: 'bold',
+    color: Theme.colors.text.primary,
+    textAlign: 'center',
+  },
+
+  registerCompleteMessage2: {
+    marginTop: 8,
+    fontSize: 18,
+    color: Theme.colors.text.primary,
+    textAlign: 'center',
+  },
+
+  registerCompleteButton: { 
+    marginTop: 20,
+    backgroundColor: Theme.colors.error[500],
+    paddingVertical: Theme.spacing.sm,
+    paddingHorizontal: Theme.spacing.lg,
+    borderRadius: Theme.borderRadius.sm,
+  },
+
+  registerCompleteButtonText: {
+    color: Theme.colors.text.inverse,
+    fontSize: Theme.typography.fontSize.base,
+    fontWeight: Theme.typography.fontWeight.bold,
+  },
+
+  // ===== SHARE AND EARN STYLES =====
+  shareAndEarnContainer: {
+    flex: 1,
+    backgroundColor: Theme.colors.neutral[100],
+    paddingTop: 60,
+    paddingHorizontal: Theme.spacing.lg,
+    alignItems: 'center',
+  },
+
+  shareAndEarnInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 5,
+  },
+
+  shareAndEarnInfoIcon: {
+    marginRight: Theme.spacing.sm,
+    marginTop: 2,
+  },
+
+  shareAndEarnAdditionalInfoContainer: {
+    padding: Theme.spacing.sm,
+    width: '100%',
+    marginTop: 5, 
+  },
+
+  shareAndEarnAdditionalInfoText: {
+    fontSize: Theme.typography.fontSize.sm,
+    color: Theme.colors.neutral[600],
+    flex: 1,
+    lineHeight: 20,
+    textAlign: 'justify',
+  },
+
+  shareAndEarnBackButton: {
+    flexDirection: 'row',
+    alignSelf: 'flex-start',
+    alignItems: 'center',
+    marginBottom: Theme.spacing.lg,
+  },
+
+  shareAndEarnBackButtonText: {
+    fontSize: Theme.typography.fontSize.lg,
+    marginLeft: Theme.spacing.sm,
+    color: Theme.colors.text.primary,
+  },
+
+  shareAndEarnContent: {
+    width: '100%',
+    maxWidth: 400,
+    alignItems: 'center',
+  },
+
+  shareAndEarnImageContainer: {
+    width: '100%',
+    height: 200,
+    borderRadius: Theme.borderRadius.lg,
+    overflow: 'hidden',
+    marginBottom: Theme.spacing.sm,
+    position: 'relative',
+  },
+
+  shareAndEarnImage: {
+    width: '100%',
+    height: '100%',
+  },
+
+  shareAndEarnShareImageButton: {
+    position: 'absolute',
+    top: 15,
+    right: 15,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    borderRadius: 20,
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  shareAndEarnTitle: {
+    fontSize: 28,
+    fontWeight: Theme.typography.fontWeight.bold,
+    color: Theme.colors.text.primary,
+    marginBottom: 1,
+    textAlign: 'center',
+  },
+
+  shareAndEarnSubtitle: {
+    fontSize: Theme.typography.fontSize.base,
+    color: Theme.colors.neutral[500],
+    textAlign: 'center',
+    marginBottom: 30,
+    paddingHorizontal: 15,
+  },
+
+  shareAndEarnInvitationLinkContainer: {
+    backgroundColor: Theme.colors.background.primary,
+    borderRadius: Theme.borderRadius.lg,
+    padding: Theme.spacing.lg,
+    width: '100%',
+    ...Theme.shadows.md,
+    marginBottom: 30,
+    borderWidth: 1,
+    borderColor: Theme.colors.border.light,
+  },
+
+  shareAndEarnInvitationLinkText: {
+    fontSize: Theme.typography.fontSize.lg,
+    fontWeight: Theme.typography.fontWeight.semiBold,
+    color: Theme.colors.neutral[600],
+    marginBottom: Theme.spacing.sm,
+    textAlign: 'center',
+  },
+
+  shareAndEarnLinkDisplay: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: Theme.colors.neutral[50],
+    borderRadius: Theme.borderRadius.sm,
+    paddingVertical: Theme.spacing.md,
+    paddingHorizontal: Theme.spacing.md,
+    borderWidth: 1,
+    borderColor: Theme.colors.border.light,
+  },
+
+  shareAndEarnLink: {
+    fontSize: Theme.typography.fontSize.sm,
+    color: Theme.colors.neutral[700],
+    flex: 1,
+    marginRight: Theme.spacing.sm,
+  },
+
+  shareAndEarnCopyButton: {
+    padding: Theme.spacing.xs,
+    borderRadius: Theme.borderRadius.xs,
+    backgroundColor: Theme.colors.secondary[500],
+  },
+
+  shareAndEarnButtonContainer: {
+    width: '100%',
+  },
+
+  shareAndEarnShareButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Theme.colors.success[500],
+    paddingVertical: Theme.spacing.md,
+    borderRadius: Theme.borderRadius.sm,
+    ...Theme.shadows.md,
+  },
+
+  shareAndEarnButtonText: {
+    color: Theme.colors.text.inverse,
+    fontSize: Theme.typography.fontSize.base,
+    fontWeight: Theme.typography.fontWeight.bold,
+    marginLeft: Theme.spacing.sm,
+  },
+
+  shareAndEarnIcon: {
+    marginRight: 5,
   },
 
   // ===== INPUTS =====
@@ -378,5 +598,150 @@ export const MigratedStyles = StyleSheet.create({
     marginBottom: Theme.spacing.md,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+
+  // ===== SIDE MENU =====
+  sideMenuOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-start',
+    alignItems: 'flex-start',
+  },
+
+  sideMenuContainer: {
+    width: '70%', 
+    height: '100%',
+    backgroundColor: Theme.colors.background.primary,
+    paddingTop: 50,
+    borderRightWidth: 1,
+    borderRightColor: Theme.colors.border.light,
+  },
+
+  sideMenuSeparator: {
+    height: 1,
+    backgroundColor: Theme.colors.border.light,
+    marginVertical: Theme.spacing.sm,
+    marginHorizontal: Theme.spacing.lg,
+  },
+
+  sideMenuHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: Theme.spacing.lg,
+    marginBottom: Theme.spacing.lg,
+    borderBottomWidth: 1,
+    borderBottomColor: Theme.colors.border.light,
+    paddingBottom: Theme.spacing.md,
+  },
+
+  sideMenuTitle: {
+    fontSize: Theme.typography.fontSize.xl,
+    fontWeight: Theme.typography.fontWeight.bold,
+    color: Theme.colors.text.primary,
+  },
+
+  sideMenuCloseButton: {
+    padding: Theme.spacing.xs,
+  },
+
+  sideMenuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: Theme.spacing.md,
+    paddingHorizontal: Theme.spacing.lg,
+    borderBottomWidth: 1,
+    borderBottomColor: Theme.colors.border.light,
+  },
+
+  sideMenuItemText: {
+    fontSize: Theme.typography.fontSize.base,
+    marginLeft: Theme.spacing.md,
+    color: Theme.colors.text.primary,
+  },
+
+  // ===== CAMPAIGN MODAL =====
+  campaignModalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+
+  campaignModalContent: {
+    width: '90%',
+    maxHeight: '80%',
+    backgroundColor: Theme.colors.background.primary,
+    borderRadius: Theme.borderRadius.md,
+    padding: Theme.spacing.lg,
+    alignItems: 'center',
+    ...Theme.shadows.lg,
+  },
+
+  campaignModalScrollViewContent: {
+    alignItems: 'center',
+    paddingBottom: Theme.spacing.sm,
+  },
+
+  campaignModalCloseButton: {
+    position: 'absolute',
+    top: Theme.spacing.sm,
+    right: Theme.spacing.sm,
+    zIndex: 1,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: Theme.colors.text.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  campaignModalImage: {
+    width: '100%',
+    height: 200,
+    borderRadius: Theme.borderRadius.md,
+    marginBottom: Theme.spacing.md,
+    resizeMode: 'cover',
+  },
+
+  campaignModalTitle: {
+    fontSize: Theme.typography.fontSize['2xl'],
+    fontWeight: Theme.typography.fontWeight.bold,
+    marginBottom: Theme.spacing.sm,
+    textAlign: 'center',
+    color: Theme.colors.text.primary,
+  },
+
+  campaignModalDescription: {
+    fontSize: Theme.typography.fontSize.base,
+    color: Theme.colors.text.secondary,
+    textAlign: 'center',
+    marginBottom: Theme.spacing.lg,
+  },
+
+  campaignModalContactContainer: {
+    width: '100%',
+    marginTop: Theme.spacing.sm,
+  },
+
+  campaignModalContactButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Theme.colors.info[500],
+    padding: Theme.spacing.sm,
+    borderRadius: Theme.borderRadius.sm,
+    marginBottom: Theme.spacing.sm,
+    justifyContent: 'center',
+  },
+
+  campaignModalWhatsappButton: {
+    backgroundColor: '#25D366',
+  },
+
+  campaignModalContactButtonText: {
+    color: Theme.colors.text.inverse,
+    fontSize: Theme.typography.fontSize.base,
+    fontWeight: Theme.typography.fontWeight.bold,
+    marginLeft: Theme.spacing.sm,
   },
 });
