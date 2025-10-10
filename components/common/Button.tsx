@@ -1,3 +1,4 @@
+import { Theme } from '@/constants/Theme';
 import React from 'react';
 import {
   ActivityIndicator,
@@ -9,7 +10,6 @@ import {
   View,
   ViewStyle,
 } from 'react-native';
-import { Theme } from '@/constants/Theme';
 
 export type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger';
 export type ButtonSize = 'sm' | 'md' | 'lg';
@@ -113,6 +113,12 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
     borderWidth: 1.5,
     borderColor: Theme.colors.primary[500],
+    // Remove shadow for outline buttons to prevent Android border duplication
+    shadowColor: 'transparent',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    elevation: 0,
   },
 
   ghost: {

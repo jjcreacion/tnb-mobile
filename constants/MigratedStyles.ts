@@ -849,7 +849,8 @@ export const MigratedStyles = StyleSheet.create({
   },
 
   loginSignupButton: {
-    borderWidth: 1.5,
+    // All border styles handled by Button component's outline variant
+    // No additional styling needed to prevent Android border duplication
   },
 
   // ===== REGISTER SCREEN =====
