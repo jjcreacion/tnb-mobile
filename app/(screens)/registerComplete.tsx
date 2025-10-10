@@ -33,7 +33,7 @@ const RegisterComplete: React.FC<RegisterCompleteProps> = ({ isVisible, onClose,
 
   const goToMainLayout = () => {
     console.log('Ir a principal'); 
-    router.push('/login');
+    router.push('/loginMigrated');
     onClose();
     IsVerify();
   };

@@ -50,6 +50,13 @@ export const MigratedStyles = StyleSheet.create({
     alignItems: 'center',
   },
 
+  // ===== SPLASH SCREEN STYLES =====
+  imageIndex: {
+    width: 200,
+    height: 200,
+    margin: Theme.spacing.sm,
+  },
+
   // ===== INPUTS =====
   input: {
     height: Theme.inputSizes.md.height,

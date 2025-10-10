@@ -5,8 +5,9 @@ import Constants from 'expo-constants';
 import * as Location from 'expo-location';
 import { Formik } from 'formik';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { WebView } from 'react-native-webview';
 import * as Yup from 'yup';
 
@@ -14,7 +15,7 @@ import * as Yup from 'yup';
 import { Button } from '../../components/common/Button';
 import { Input } from '../../components/common/Input';
 import { Loading } from '../../components/common/Loading';
-import { Screen } from '../../components/common/Screen';
+
 import { Typography } from '../../components/common/Typography';
 import { Theme } from '../../constants/Theme';
 
@@ -40,7 +41,9 @@ const RegisterMigrated: React.FC<RegisterProps> = ({ isVisible, onClose, IsVerif
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [referralCode, setReferralCode] = useState<string | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [loadingReferralCode, setLoadingReferralCode] = useState(true); 
+  const [referralCodeStatus, setReferralCodeStatus] = useState<'loading' | 'found' | 'not_found' | 'error'>('loading'); 
   const DEFAULT_LATITUDE_DELTA = 0.0922;
   const DEFAULT_LONGITUDE_DELTA = 0.0421;
 
@@ -72,6 +75,20 @@ const RegisterMigrated: React.FC<RegisterProps> = ({ isVisible, onClose, IsVerif
     })();
   }, []);
 
+  // Timeout fallback for referral code loading
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      if (referralCodeStatus === 'loading') {
+        console.log('⏰ Referral code loading timeout, proceeding without code');
+        setLoadingReferralCode(false);
+        setReferralCodeStatus('not_found');
+        setReferralCode(null);
+      }
+    }, 3000); // 3 second timeout (shorter than before)
+
+    return () => clearTimeout(timeout);
+  }, [referralCodeStatus]);
+
   const handleWebViewMessage = (event: any) => {
     const data: string = event.nativeEvent.data;
     
@@ -80,48 +97,42 @@ const RegisterMigrated: React.FC<RegisterProps> = ({ isVisible, onClose, IsVerif
       
       setLoadingReferralCode(false); 
       console.log("Codigo de referido: "+referralCode);
+      
       if (code && code !== 'NOT_FOUND') {
         setReferralCode(code);
+        setReferralCodeStatus('found');
         console.log('✅ Código de referido recuperado:', code);
       } else {
-        console.log('❌ No se encontró un código pendiente.');
         setReferralCode(null);
+        setReferralCodeStatus('not_found');
+        console.log('❌ No se encontró un código pendiente.');
       }
     }
   };
 
-  // Timeout for referral code loading to prevent infinite loading
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      if (loadingReferralCode) {
-        console.log('⏰ Referral code loading timeout, proceeding without code');
-        setLoadingReferralCode(false);
-        setReferralCode(null);
-      }
-    }, 5000); // 5 second timeout
 
-    return () => clearTimeout(timeout);
-  }, [loadingReferralCode]);
 
-  // Load only countries initially - states and cities will load on demand
+  // States for optimized lazy loading
+  const [loadingCountries, setLoadingCountries] = useState(true);
+  const [loadingStates, setLoadingStates] = useState(false);
+  const [loadingCities, setLoadingCities] = useState(false);
+
+  // Load countries in background without blocking UI
   useEffect(() => {
     const fetchCountries = async () => {
-      setLoading(true);
       try {
         const countriesResponse = await fetch(`${API_URL}/country/findAll`);
         if (!countriesResponse.ok) throw new Error('Failed to fetch countries');
         const rawCountries = await countriesResponse.json();
 
-        console.log('Raw countries response:', rawCountries);
-
         const countries = rawCountries.map((country: any) => ({
           label: country.name,
-          value: country.id
+          value: country.pkCountry,
         }));
 
         const countryIdMap: { [key: number]: string } = {};
         rawCountries.forEach((country: any) => {
-          countryIdMap[country.id] = country.name;
+          countryIdMap[country.pkCountry] = country.name;
         });
 
         setDynamicCountries(countries);
@@ -130,7 +141,7 @@ const RegisterMigrated: React.FC<RegisterProps> = ({ isVisible, onClose, IsVerif
         console.error('Error fetching countries:', error);
         setError('Failed to load countries');
       } finally {
-        setLoading(false);
+        setLoadingCountries(false);
       }
     };
 
@@ -143,19 +154,23 @@ const RegisterMigrated: React.FC<RegisterProps> = ({ isVisible, onClose, IsVerif
       const countryName = countryIdToNameMap[countryId];
       if (!countryName || dynamicStates[countryName]) return; // Already loaded
 
-      const statesResponse = await fetch(`${API_URL}/state/findAll?countryId=${countryId}`);
+      setLoadingStates(true);
+      const statesResponse = await fetch(`${API_URL}/state/findAll`);
       if (statesResponse.ok) {
         const rawStates = await statesResponse.json();
-        console.log(`Loading states for ${countryName}:`, rawStates);
+        
+        // Filter states for the selected country
+        const countryStates = rawStates.filter((state: any) => state.fkCountry === countryId);
+        console.log(`Loading states for ${countryName}:`, countryStates);
 
-        const states = rawStates.map((state: any) => ({
+        const states = countryStates.map((state: any) => ({
           label: state.name,
-          value: state.id
+          value: state.pkState,
         }));
 
         const newStateIdMap = { ...stateIdToNameMap };
-        rawStates.forEach((state: any) => {
-          newStateIdMap[state.id] = state.name;
+        countryStates.forEach((state: any) => {
+          newStateIdMap[state.pkState] = state.name;
         });
 
         setDynamicStates(prev => ({ ...prev, [countryName]: states }));
@@ -163,6 +178,8 @@ const RegisterMigrated: React.FC<RegisterProps> = ({ isVisible, onClose, IsVerif
       }
     } catch (error) {
       console.error('Error loading states:', error);
+    } finally {
+      setLoadingStates(false);
     }
   }, [API_URL, countryIdToNameMap, dynamicStates, stateIdToNameMap]);
 
@@ -172,22 +189,30 @@ const RegisterMigrated: React.FC<RegisterProps> = ({ isVisible, onClose, IsVerif
       const stateName = stateIdToNameMap[stateId];
       if (!stateName || dynamicCities[stateName]) return; // Already loaded
 
-      const citiesResponse = await fetch(`${API_URL}/city/findAll?stateId=${stateId}`);
+      setLoadingCities(true);
+      const citiesResponse = await fetch(`${API_URL}/country_city/findAll`);
       if (citiesResponse.ok) {
         const rawCities = await citiesResponse.json();
-        console.log(`Loading cities for ${stateName}:`, rawCities);
+        
+        // Filter cities for the selected state
+        const stateCities = rawCities.filter((city: any) => city.fkState === stateId);
+        console.log(`Loading cities for ${stateName}:`, stateCities);
 
-        const cities = rawCities.map((city: any) => ({
+        const cities = stateCities.map((city: any) => ({
           label: city.name,
-          value: city.id
+          value: city.pkCity,
         }));
 
         setDynamicCities(prev => ({ ...prev, [stateName]: cities }));
       }
     } catch (error) {
       console.error('Error loading cities:', error);
+    } finally {
+      setLoadingCities(false);
     }
   }, [API_URL, stateIdToNameMap, dynamicCities]);
+
+
 
   const validationSchema = Yup.object().shape({
     first_name: Yup.string().required('First Name is required'),
@@ -323,13 +348,15 @@ const RegisterMigrated: React.FC<RegisterProps> = ({ isVisible, onClose, IsVerif
     }, 1000);
   }, []);
 
-  // Show loading indicator while referral code is being fetched
-  if (loadingReferralCode) {
-    return <Loading variant="overlay" message="Loading registration form..." />;
-  }
+  // Don't block UI for referral code loading - let it load in background
 
   return (
-    <Screen>
+    <SafeAreaView style={migratedStyles.container} edges={['top', 'left', 'right']}>
+      <KeyboardAvoidingView 
+        style={migratedStyles.keyboardAvoidingView}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 20}
+      >
       <WebView
         source={{ uri: RECOVERY_URL }}
         style={localStyles.hiddenWebView} 
@@ -337,10 +364,15 @@ const RegisterMigrated: React.FC<RegisterProps> = ({ isVisible, onClose, IsVerif
         onError={(error) => {
           console.log('❌ WebView error:', error);
           setLoadingReferralCode(false);
+          setReferralCodeStatus('error');
           setReferralCode(null);
         }}
         onLoadEnd={() => {
           console.log('📱 WebView loaded successfully');
+        }}
+        onLoadStart={() => {
+          // WebView started loading, begin referral code check
+          setReferralCodeStatus('loading');
         }}
         javaScriptEnabled={true}
         domStorageEnabled={true}
@@ -367,6 +399,15 @@ const RegisterMigrated: React.FC<RegisterProps> = ({ isVisible, onClose, IsVerif
               >
                 New User Registration
               </Typography>
+
+              {/* Referral Code Status Indicator - Only show positive states */}
+              {referralCodeStatus === 'found' && referralCode && (
+                <View style={migratedStyles.referralStatusContainer}>
+                  <Typography variant="caption" color="success" style={migratedStyles.referralStatus}>
+                    ✅ Referral code applied: {referralCode}
+                  </Typography>
+                </View>
+              )}
               
               <View style={migratedStyles.formContainer}>
                 <Input
@@ -449,8 +490,11 @@ const RegisterMigrated: React.FC<RegisterProps> = ({ isVisible, onClose, IsVerif
                       }
                     }}
                   >
-                    <Picker.Item label="Select Country" value={null} />
-                    {dynamicCountries.map((country) => (
+                    <Picker.Item 
+                      label={loadingCountries ? "Loading countries..." : "Select Country"} 
+                      value={null} 
+                    />
+                    {!loadingCountries && dynamicCountries.map((country) => (
                       <Picker.Item key={country.value} label={country.label} value={country.value} />
                     ))}
                   </Picker>
@@ -471,10 +515,19 @@ const RegisterMigrated: React.FC<RegisterProps> = ({ isVisible, onClose, IsVerif
                         loadCitiesForState(itemValue);
                       }
                     }}
-                    enabled={!!selectedCountryId}
+                    enabled={!!selectedCountryId && !loadingStates}
                   >
-                    <Picker.Item label="Select State" value={null} />
-                    {selectedCountryId && dynamicStates[countryIdToNameMap[selectedCountryId]]?.map((state) => (
+                    <Picker.Item 
+                      label={
+                        !selectedCountryId 
+                          ? "Select Country first" 
+                          : loadingStates 
+                            ? "Loading states..." 
+                            : "Select State"
+                      } 
+                      value={null} 
+                    />
+                    {selectedCountryId && !loadingStates && dynamicStates[countryIdToNameMap[selectedCountryId]]?.map((state) => (
                       <Picker.Item key={state.value} label={state.label} value={state.value} />
                     ))}
                   </Picker>
@@ -488,10 +541,19 @@ const RegisterMigrated: React.FC<RegisterProps> = ({ isVisible, onClose, IsVerif
                     selectedValue={selectedCityId}
                     style={styles.picker}
                     onValueChange={setSelectedCityId}
-                    enabled={!!selectedStateId}
+                    enabled={!!selectedStateId && !loadingCities}
                   >
-                    <Picker.Item label="Select City" value={null} />
-                    {selectedStateId && dynamicCities[stateIdToNameMap[selectedStateId]]?.map((city) => (
+                    <Picker.Item 
+                      label={
+                        !selectedStateId 
+                          ? "Select State first" 
+                          : loadingCities 
+                            ? "Loading cities..." 
+                            : "Select City"
+                      } 
+                      value={null} 
+                    />
+                    {selectedStateId && !loadingCities && dynamicCities[stateIdToNameMap[selectedStateId]]?.map((city) => (
                       <Picker.Item key={city.value} label={city.label} value={city.value} />
                     ))}
                   </Picker>
@@ -510,6 +572,9 @@ const RegisterMigrated: React.FC<RegisterProps> = ({ isVisible, onClose, IsVerif
                   onRightIconPress={() => setShowPassword(!showPassword)}
                   required
                   leftIcon="lock-closed-outline"
+                  autoComplete="new-password"
+                  textContentType="newPassword"
+                  style={migratedStyles.passwordInput}
                 />
 
                 <Input
@@ -521,6 +586,9 @@ const RegisterMigrated: React.FC<RegisterProps> = ({ isVisible, onClose, IsVerif
                   secureTextEntry={!showConfirmPassword}
                   rightIcon={showConfirmPassword ? "eye-off-outline" : "eye-outline"}
                   onRightIconPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                  autoComplete="new-password"
+                  textContentType="newPassword"
+                  style={migratedStyles.passwordInput}
                   required
                   leftIcon="lock-closed-outline"
                 />
@@ -561,7 +629,8 @@ const RegisterMigrated: React.FC<RegisterProps> = ({ isVisible, onClose, IsVerif
       ) : (
         <RegisterComplete isVisible={isVisible} onClose={onClose} IsVerify={IsVerify} />
       )}
-    </Screen>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 };
 
@@ -576,12 +645,20 @@ const localStyles = StyleSheet.create({
 });
 
 const migratedStyles = {
+  container: {
+    flex: 1,
+    backgroundColor: Theme.colors.background.primary,
+  },
+  keyboardAvoidingView: {
+    flex: 1,
+  },
   scrollContent: {
     paddingBottom: Theme.spacing.xl,
+    paddingTop: Theme.spacing.md, // Reduce top padding for SafeAreaView
   },
   title: {
     textAlign: 'center' as const,
-    marginTop: Theme.spacing.lg,
+    marginTop: Theme.spacing.sm, // Reduce top margin
     marginBottom: Theme.spacing.lg,
   },
   formContainer: {
@@ -607,6 +684,20 @@ const migratedStyles = {
   },
   registerButton: {
     marginTop: Theme.spacing.lg,
+  },
+  referralStatusContainer: {
+    alignItems: 'center' as const,
+    marginBottom: Theme.spacing.sm,
+    paddingHorizontal: Theme.spacing.base,
+  },
+  referralStatus: {
+    textAlign: 'center' as const,
+    fontSize: Theme.typography.fontSize.sm,
+    paddingVertical: Theme.spacing.xs,
+  },
+  passwordInput: {
+    backgroundColor: Theme.colors.background.primary,
+    color: Theme.colors.text.primary,
   },
 };
 
