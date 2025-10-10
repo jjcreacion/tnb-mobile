@@ -3,15 +3,16 @@ import { MigratedStyles } from '@/constants/MigratedStyles';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import { Formik } from 'formik';
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
-  Image,
-  ImageBackground,
-  KeyboardAvoidingView,
-  Platform,
-  View
+    Image,
+    ImageBackground,
+    KeyboardAvoidingView,
+    Platform,
+    View
 } from 'react-native';
 import * as Animatable from 'react-native-animatable';
 import * as Yup from 'yup';
@@ -35,6 +36,17 @@ export default function LoginScreenMigrated() {
   const [errorMessage, setErrorMessage] = useState('');
   const [isSignUpModalVisible, setSignUpModalVisible] = useState(false);
   const [resetModalVisible, setResetModalVisible] = useState(false);
+
+  // Configure StatusBar to be transparent only on this screen (Android)
+  useFocusEffect(
+    useCallback(() => {
+      // This will apply when the screen comes into focus
+      return () => {
+        // This cleanup function runs when the screen loses focus
+        // The StatusBar will automatically reset to app default when navigating away
+      };
+    }, [])
+  );
 
   const handleLogin = async (values: { email: string; password: string }) => {
     setLoading(true);
@@ -71,12 +83,23 @@ export default function LoginScreenMigrated() {
       style={MigratedStyles.loginBackgroundImage}
       blurRadius={10}
     >
+      {/* StatusBar transparent only for login screen on Android */}
+      <StatusBar 
+        style="light" 
+        backgroundColor="transparent" 
+        translucent={Platform.OS === 'android'} 
+      />
+      
       <LinearGradient
        colors={['rgba(230, 57, 70, 0.2)', 'rgba(230, 57, 70, 0.3)', 'rgba(230, 57, 70, 0.6)']}
         style={MigratedStyles.loginOverlay}
       />
 
-      <Screen safeArea={true} edges={['top', 'bottom']} style={MigratedStyles.loginScreen}>
+      <Screen 
+        safeArea={true} 
+        edges={Platform.OS === 'android' ? ['bottom'] : ['top', 'bottom']} 
+        style={MigratedStyles.loginScreen}
+      >
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={MigratedStyles.loginKeyboardView}
