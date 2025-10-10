@@ -23,7 +23,6 @@ export default function RootLayout() {
         <Stack.Screen name="verificode" options={{ headerShown: false }} />
         <Stack.Screen name="verificodeReset" options={{ headerShown: false }} />
         <Stack.Screen name="SetNewPassword" options={{ headerShown: false }} />
-        <Stack.Screen name="ModalContext" options={{ headerShown: false }} />
     </Stack>   
   )
 }

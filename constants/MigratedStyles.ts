@@ -1598,4 +1598,56 @@ export const MigratedStyles = StyleSheet.create({
     color: Theme.colors.primary[500],
     fontSize: Theme.typography.fontSize.base,
   },
+
+  // ==============================================
+  // TERMS AND POLICIES SCREEN
+  // ==============================================
+
+  termsAndPoliciesContainer: {
+    flex: 1,
+    backgroundColor: Theme.colors.background.secondary,
+    paddingTop: 60,
+    paddingHorizontal: Theme.spacing.lg,
+  },
+
+  termsAndPoliciesBackButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: Theme.spacing.lg,
+  },
+
+  termsAndPoliciesBackButtonText: {
+    fontSize: Theme.typography.fontSize.lg,
+    marginLeft: Theme.spacing.sm,
+    color: Theme.colors.text.primary,
+  },
+
+  termsAndPoliciesContent: {
+    paddingBottom: Theme.spacing['3xl'],
+  },
+
+  termsAndPoliciesTitle: {
+    fontSize: Theme.typography.fontSize['4xl'],
+    fontWeight: Theme.typography.fontWeight.bold,
+    marginBottom: Theme.spacing['2xl'],
+    color: Theme.colors.text.primary,
+  },
+
+  termsAndPoliciesPolicyItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Theme.colors.background.primary,
+    paddingVertical: Theme.spacing.lg,
+    paddingHorizontal: Theme.spacing.base,
+    borderRadius: Theme.borderRadius.md,
+    marginBottom: Theme.spacing.base,
+    ...Theme.shadows.sm,
+  },
+
+  termsAndPoliciesPolicyText: {
+    flex: 1,
+    fontSize: Theme.typography.fontSize.lg,
+    marginLeft: Theme.spacing.base,
+    color: Theme.colors.text.primary,
+  },
 });
