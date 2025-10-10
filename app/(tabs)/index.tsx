@@ -1,21 +1,21 @@
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import {
-    loadCitiesAndStates,
-    loadUserAddresses,
-    updatePrimaryAddress,
+  loadCitiesAndStates,
+  loadUserAddresses,
+  updatePrimaryAddress,
 } from '@/store/slices/addressSlice'
 import { expressInterest, fetchCampaigns } from '@/store/slices/campaignSlice'
 import { fetchCategories } from '@/store/slices/categorySlice'
 import {
-    closeAddressModal,
-    closeCampaignModal,
-    closeRequestModal,
-    openAddressModal,
-    openCampaignModal,
-    openRequestModal,
-    setMenuVisible,
-    setServiceSearchQuery,
-    toggleSearch,
+  closeAddressModal,
+  closeCampaignModal,
+  closeRequestModal,
+  openAddressModal,
+  openCampaignModal,
+  openRequestModal,
+  setMenuVisible,
+  setServiceSearchQuery,
+  toggleSearch,
 } from '@/store/slices/uiSlice'
 import { loadUserData } from '@/store/slices/userSlice'
 import AsyncStorage from '@react-native-async-storage/async-storage'
@@ -24,14 +24,14 @@ import React, { useCallback, useEffect } from 'react'
 import { Alert, StyleSheet, View } from 'react-native'
 
 import {
-    AddressSelector,
-    CampaignCarousel,
-    HomeHeader,
-    ServicesExplorer,
+  AddressSelector,
+  CampaignCarousel,
+  HomeHeader,
+  ServicesExplorer,
 } from '@/components/home'
 import { AddressModal } from '@/components/person-address'
 import CampaignModal from '../(screens)/CampaignModal'
-import RequestModal from '../(screens)/RequestModalMigrated'
+import RequestModal from '../(screens)/RequestModal'
 import SideMenu from '../(screens)/SideMenu'
 
 import { useReferralReward } from '@/hooks/home/useReferralReward'

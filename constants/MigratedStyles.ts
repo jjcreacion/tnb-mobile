@@ -744,4 +744,322 @@ export const MigratedStyles = StyleSheet.create({
     fontWeight: Theme.typography.fontWeight.bold,
     marginLeft: Theme.spacing.sm,
   },
+
+  // ===== LOGIN SCREEN =====
+  loginBackgroundImage: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+  },
+
+  loginOverlay: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
+  },
+
+  loginScreen: {
+    backgroundColor: 'transparent',
+  },
+
+  loginKeyboardView: {
+    flex: 1,
+  },
+
+  loginContainer: {
+    flex: 1,
+    justifyContent: 'space-between',
+    paddingVertical: Theme.spacing['2xl'],
+  },
+
+  loginLogoContainer: {
+    alignItems: 'center',
+    marginTop: Theme.spacing['4xl'],
+  },
+
+  loginLogo: {
+    width: 120,
+    height: 120,
+    marginBottom: Theme.spacing.lg,
+  },
+
+  loginWelcomeText: {
+    marginBottom: Theme.spacing.xs,
+    textAlign: 'center',
+  },
+
+  loginSubtitle: {
+    textAlign: 'center',
+    opacity: 0.9,
+  },
+
+  loginFormContainer: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    marginBottom: Theme.spacing.xl,
+  },
+
+  loginCard: {
+    backgroundColor: Theme.colors.surface.primary,
+    borderRadius: Theme.borderRadius['3xl'],
+    padding: Theme.spacing.xl,
+    ...Theme.shadows.xl,
+  },
+
+  loginButton: {
+    marginTop: Theme.spacing.md,
+  },
+
+  loginForgotButton: {
+    marginTop: Theme.spacing.sm,
+  },
+
+  loginErrorContainer: {
+    backgroundColor: Theme.colors.error[50],
+    padding: Theme.spacing.md,
+    borderRadius: Theme.borderRadius.base,
+    marginBottom: Theme.spacing.md,
+  },
+
+  loginErrorText: {
+    color: Theme.colors.error[600],
+    fontSize: Theme.typography.fontSize.sm,
+    textAlign: 'center',
+  },
+
+  loginDivider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: Theme.spacing.xl,
+  },
+
+  loginDividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: Theme.colors.border.default,
+  },
+
+  loginDividerText: {
+    marginHorizontal: Theme.spacing.md,
+    color: Theme.colors.text.tertiary,
+    fontSize: Theme.typography.fontSize.sm,
+    fontWeight: Theme.typography.fontWeight.medium,
+  },
+
+  loginSignupButton: {
+    borderWidth: 1.5,
+  },
+
+  // ===== REGISTER SCREEN =====
+  registerHiddenWebView: { 
+    height: 1, 
+    width: 1, 
+    position: 'absolute',
+    top: -100, 
+    left: -100,
+  },
+
+  registerContainer: {
+    flex: 1,
+    backgroundColor: Theme.colors.background.primary,
+  },
+
+  registerKeyboardAvoidingView: {
+    flex: 1,
+  },
+
+  registerScrollContent: {
+    paddingBottom: Theme.spacing.xl,
+    paddingTop: Theme.spacing.md,
+  },
+
+  registerTitle: {
+    textAlign: 'center',
+    marginTop: Theme.spacing.sm,
+    marginBottom: Theme.spacing.lg,
+  },
+
+  registerFormContainer: {
+    paddingHorizontal: Theme.spacing.base,
+    gap: Theme.spacing.md,
+  },
+
+  registerSectionLabel: {
+    marginTop: Theme.spacing.md,
+    marginBottom: Theme.spacing.xs,
+    fontWeight: Theme.typography.fontWeight.semiBold,
+  },
+
+  registerGpsButton: {
+    marginTop: Theme.spacing.sm,
+    marginBottom: Theme.spacing.md,
+  },
+
+  registerPickerContainer: { 
+    borderColor: Theme.colors.border.light,
+    borderWidth: 1,
+    borderRadius: Theme.borderRadius.sm,
+    marginBottom: Theme.spacing.sm,
+    overflow: 'hidden', 
+    backgroundColor: Theme.colors.background.primary,
+    height: 40, 
+    justifyContent: 'center', 
+  },
+
+  registerPicker: {
+    width: '100%',
+    color: Theme.colors.text.primary,
+  },
+
+  registerSuccessMessage: {
+    textAlign: 'center',
+    marginVertical: Theme.spacing.sm,
+  },
+
+  registerErrorMessage: {
+    textAlign: 'center',
+    marginVertical: Theme.spacing.sm,
+  },
+
+  registerButton: {
+    marginTop: Theme.spacing.lg,
+  },
+
+  registerReferralStatusContainer: {
+    alignItems: 'center',
+    marginBottom: Theme.spacing.sm,
+    paddingHorizontal: Theme.spacing.base,
+  },
+
+  registerReferralStatus: {
+    textAlign: 'center',
+    fontSize: Theme.typography.fontSize.sm,
+    paddingVertical: Theme.spacing.xs,
+  },
+
+  registerPasswordInput: {
+    backgroundColor: Theme.colors.background.primary,
+    color: Theme.colors.text.primary,
+  },
+
+  // ===== PROFILE SCREEN =====
+  profileContainer: {
+    flex: 1,
+    backgroundColor: Theme.colors.background.secondary,
+  },
+
+  profileBackgroundImage: {
+    height: 120,
+    justifyContent: 'flex-end',
+    position: 'relative',
+  },
+
+  profileBackgroundImageStyle: {
+    borderBottomLeftRadius: Theme.borderRadius.xl,
+    borderBottomRightRadius: Theme.borderRadius.xl,
+  },
+
+  profileBackButton: {
+    position: 'absolute',
+    top: Theme.spacing.base,
+    left: Theme.spacing.base,
+    backgroundColor: Theme.colors.overlay.medium,
+    padding: Theme.spacing.sm,
+    borderRadius: Theme.borderRadius.full,
+    zIndex: 10,
+  },
+
+  profileHeader: {
+    alignItems: 'center',
+    position: 'absolute',
+    bottom: -75,
+    left: 0,
+    right: 0,
+    zIndex: 1,
+  },
+
+  profilePictureContainer: {
+    width: 150,
+    height: 150,
+    borderRadius: Theme.borderRadius.full,
+    position: 'relative',
+    borderWidth: 4,
+    borderColor: Theme.colors.background.primary,
+    ...Theme.shadows.lg,
+  },
+
+  profilePicture: {
+    width: '100%',
+    height: '100%',
+    borderRadius: Theme.borderRadius.full,
+  },
+
+  profileChangePictureButton: {
+    position: 'absolute',
+    bottom: 5,
+    right: 5,
+    backgroundColor: Theme.colors.primary[500],
+    borderRadius: Theme.borderRadius.full,
+    padding: Theme.spacing.sm,
+    ...Theme.shadows.md,
+  },
+
+  profileContentContainer: {
+    flex: 1,
+    paddingTop: 85, // Space for profile picture
+    paddingHorizontal: Theme.spacing.base,
+  },
+
+  profileUserInfoCard: {
+    alignItems: 'center',
+    marginBottom: Theme.spacing.lg,
+    paddingVertical: Theme.spacing.xl,
+  },
+
+  profileEmailText: {
+    textAlign: 'center',
+    marginBottom: Theme.spacing.sm,
+  },
+
+  profileUserIdText: {
+    marginBottom: Theme.spacing.xs,
+  },
+
+  profileJoinDateText: {
+    textAlign: 'center',
+  },
+
+  profileEditButtonContainer: {
+    alignItems: 'center',
+    marginBottom: Theme.spacing.xl,
+  },
+
+  profileFormCard: {
+    marginBottom: Theme.spacing.xl,
+    padding: Theme.spacing.lg,
+  },
+
+  profileSectionTitle: {
+    marginBottom: Theme.spacing.lg,
+    paddingBottom: Theme.spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: Theme.colors.border.light,
+  },
+
+  profileFormSection: {
+    marginBottom: Theme.spacing.xl,
+  },
+
+  profileInputContainer: {
+    marginBottom: Theme.spacing.base,
+  },
+
+  profileSaveButtonContainer: {
+    marginTop: Theme.spacing.lg,
+    paddingTop: Theme.spacing.lg,
+    borderTopWidth: 1,
+    borderTopColor: Theme.colors.border.light,
+  },
 });
