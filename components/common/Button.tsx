@@ -123,6 +123,12 @@ const styles = StyleSheet.create({
 
   ghost: {
     backgroundColor: 'transparent',
+    // Remove shadow for ghost buttons to prevent Android border duplication
+    shadowColor: 'transparent',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    elevation: 0,
   },
 
   danger: {
