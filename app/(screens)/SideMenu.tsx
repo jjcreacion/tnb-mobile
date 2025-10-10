@@ -22,7 +22,7 @@ const SideMenu: React.FC<SideMenuProps> = ({ isVisible, onClose }) => {
     if (item === 'Share and Earn') {
       router.push('/(screens)/ShareAndEarn' as any);
      } else if (item === 'Profile') {
-      router.push('/(screens)/profile' as any);
+      router.push('/(screens)/profileMigrated' as any);
      } else if (item === 'Terms and Policies') {
        router.push('/(screens)/TermsAndPolicies' as any);
      }
@@ -33,7 +33,7 @@ const SideMenu: React.FC<SideMenuProps> = ({ isVisible, onClose }) => {
     try {
       await AsyncStorage.multiRemove(['accessToken', 'userId']);
       onClose();
-      router.replace('/login');
+      router.replace('/loginMigrated' as any);
     } catch (error) {
       console.error('Error al cerrar sesión:', error);
     }

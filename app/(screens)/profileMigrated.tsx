@@ -8,7 +8,6 @@ import {
     Alert,
     Image,
     ImageBackground,
-    Platform,
     StyleSheet,
     TouchableOpacity,
     View,
@@ -68,7 +67,7 @@ export default function ProfileScreenMigrated() {
             let formattedCreatedAt = null;
             if (userDataFromApi.createdAt) {
               const date = new Date(userDataFromApi.createdAt);
-              formattedCreatedAt = date.toLocaleDateString('es-ES', {
+              formattedCreatedAt = date.toLocaleDateString('en-US', {
                 year: 'numeric',
                 month: 'long',
                 day: 'numeric',
@@ -96,12 +95,12 @@ export default function ProfileScreenMigrated() {
             }));
           } else {
             console.error('Error al cargar los datos del usuario:', response.status);
-            Alert.alert('Error', 'No se pudieron cargar los datos del usuario. Inténtalo de nuevo más tarde.');
+            Alert.alert('Error', 'Could not load user data. Please try again later.');
           }
         }
       } catch (error) {
         console.error('Error al cargar los datos del usuario:', error);
-        Alert.alert('Error', 'Hubo un problema de conexión al cargar los datos del usuario.');
+        Alert.alert('Error', 'There was a connection problem loading user data.');
       } finally {
         setIsLoading(false);
       }
@@ -114,7 +113,7 @@ export default function ProfileScreenMigrated() {
     const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
     
     if (permissionResult.granted === false) {
-      Alert.alert('Permiso denegado', 'Necesitamos acceso a la cámara para tomar fotos.');
+      Alert.alert('Permission Denied', 'We need camera access to take photos.');
       return;
     }
 
@@ -134,7 +133,7 @@ export default function ProfileScreenMigrated() {
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
     
     if (permissionResult.granted === false) {
-      Alert.alert('Permiso denegado', 'Necesitamos acceso a la galería para seleccionar fotos.');
+      Alert.alert('Permission Denied', 'We need gallery access to select photos.');
       return;
     }
 
@@ -165,7 +164,7 @@ export default function ProfileScreenMigrated() {
       const accessToken = await AsyncStorage.getItem('accessToken');
 
       if (!userId || !accessToken) {
-        Alert.alert('Error', 'No se encontró información de usuario.');
+        Alert.alert('Error', 'User information not found.');
         return;
       }
 
@@ -196,59 +195,62 @@ export default function ProfileScreenMigrated() {
           profilePicture: newImageUrl,
         }));
 
-        Alert.alert('Éxito', 'Imagen de perfil actualizada correctamente.');
+        Alert.alert('Success', 'Profile picture updated successfully.');
       } else {
-        Alert.alert('Error', 'No se pudo actualizar la imagen de perfil.');
+        Alert.alert('Error', 'Could not update profile picture.');
       }
     } catch (error) {
       console.error('Error al subir imagen:', error);
-      Alert.alert('Error', 'Hubo un problema al subir la imagen.');
+      Alert.alert('Error', 'There was a problem uploading the image.');
     } finally {
       setIsLoading(false);
     }
   };
 
   const saveChanges = async () => {
+    // Validation matching original profile.tsx
+    if (!userData.firstName || !userData.lastName || !userData.phone || !userData.address || !userData.email) {
+      Alert.alert('Error', 'All fields for first name, last name, phone, address and email are required.');
+      return;
+    }
+
     try {
       setIsLoading(true);
       const userId = await AsyncStorage.getItem('userId');
       const accessToken = await AsyncStorage.getItem('accessToken');
 
       if (!userId || !accessToken) {
-        Alert.alert('Error', 'No se encontró información de usuario.');
+        Alert.alert('Error', 'User information not found.');
         return;
       }
 
       const updateData = {
-        username: userData.username,
-        email: userData.email,
+        pkUser: userData.pkUser,
         person: {
           firstName: userData.firstName,
-          middleName: userData.middleName,
           lastName: userData.lastName,
-          phones: [{ phone: userData.phone }],
-          addresses: [{ address: userData.address }],
+          phones: [{ phone: userData.phone, isPrimary: 1 }],
+          addresses: [{ address: userData.address, isPrimary: 1 }],
         },
       };
 
-      const response = await fetch(`${API_URL}/user/update/${userId}`, {
-        method: 'PUT',
+      const response = await fetch(`${API_URL}/user/updateUserProfile`, {
+        method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`,
         },
         body: JSON.stringify(updateData),
       });
 
       if (response.ok) {
         setIsEditing(false);
-        Alert.alert('Éxito', 'Perfil actualizado correctamente.');
+        Alert.alert('Success', 'Profile updated successfully.');
       } else {
-        Alert.alert('Error', 'No se pudieron guardar los cambios.');
+        Alert.alert('Error', 'Could not save changes.');
       }
     } catch (error) {
       console.error('Error al guardar cambios:', error);
-      Alert.alert('Error', 'Hubo un problema al guardar los cambios.');
+      Alert.alert('Error', 'There was a problem saving changes.');
     } finally {
       setIsLoading(false);
     }
@@ -262,11 +264,11 @@ export default function ProfileScreenMigrated() {
   };
 
   return (
-    <Screen safeArea={false} scrollable>
+    <Screen safeArea={true} scrollable>
       <View style={styles.container}>
         {/* Header with Background Image */}
         <ImageBackground
-          source={require('@/assets/images/profile-bg.jpeg')}
+          source={require('@/assets/images/roof-repair.jpg')}
           style={styles.backgroundImage}
           imageStyle={styles.backgroundImageStyle}
         >
@@ -282,7 +284,7 @@ export default function ProfileScreenMigrated() {
                 source={
                   userData.profilePicture
                     ? { uri: userData.profilePicture }
-                    : require('@/assets/images/default-avatar.png')
+                    : require('@/assets/images/user.png')
                 }
                 style={styles.profilePicture}
               />
@@ -300,12 +302,15 @@ export default function ProfileScreenMigrated() {
         <View style={styles.contentContainer}>
           {/* User ID and Join Date */}
           <Card variant="elevated" style={styles.userInfoCard}>
+            <Typography variant="h3" color="secondary" style={styles.emailText}>
+              {userData.email}
+            </Typography>
             <Typography variant="h3" color="primary" style={styles.userIdText}>
-              #{userData.pkUser || '000000'}
+              Client ID: #{userData.pkUser || '000000'}
             </Typography>
             {userData.createdAt && (
               <Typography variant="body2" color="secondary" style={styles.joinDateText}>
-                Miembro desde {userData.createdAt}
+                Member since {userData.createdAt}
               </Typography>
             )}
           </Card>
@@ -325,42 +330,7 @@ export default function ProfileScreenMigrated() {
           {/* Profile Form */}
           <Card variant="outlined" style={styles.formCard}>
             <Typography variant="h4" color="primary" style={styles.sectionTitle}>
-              Personal Information
-            </Typography>
-
-            <View style={styles.formSection}>
-              <Input
-                label="Username"
-                value={userData.username}
-                onChangeText={(value) => handleInputChange('username', value)}
-                disabled={!isEditing}
-                leftIcon="person-outline"
-                containerStyle={styles.inputContainer}
-              />
-
-              <Input
-                label="Email"
-                value={userData.email}
-                onChangeText={(value) => handleInputChange('email', value)}
-                disabled={!isEditing}
-                leftIcon="mail-outline"
-                keyboardType="email-address"
-                containerStyle={styles.inputContainer}
-              />
-
-              <Input
-                label="Phone"
-                value={userData.phone}
-                onChangeText={(value) => handleInputChange('phone', value)}
-                disabled={!isEditing}
-                leftIcon="call-outline"
-                keyboardType="phone-pad"
-                containerStyle={styles.inputContainer}
-              />
-            </View>
-
-            <Typography variant="h4" color="primary" style={styles.sectionTitle}>
-              Name Details
+              My Profile
             </Typography>
 
             <View style={styles.formSection}>
@@ -368,15 +338,6 @@ export default function ProfileScreenMigrated() {
                 label="First Name"
                 value={userData.firstName}
                 onChangeText={(value) => handleInputChange('firstName', value)}
-                disabled={!isEditing}
-                leftIcon="person-outline"
-                containerStyle={styles.inputContainer}
-              />
-
-              <Input
-                label="Middle Name"
-                value={userData.middleName}
-                onChangeText={(value) => handleInputChange('middleName', value)}
                 disabled={!isEditing}
                 leftIcon="person-outline"
                 containerStyle={styles.inputContainer}
@@ -392,7 +353,17 @@ export default function ProfileScreenMigrated() {
               />
 
               <Input
-                label="Address"
+                label="Phone"
+                value={userData.phone}
+                onChangeText={(value) => handleInputChange('phone', value)}
+                disabled={!isEditing}
+                leftIcon="call-outline"
+                keyboardType="phone-pad"
+                containerStyle={styles.inputContainer}
+              />
+
+              <Input
+                label="Address" 
                 value={userData.address}
                 onChangeText={(value) => handleInputChange('address', value)}
                 disabled={!isEditing}
@@ -461,7 +432,7 @@ const styles = StyleSheet.create({
   },
 
   backgroundImage: {
-    height: 200,
+    height: 120,
     justifyContent: 'flex-end',
     position: 'relative',
   },
@@ -473,7 +444,7 @@ const styles = StyleSheet.create({
 
   backButton: {
     position: 'absolute',
-    top: Platform.OS === 'ios' ? 50 : 20,
+    top: Theme.spacing.base,
     left: Theme.spacing.base,
     backgroundColor: Theme.colors.overlay.medium,
     padding: Theme.spacing.sm,
@@ -526,6 +497,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: Theme.spacing.lg,
     paddingVertical: Theme.spacing.xl,
+  },
+
+  emailText: {
+    textAlign: 'center',
+    marginBottom: Theme.spacing.sm,
   },
 
   userIdText: {

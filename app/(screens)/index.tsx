@@ -28,25 +28,6 @@ export default function HomeScreens() {
         source={require('../../assets/images/icon-index.png')}
         style={styles.imageIndex}
       />
-
-      {/* Botones temporales para comparar versiones */}
-      {/* 
-      <View style={{ position: 'absolute', bottom: 100, alignSelf: 'center', gap: 10 }}>
-        <TouchableOpacity 
-          style={{ backgroundColor: '#E63946', padding: 15, borderRadius: 10 }}
-          onPress={() => router.push('/login' as any)}
-        >
-          <Text style={{ color: 'white', textAlign: 'center' }}>Login Original</Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={{ backgroundColor: '#2A9D8F', padding: 15, borderRadius: 10 }}
-          onPress={() => router.push('/loginMigrated' as any)}
-        >
-          <Text style={{ color: 'white', textAlign: 'center' }}>Login Migrated</Text>
-        </TouchableOpacity>
-      </View>
-      */}
     </View>
   );
 }
