@@ -1,10 +1,10 @@
 import * as React from 'react';
 import {
-  Keyboard,
-  TouchableWithoutFeedback,
-  View,
-  ViewStyle,
-  StyleProp,
+    Keyboard,
+    StyleProp,
+    TouchableWithoutFeedback,
+    View,
+    ViewStyle,
 } from 'react-native';
 
 interface KeyboardDismissWrapperProps {

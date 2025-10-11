@@ -1,7 +1,7 @@
+import { Theme } from '@/constants/Theme';
 import React from 'react';
 import { ScrollView, StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Theme } from '@/constants/Theme';
 import { KeyboardDismissWrapper } from './KeyboardDismissWrapper';
 
 interface ScreenProps {

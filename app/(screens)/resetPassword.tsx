@@ -1,11 +1,11 @@
+import { Button, Input, KeyboardDismissWrapper } from '@/components/common';
+import { Theme } from '@/constants/Theme';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 import React, { useEffect, useState } from 'react';
-import { Modal, Text, View, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
+import { KeyboardAvoidingView, Modal, Platform, StyleSheet, Text, View } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { validateEmail } from '../../scripts/validator';
-import { Button, Input, KeyboardDismissWrapper } from '@/components/common';
-import { Theme } from '@/constants/Theme';
 import VerifyCode from './verificodeReset';
 
 interface ModalProps {
