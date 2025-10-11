@@ -1,11 +1,11 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { useEffect, useState } from 'react';
-import { KeyboardAvoidingView, Modal, Platform, StyleSheet, Text, View } from 'react-native';
+import { KeyboardAvoidingView, Modal, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { Button, Input, KeyboardDismissWrapper } from '@/components/common';
 import { Theme } from '@/constants/Theme';
+import { Ionicons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
-import Icon from 'react-native-vector-icons/Ionicons';
 import { validateEmail } from '../../scripts/validator';
 import VerifyCode from './verificode';
 
@@ -126,12 +126,13 @@ const SignUp: React.FC<ModalProps> = ({ isVisible, onClose }) => {
               </View>
 
               {/* Close Button */}
-              <Button
-                icon={<Icon name="close" size={24} color={Theme.colors.text.secondary} />}
-                variant="ghost"
+              <TouchableOpacity
                 onPress={onClose}
                 style={styles.closeButton}
-              />
+                activeOpacity={0.7}
+              >
+                <Ionicons name="close" size={24} color={Theme.colors.neutral[500]} />
+              </TouchableOpacity>
 
               {/* Form */}
               <View style={styles.form}>
@@ -149,7 +150,7 @@ const SignUp: React.FC<ModalProps> = ({ isVisible, onClose }) => {
 
                 {exist && (
                   <View style={styles.errorContainer}>
-                    <Icon name="alert-circle" size={20} color={Theme.colors.error[500]} />
+                    <Ionicons name="alert-circle" size={20} color={Theme.colors.error[500]} />
                     <Text style={styles.errorMessage}>
                       This email is already registered. Please sign in instead.
                     </Text>
@@ -235,6 +236,10 @@ const styles = StyleSheet.create({
     right: Theme.spacing.lg,
     width: 40,
     height: 40,
+    backgroundColor: Theme.colors.neutral[100],
+    borderRadius: Theme.borderRadius.full,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 
   form: {

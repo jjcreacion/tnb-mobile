@@ -99,7 +99,7 @@ export const Colors = {
   // Navigation Colors
   navigation: {
     bar: '#050505', // Android navigation bar background
-    barSplash: '#FFFFFF', // Splash screen navigation bar (white)
+    barSplash: '#f2f2f2', // Splash screen navigation bar (white)
   },
 
   // Text Colors
