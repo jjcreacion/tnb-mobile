@@ -3,7 +3,7 @@
  * Solo se ejecuta en modo desarrollo
  */
 
-import { ColorMigration } from '@/constants/ColorMigration';
+import { ColorMigration } from '@/constants/Colors';
 
 export const useColorMigrationTracker = (componentName: string) => {
   const trackColor = (color: string, location?: string) => {
