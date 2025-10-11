@@ -1,5 +1,7 @@
+import { Theme } from '@/constants/Theme';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useRef } from 'react';
 import { Animated, Easing, Text, TouchableOpacity, View } from 'react-native';
 import ConfettiCannon from 'react-native-confetti-cannon';
@@ -42,7 +44,12 @@ const RegisterComplete: React.FC<RegisterCompleteProps> = ({ isVisible, onClose,
   };
   
   return (
-    <View style={MigratedStyles.registerCompleteContainer}>
+    <>
+      <StatusBar 
+        style="light" 
+        backgroundColor={Theme.colors.primary[500]}
+      />
+      <View style={MigratedStyles.registerCompleteContainer}>
       <ConfettiCannon
         count={100}
         origin={{ x: 0, y: 0 }}
@@ -65,6 +72,7 @@ const RegisterComplete: React.FC<RegisterCompleteProps> = ({ isVisible, onClose,
         <Text style={MigratedStyles.registerCompleteButtonText}>Go to Login</Text>
       </TouchableOpacity>
     </View>
+    </>
   );
 };
 

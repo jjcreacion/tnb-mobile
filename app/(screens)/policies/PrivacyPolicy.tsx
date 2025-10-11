@@ -1,13 +1,20 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
-import { useRouter } from 'expo-router';
+import { Theme } from '@/constants/Theme';
 import { FontAwesome } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
+import React from 'react';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 const PrivacyPolicyScreen = () => {
   const router = useRouter();
 
   return (
-    <View style={styles.container}>
+    <>
+      <StatusBar 
+        style="light" 
+        backgroundColor={Theme.colors.primary[500]}
+      />
+      <View style={styles.container}>
       <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
         <FontAwesome name="arrow-left" size={24} color="#333" />
         <Text style={styles.backButtonText}>Atrás</Text>
@@ -19,6 +26,7 @@ const PrivacyPolicyScreen = () => {
         </Text>
       </ScrollView>
     </View>
+    </>
   );
 };
 

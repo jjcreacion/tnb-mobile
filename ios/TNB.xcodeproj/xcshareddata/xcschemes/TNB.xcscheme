@@ -15,9 +15,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "13B07F861A680F5B00A75B9A"
-               BuildableName = "appmobile.app"
-               BlueprintName = "appmobile"
-               ReferencedContainer = "container:appmobile.xcodeproj">
+               BuildableName = "TNB.app"
+               BlueprintName = "TNB"
+               ReferencedContainer = "container:TNB.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -33,9 +33,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "00E356ED1AD99517003FC87E"
-               BuildableName = "appmobileTests.xctest"
-               BlueprintName = "appmobileTests"
-               ReferencedContainer = "container:appmobile.xcodeproj">
+               BuildableName = "TNBTests.xctest"
+               BlueprintName = "TNBTests"
+               ReferencedContainer = "container:TNB.xcodeproj">
             </BuildableReference>
          </TestableReference>
       </Testables>
@@ -55,9 +55,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "13B07F861A680F5B00A75B9A"
-            BuildableName = "appmobile.app"
-            BlueprintName = "appmobile"
-            ReferencedContainer = "container:appmobile.xcodeproj">
+            BuildableName = "TNB.app"
+            BlueprintName = "TNB"
+            ReferencedContainer = "container:TNB.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </LaunchAction>
@@ -72,9 +72,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "13B07F861A680F5B00A75B9A"
-            BuildableName = "appmobile.app"
-            BlueprintName = "appmobile"
-            ReferencedContainer = "container:appmobile.xcodeproj">
+            BuildableName = "TNB.app"
+            BlueprintName = "TNB"
+            ReferencedContainer = "container:TNB.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>

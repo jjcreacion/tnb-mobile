@@ -1,8 +1,9 @@
+import { Button } from '@/components/common';
+import { Theme } from '@/constants/Theme';
+import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useRef, useState } from 'react';
 import { Modal, StyleSheet, Text, TextInput, View } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
-import { Button } from '@/components/common';
-import { Theme } from '@/constants/Theme';
 import SetNewPassword from './SetNewPassword';
 
 interface VerifyPasswordResetCodeProps {
@@ -106,7 +107,12 @@ const VerifyPasswordResetCode: React.FC<VerifyPasswordResetCodeProps> = ({
   };
 
   return (
-    <Modal
+    <>
+      <StatusBar 
+        style="light" 
+        backgroundColor={Theme.colors.primary[500]}
+      />
+      <Modal
       visible={isVisible}
       transparent={true}
       animationType="slide"
@@ -221,6 +227,7 @@ const VerifyPasswordResetCode: React.FC<VerifyPasswordResetCodeProps> = ({
         />
       )}
     </Modal>
+    </>
   );
 };
 

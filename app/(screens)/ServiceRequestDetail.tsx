@@ -2,6 +2,7 @@ import { MigratedStyles } from '@/constants/MigratedStyles';
 import { Theme } from '@/constants/Theme';
 import Constants from 'expo-constants';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Dimensions, FlatList, Image, Modal, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
@@ -111,8 +112,13 @@ const ServiceRequestDetailScreen = () => {
   }
 
   return (
-    <View style={MigratedStyles.serviceDetailContainer}>
-      <View style={MigratedStyles.serviceDetailHeader}>
+    <>
+      <StatusBar 
+        style="light" 
+        backgroundColor={Theme.colors.primary[500]}
+      />
+      <View style={MigratedStyles.serviceDetailContainer}>
+        <View style={MigratedStyles.serviceDetailHeader}>
         <TouchableOpacity onPress={() => router.back()} style={MigratedStyles.serviceDetailBackButton}>
           <Icon name="arrow-back" size={28} color={Theme.colors.text.primary} />
         </TouchableOpacity>
@@ -226,6 +232,7 @@ const ServiceRequestDetailScreen = () => {
         </View>
       </Modal>
     </View>
+    </>
   );
 };
 

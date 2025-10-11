@@ -3,6 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Picker } from '@react-native-picker/picker';
 import Constants from 'expo-constants';
 import * as Location from 'expo-location';
+import { StatusBar } from 'expo-status-bar';
 import { Formik } from 'formik';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
@@ -358,8 +359,9 @@ const Register: React.FC<RegisterProps> = ({ isVisible, onClose, IsVerify }) => 
   // Don't block UI for referral code loading - let it load in background
 
   return (
-    <SafeAreaView style={MigratedStyles.registerContainer} edges={['top', 'left', 'right']}>
-      <KeyboardAvoidingView 
+    <>
+      <SafeAreaView style={MigratedStyles.registerContainer} edges={['top', 'left', 'right']}>
+        <KeyboardAvoidingView 
         style={MigratedStyles.registerKeyboardAvoidingView}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 20}
@@ -638,6 +640,8 @@ const Register: React.FC<RegisterProps> = ({ isVisible, onClose, IsVerify }) => 
       )}
       </KeyboardAvoidingView>
     </SafeAreaView>
+    <StatusBar style="light" backgroundColor={Theme.colors.primary[500]} />
+    </>
   );
 };
 

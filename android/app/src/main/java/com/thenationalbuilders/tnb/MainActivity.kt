@@ -1,4 +1,4 @@
-package com.anonymous.appmobile
+package com.thenationalbuilders.tnb
 import expo.modules.splashscreen.SplashScreenManager
 
 import android.os.Build

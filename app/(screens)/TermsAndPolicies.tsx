@@ -2,6 +2,7 @@ import { MigratedStyles } from '@/constants/MigratedStyles';
 import { Theme } from '@/constants/Theme';
 import { FontAwesome, MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import React from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 
@@ -21,8 +22,13 @@ const TermsAndPoliciesScreen = () => {
   };
 
   return (
-    <View style={MigratedStyles.termsAndPoliciesContainer}>
-      <TouchableOpacity style={MigratedStyles.termsAndPoliciesBackButton} onPress={() => router.back()}>
+    <>
+      <StatusBar 
+        style="light" 
+        backgroundColor={Theme.colors.primary[500]}
+      />
+      <View style={MigratedStyles.termsAndPoliciesContainer}>
+        <TouchableOpacity style={MigratedStyles.termsAndPoliciesBackButton} onPress={() => router.back()}>
         <FontAwesome name="arrow-left" size={24} color={Theme.colors.text.primary} />
         <Text style={MigratedStyles.termsAndPoliciesBackButtonText}>Back</Text>
       </TouchableOpacity>
@@ -38,6 +44,7 @@ const TermsAndPoliciesScreen = () => {
         ))}
       </ScrollView>
     </View>
+    </>
   );
 };
 

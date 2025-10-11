@@ -3,6 +3,7 @@ import Constants from 'expo-constants';
 import * as ImageManipulator from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useState } from 'react';
 import {
   Alert,
@@ -264,8 +265,13 @@ export default function ProfileScreenMigrated() {
   };
 
   return (
-    <Screen safeArea={true} scrollable>
-      <View style={MigratedStyles.profileContainer}>
+    <>
+      <StatusBar 
+        style="light" 
+        backgroundColor={Theme.colors.primary[500]}
+      />
+      <Screen safeArea={true} scrollable>
+        <View style={MigratedStyles.profileContainer}>
         {/* Header with Background Image */}
         <ImageBackground
           source={require('@/assets/images/roof-repair.jpg')}
@@ -422,6 +428,7 @@ export default function ProfileScreenMigrated() {
         />
       </View>
     </Screen>
+    </>
   );
 }
 

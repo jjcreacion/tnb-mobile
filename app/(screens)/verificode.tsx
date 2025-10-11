@@ -1,5 +1,6 @@
 import { Button } from '@/components/common';
 import { Theme } from '@/constants/Theme';
+import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useRef, useState } from 'react';
 import { Clipboard, StyleSheet, Text, TextInput, View } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
@@ -156,8 +157,13 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
   }
 
   return (
-    <View style={styles.container}>
-      <View style={styles.content}>
+    <>
+      <StatusBar 
+        style="light" 
+        backgroundColor={Theme.colors.primary[500]}
+      />
+      <View style={styles.container}>
+        <View style={styles.content}>
         {/* Header with Icon */}
         <View style={styles.header}>
           <View style={styles.iconContainer}>
@@ -271,6 +277,7 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
         </View>
       </View>
     </View>
+    </>
   );
 };
 

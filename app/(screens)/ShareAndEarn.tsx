@@ -2,6 +2,7 @@ import { FontAwesome } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 import Constants from 'expo-constants';
 import { useRouter } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import React, { useCallback, useEffect, useState } from 'react';
 import { Alert, Image, Share, Text, TouchableOpacity, View } from 'react-native';
 
@@ -66,8 +67,13 @@ const ShareAndEarnScreen = () => {
   };
 
   return (
-    <View style={MigratedStyles.shareAndEarnContainer}>
-      <TouchableOpacity style={MigratedStyles.shareAndEarnBackButton} onPress={() => router.back()}>
+    <>
+      <StatusBar 
+        style="light" 
+        backgroundColor={Theme.colors.primary[500]}
+      />
+      <View style={MigratedStyles.shareAndEarnContainer}>
+        <TouchableOpacity style={MigratedStyles.shareAndEarnBackButton} onPress={() => router.back()}>
         <FontAwesome name="arrow-left" size={24} color={Theme.colors.text.primary} />
         <Text style={MigratedStyles.shareAndEarnBackButtonText}>Back</Text>
       </TouchableOpacity>
@@ -123,6 +129,7 @@ const ShareAndEarnScreen = () => {
 
       </View>
     </View>
+    </>
   );
 };
 
