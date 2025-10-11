@@ -96,6 +96,12 @@ export const Colors = {
     elevated: '#FFFFFF',
   },
 
+  // Navigation Colors
+  navigation: {
+    bar: '#050505', // Android navigation bar background
+    barSplash: '#FFFFFF', // Splash screen navigation bar (white)
+  },
+
   // Text Colors
   text: {
     primary: '#111827',

@@ -1,4 +1,5 @@
 import { Theme } from '@/constants/Theme';
+import { useNavigationBar } from '@/hooks/useNavigationBar';
 import React from 'react';
 import {
     Dimensions,
@@ -28,6 +29,8 @@ interface ModalProps {
   children: React.ReactNode;
   overlayStyle?: any;
   contentStyle?: any;
+  /** Custom navigation bar color - defaults to theme navigation bar color */
+  navigationBarColor?: string;
 }
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
@@ -72,8 +75,12 @@ export const Modal: React.FC<ModalProps> = ({
   children,
   overlayStyle,
   contentStyle,
+  navigationBarColor,
 }) => {
   const sizeStyles = getSizeStyles(size, position);
+  
+  // Configure navigation bar color when modal is visible
+  useNavigationBar(navigationBarColor);
   
   const modalContentStyles = [
     styles.modalContent,

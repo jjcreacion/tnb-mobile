@@ -3,15 +3,17 @@ import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
+import * as SystemUI from 'expo-system-ui';
 import { useEffect } from 'react';
+import { Platform } from 'react-native';
 import 'react-native-reanimated';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Provider } from 'react-redux';
 import { PersistGate } from 'redux-persist/integration/react';
 
+import { Theme } from '@/constants/Theme';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { persistor, store } from '@/store';
-import { Theme } from '@/constants/Theme';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -26,6 +28,13 @@ export default function RootLayout() {
       SplashScreen.hideAsync();
     }
   }, [loaded]);
+
+  // Configure Android Navigation Bar
+  useEffect(() => {
+    if (Platform.OS === 'android') {
+      SystemUI.setBackgroundColorAsync(Theme.colors.navigation.bar);
+    }
+  }, []);
 
   if (!loaded) {
     return null;

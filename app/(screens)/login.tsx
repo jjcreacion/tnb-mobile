@@ -6,7 +6,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { Formik } from 'formik';
-import React, { useCallback, useState } from 'react';
+import { useCallback, useState } from 'react';
 import {
     Image,
     ImageBackground,

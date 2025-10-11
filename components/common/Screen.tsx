@@ -1,4 +1,5 @@
 import { Theme } from '@/constants/Theme';
+import { useNavigationBar } from '@/hooks/useNavigationBar';
 import React from 'react';
 import { ScrollView, StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -13,6 +14,8 @@ interface ScreenProps {
   edges?: ('top' | 'bottom' | 'left' | 'right')[];
   /** Disable keyboard dismiss functionality when tapping outside inputs */
   disableKeyboardDismiss?: boolean;
+  /** Custom navigation bar color - defaults to theme navigation bar color */
+  navigationBarColor?: string;
 }
 
 export const Screen: React.FC<ScreenProps> = ({
@@ -23,8 +26,12 @@ export const Screen: React.FC<ScreenProps> = ({
   safeArea = true,
   edges = ['top', 'bottom'],
   disableKeyboardDismiss = false,
+  navigationBarColor,
 }) => {
   const Container = safeArea ? SafeAreaView : View;
+
+  // Configure navigation bar color
+  useNavigationBar(navigationBarColor);
 
   const screenContent = scrollable ? (
     <Container style={[styles.container, style]} edges={edges}>
