@@ -3,7 +3,7 @@ import * as Clipboard from 'expo-clipboard';
 import Constants from 'expo-constants';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import React, { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Alert, Image, Share, Text, TouchableOpacity, View } from 'react-native';
 
 // Theme System Components
@@ -31,6 +31,7 @@ const ShareAndEarnScreen = () => {
         setReferralReward(rewardValue);
       } else {
         console.error('Error fetching referral reward, using default.');
+        console.log('setInvitationCode:',setInvitationCode)
       }
     } catch (error) {
       console.error('Error fetching referral reward:', error);
