@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { Modal, Text, View, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { validateEmail } from '../../scripts/validator';
-import { Button, Input } from '@/components/common';
+import { Button, Input, KeyboardDismissWrapper } from '@/components/common';
 import { Theme } from '@/constants/Theme';
 import VerifyCode from './verificodeReset';
 
@@ -111,7 +111,7 @@ const ResetPassword: React.FC<ModalProps> = ({ isVisible, onClose }) => {
       animationType="slide"
       onRequestClose={onClose}
     >
-      <View style={styles.modalOverlay}>
+      <KeyboardDismissWrapper style={styles.modalOverlay}>
         {!showVerifyCode ? (
           <KeyboardAvoidingView
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -178,7 +178,7 @@ const ResetPassword: React.FC<ModalProps> = ({ isVisible, onClose }) => {
             verificationCode={verificationCode}
           />
         )}
-      </View>
+      </KeyboardDismissWrapper>
     </Modal>
   );
 };

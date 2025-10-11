@@ -36,3 +36,5 @@ export type { ActionSheetOption } from './ActionSheet';
 export { Badge } from './Badge';
 export type { BadgeSize, BadgeVariant } from './Badge';
 
+export { KeyboardDismissWrapper } from './KeyboardDismissWrapper';
+

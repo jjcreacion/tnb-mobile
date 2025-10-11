@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { useEffect, useState } from 'react';
 import { KeyboardAvoidingView, Modal, Platform, StyleSheet, Text, View } from 'react-native';
 
-import { Button, Input } from '@/components/common';
+import { Button, Input, KeyboardDismissWrapper } from '@/components/common';
 import { Theme } from '@/constants/Theme';
 import Constants from 'expo-constants';
 import Icon from 'react-native-vector-icons/Ionicons';
@@ -112,7 +112,7 @@ const SignUp: React.FC<ModalProps> = ({ isVisible, onClose }) => {
       animationType="slide"
       onRequestClose={onClose}
     >
-      <View style={styles.modalOverlay}>
+      <KeyboardDismissWrapper style={styles.modalOverlay}>
         {!showVerifyCode ? (
           <KeyboardAvoidingView
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -185,7 +185,7 @@ const SignUp: React.FC<ModalProps> = ({ isVisible, onClose }) => {
             email={email}
           />
         )}
-      </View>
+      </KeyboardDismissWrapper>
     </Modal>
   );
 };
