@@ -1,9 +1,20 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { useEffect, useState } from 'react';
-import { KeyboardAvoidingView, Modal, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import {
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+  View,
+} from 'react-native';
 
-import { Button, Input, KeyboardDismissWrapper } from '@/components/common';
+import { Button, Input } from '@/components/common';
 import { Theme } from '@/constants/Theme';
+import { useKeyboard } from '@/hooks/useKeyboard';
 import { Ionicons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
 import { validateEmail } from '../../scripts/validator';
@@ -15,14 +26,19 @@ interface ModalProps {
 }
 
 const SignUp: React.FC<ModalProps> = ({ isVisible, onClose }) => {
+  // State management
   const [email, setEmail] = useState('');
   const [emailError, setEmailError] = useState('');
   const [exist, setExist] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showVerifyCode, setShowVerifyCode] = useState(false);
   const [verificationCode, setVerificationCode] = useState('');
+  
+  // Hooks
+  const { dismissKeyboard } = useKeyboard();
   const API_URL = Constants.expoConfig?.extra?.API_BASE_URL;
 
+  // Reset form when modal opens
   useEffect(() => {
     if (isVisible) {
       setEmail('');
@@ -32,6 +48,7 @@ const SignUp: React.FC<ModalProps> = ({ isVisible, onClose }) => {
     }
   }, [isVisible]);
 
+  // Generate and send verification code
   const generateVerificationCode = async () => {
     const code = Math.floor(100000 + Math.random() * 900000).toString();
     setVerificationCode(code);
@@ -41,16 +58,21 @@ const SignUp: React.FC<ModalProps> = ({ isVisible, onClose }) => {
       code: code,
     };
 
-    await fetch(`${API_URL}/mailer/send-code`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(verifyData),
-    });
+    try {
+      await fetch(`${API_URL}/mailer/send-code`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(verifyData),
+      });
+    } catch (error) {
+      console.error('Error sending verification code:', error);
+    }
   };
 
-  const verificarUsuario = async (valor: string) => {
+  // Verify if user exists
+  const verificarUsuario = async (valor: string): Promise<boolean> => {
     const ruta = `${API_URL}/user/verifyEmail?email=${encodeURIComponent(valor)}`;
 
     try {
@@ -60,9 +82,11 @@ const SignUp: React.FC<ModalProps> = ({ isVisible, onClose }) => {
           'Content-Type': 'application/json',
         },
       });
+      
       if (!respuesta.ok) {
         throw new Error(`Error ${respuesta.status}`);
       }
+      
       const datos = await respuesta.json();
       return datos.exists;
     } catch (error) {
@@ -71,10 +95,13 @@ const SignUp: React.FC<ModalProps> = ({ isVisible, onClose }) => {
     }
   };
 
+  // Handle continue button
   const handleNext = async () => {
+    // Reset errors
     setEmailError('');
     setExist(false);
 
+    // Validate email
     if (!validateEmail(email)) {
       setEmailError('Please enter a valid email address');
       return;
@@ -87,11 +114,11 @@ const SignUp: React.FC<ModalProps> = ({ isVisible, onClose }) => {
 
       if (existe) {
         setExist(true);
-        setEmailError('This email is already registered');
+        // setEmailError('This email is already registered');
       } else {
         await AsyncStorage.setItem('emailForSignIn', email);
+        await generateVerificationCode();
         setShowVerifyCode(true);
-        generateVerificationCode();
       }
     } catch (error) {
       console.error('Error verificando email:', error);
@@ -101,92 +128,139 @@ const SignUp: React.FC<ModalProps> = ({ isVisible, onClose }) => {
     }
   };
 
+  // Handle back from verification
   const handleBack = () => {
     setShowVerifyCode(false);
+  };
+
+  // Handle close modal
+  const handleClose = () => {
+    dismissKeyboard();
+    onClose();
+  };
+
+  // Handle backdrop press
+  const handleBackdropPress = () => {
+    if (!loading) {
+      handleClose();
+    }
   };
 
   return (
     <Modal
       visible={isVisible}
-      transparent={true}
+      transparent
       animationType="slide"
-      onRequestClose={onClose}
+      onRequestClose={handleClose}
+      statusBarTranslucent
     >
-      <KeyboardDismissWrapper style={styles.modalOverlay}>
-        {!showVerifyCode ? (
-          <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            style={styles.container}
-          >
-            <View style={styles.content}>
-              {/* Header */}
-              <View style={styles.header}>
-                <Text style={styles.title}>Create Account</Text>
-                <Text style={styles.subtitle}>Enter your email to get started</Text>
-              </View>
+      <TouchableWithoutFeedback onPress={handleBackdropPress}>
+        <View style={styles.modalOverlay}>
+          <TouchableWithoutFeedback>
+            <View style={styles.keyboardAvoidingView}>
+              {!showVerifyCode ? (
+                <KeyboardAvoidingView
+                  behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+                  style={styles.innerContainer}
+                  keyboardVerticalOffset={0}
+                  enabled={Platform.OS === 'ios'}
+                >
+                  <ScrollView
+                    contentContainerStyle={styles.scrollContent}
+                    keyboardShouldPersistTaps="handled"
+                    showsVerticalScrollIndicator={false}
+                    bounces={false}
+                  >
+                    <View style={styles.content}>
+                    {/* Header */}
+                    <View style={styles.header}>
+                      <Text style={styles.title}>Create Account</Text>
+                      <Text style={styles.subtitle}>Enter your email to get started</Text>
+                    </View>
 
-              {/* Close Button */}
-              <TouchableOpacity
-                onPress={onClose}
-                style={styles.closeButton}
-                activeOpacity={0.7}
-              >
-                <Ionicons name="close" size={24} color={Theme.colors.neutral[500]} />
-              </TouchableOpacity>
+                    {/* Close Button */}
+                    <TouchableOpacity
+                      onPress={handleClose}
+                      style={styles.closeButton}
+                      activeOpacity={0.7}
+                      disabled={loading}
+                    >
+                      <Ionicons 
+                        name="close" 
+                        size={24} 
+                        color={Theme.colors.neutral[500]} 
+                      />
+                    </TouchableOpacity>
 
-              {/* Form */}
-              <View style={styles.form}>
-                <Input
-                  label="Email Address"
-                  placeholder="johndoe@gmail.com"
-                  value={email}
-                  onChangeText={setEmail}
-                  error={emailError}
-                  leftIcon="mail-outline"
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  autoComplete="email"
-                />
+                    {/* Form */}
+                    <View style={styles.form}>
+                      <Input
+                        label="Email Address"
+                        placeholder="johndoe@gmail.com"
+                        value={email}
+                        onChangeText={(text) => {
+                          setEmail(text);
+                          setEmailError('');
+                          setExist(false);
+                        }}
+                        error={emailError}
+                        leftIcon="mail-outline"
+                        keyboardType="email-address"
+                        autoCapitalize="none"
+                        autoComplete="email"
+                        editable={!loading}
+                        returnKeyType="done"
+                        onSubmitEditing={handleNext}
+                      />
 
-                {exist && (
-                  <View style={styles.errorContainer}>
-                    <Ionicons name="alert-circle" size={20} color={Theme.colors.error[500]} />
-                    <Text style={styles.errorMessage}>
-                      This email is already registered. Please sign in instead.
-                    </Text>
+                      {exist && (
+                        <View style={styles.errorContainer}>
+                          <Ionicons 
+                            name="alert-circle" 
+                            size={20} 
+                            color={Theme.colors.error[500]} 
+                          />
+                          <Text style={styles.errorMessage}>
+                            This email is already registered. Please sign in instead.
+                          </Text>
+                        </View>
+                      )}
+
+                      <Button
+                        title="Continue"
+                        onPress={handleNext}
+                        loading={loading}
+                        fullWidth
+                        size="lg"
+                        variant="primary"
+                        style={styles.continueButton}
+                      />
+
+                      <View style={styles.footer}>
+                        <Text style={styles.footerText}>Already have an account? </Text>
+                        <Button
+                          title="Sign In"
+                          variant="ghost"
+                          size="sm"
+                          onPress={handleClose}
+                          disabled={loading}
+                        />
+                      </View>
+                    </View>
                   </View>
-                )}
-
-                <Button
-                  title="Continue"
-                  onPress={handleNext}
-                  loading={loading}
-                  fullWidth
-                  size="lg"
-                  variant="primary"
-                  style={styles.continueButton}
+                </ScrollView>
+                </KeyboardAvoidingView>
+              ) : (
+                <VerifyCode
+                  verificationCode={verificationCode}
+                  onBack={handleBack}
+                  email={email}
                 />
-
-                <View style={styles.footer}>
-                  <Text style={styles.footerText}>Already have an account? </Text>
-                  <Button
-                    title="Sign In"
-                    variant="ghost"
-                    size="sm"
-                    onPress={onClose}
-                  />
-                </View>
-              </View>
+              )}
             </View>
-          </KeyboardAvoidingView>
-        ) : (
-          <VerifyCode
-            verificationCode={verificationCode}
-            onBack={handleBack}
-            email={email}
-          />
-        )}
-      </KeyboardDismissWrapper>
+          </TouchableWithoutFeedback>
+        </View>
+      </TouchableWithoutFeedback>
     </Modal>
   );
 };
@@ -198,8 +272,18 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
 
-  container: {
+  keyboardAvoidingView: {
     flex: 1,
+    justifyContent: 'flex-end',
+  },
+
+  innerContainer: {
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
+
+  scrollContent: {
+    flexGrow: 1,
     justifyContent: 'flex-end',
   },
 
@@ -209,13 +293,17 @@ const styles = StyleSheet.create({
     borderTopRightRadius: Theme.borderRadius['3xl'],
     paddingTop: Theme.spacing['2xl'],
     paddingHorizontal: Theme.spacing.xl,
-    paddingBottom: Platform.OS === 'ios' ? Theme.spacing['4xl'] : Theme.spacing.xl,
-    minHeight: '60%',
+    paddingBottom: Platform.select({
+      ios: Theme.spacing.xl,
+      android: Theme.spacing.lg,
+    }),
+    minHeight: '65%',
+    maxHeight: '90%',
     ...Theme.shadows.xl,
   },
 
   header: {
-    marginBottom: Theme.spacing['2xl'],
+    marginBottom: Theme.spacing.xl,
   },
 
   title: {
@@ -228,6 +316,7 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: Theme.typography.fontSize.base,
     color: Theme.colors.text.secondary,
+    lineHeight: Theme.typography.lineHeight.lg,
   },
 
   closeButton: {
@@ -240,6 +329,8 @@ const styles = StyleSheet.create({
     borderRadius: Theme.borderRadius.full,
     alignItems: 'center',
     justifyContent: 'center',
+    zIndex: 10,
+    ...Theme.shadows.sm,
   },
 
   form: {
@@ -248,29 +339,34 @@ const styles = StyleSheet.create({
 
   errorContainer: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: Theme.spacing.sm,
     backgroundColor: Theme.colors.error[50],
     padding: Theme.spacing.md,
     borderRadius: Theme.borderRadius.lg,
     marginBottom: Theme.spacing.lg,
+    borderWidth: 1,
+    borderColor: Theme.colors.error[100],
   },
 
   errorMessage: {
     flex: 1,
     fontSize: Theme.typography.fontSize.sm,
-    color: Theme.colors.error[600],
+    color: Theme.colors.error[700],
+    lineHeight: Theme.typography.lineHeight.sm,
   },
 
   continueButton: {
     marginTop: Theme.spacing.md,
+    marginBottom: Theme.spacing.sm,
   },
 
   footer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: Theme.spacing.xl,
+    marginTop: Theme.spacing.lg,
+    paddingVertical: Theme.spacing.sm,
   },
 
   footerText: {
