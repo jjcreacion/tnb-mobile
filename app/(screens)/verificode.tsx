@@ -28,6 +28,7 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
   const [timer, setTimer] = useState(300);
   const [isCodeCorrect, setIsCodeCorrect] = useState(false);
   const [showRegister, setShowRegister] = useState(false);
+  const [animatingField, setAnimatingField] = useState<number | null>(null);
   const inputsRef = useRef<(TextInput | null)[]>([]);
   
   // iOS Fix: Track the last input action to prevent automatic backspace
@@ -37,11 +38,22 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
     action: 'input' | 'backspace';
   } | null>(null);
   
-  // Debug hook para monitorear el comportamiento
+  // Additional protection: track recent changes to prevent loops
+  const recentChanges = useRef<Set<string>>(new Set());
+  
+  // Track specific actions for better debugging and control
+  const lastActionRef = useRef<{
+    type: 'input' | 'backspace' | 'auto-clear';
+    index: number;
+    timestamp: number;
+    value?: string;
+  } | null>(null);
+  
+  // Debug hook para monitorear el comportamiento - REACTIVADO PARA DEBUGGEAR
   const { debugLog, validateCodeIntegrity } = useVerificationCodeDebug(code, {
-    enabled: false, // Disabled after successful fix validation
-    logStateChanges: false,
-    logInputEvents: false,
+    enabled: __DEV__, // Reactivado para debuggear el problema
+    logStateChanges: true,
+    logInputEvents: true,
     logFocusEvents: false,
   });
 
@@ -65,6 +77,43 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
   }, [timer]);
 
   const handleInputChange = (value: string, index: number) => {
+    debugLog(`INPUT CHANGE - Index: ${index}, Value: "${value}", Current: "${code[index] || ''}", Platform: ${Platform.OS}`);
+    
+    // Create a unique key for this change to detect duplicates
+    const changeKey = `${index}-${value}-${Date.now()}`;
+    
+    // Enhanced duplicate detection
+    const currentValue = code[index] || '';
+    
+    // Check for exact duplicates: same index, same value, same current state
+    const isDuplicateValue = value === currentValue && currentValue !== '';
+    
+    if (isDuplicateValue) {
+      debugLog(`DUPLICATE VALUE DETECTED - Ignoring: Index ${index}, Value "${value}"`);
+      return;
+    }
+    
+    // Check if we've seen this exact change very recently (within 100ms)
+    const now = Date.now();
+    const recentChangeKeys = Array.from(recentChanges.current);
+    const isDuplicateTiming = recentChangeKeys.some(key => {
+      const [keyIndex, keyValue, timestamp] = key.split('-');
+      return parseInt(timestamp) > (now - 100) && 
+             keyIndex === index.toString() && 
+             keyValue === value;
+    });
+    
+    if (isDuplicateTiming) {
+      debugLog(`DUPLICATE TIMING DETECTED - Ignoring: ${changeKey}`);
+      return;
+    }
+    
+    // Track this change
+    recentChanges.current.add(changeKey);
+    setTimeout(() => {
+      recentChanges.current.delete(changeKey);
+    }, 200);
+    
     // Validate code integrity before processing
     if (!validateCodeIntegrity()) {
       debugLog('Code integrity check failed, resetting...');
@@ -108,9 +157,17 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
         }
       }
       
-      // Move focus to the last filled position or the next empty one
+      // Smooth paste animation: highlight each field as it fills
+      for (let i = 0; i < digits.length; i++) {
+        setTimeout(() => {
+          setAnimatingField(i);
+          setTimeout(() => setAnimatingField(null), 100);
+        }, i * 80);
+      }
+      
+      // Move focus to the last filled position with smooth timing
       const focusIndex = Math.min(digits.length, 5);
-      const focusDelay = Platform.OS === 'ios' ? 100 : 50;
+      const focusDelay = Platform.OS === 'ios' ? 200 + (digits.length * 80) : 150 + (digits.length * 80);
       setTimeout(() => {
         inputsRef.current[focusIndex]?.focus();
       }, focusDelay);
@@ -124,26 +181,107 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
     
     // iOS Special Case: Handle backspace through onChangeText
     if (Platform.OS === 'ios' && cleanValue === '' && oldValue !== '') {
-      // This is a backspace (clearing the current field)
+      // Check if this is an automatic iOS clear event right after completing 6 digits
+      const completeCode = code.join('');
+      const wasCompleteCode = completeCode.length === 6;
+      
+      // Check if this happened very recently after an input action
+      const now = Date.now();
+      const recentInput = lastInputAction.current && 
+        lastInputAction.current.action === 'input' &&
+        (now - lastInputAction.current.timestamp) < 200;
+        
+      // Check if this is a legitimate backspace action
+      const recentBackspace = lastActionRef.current && 
+        lastActionRef.current.type === 'backspace' &&
+        (now - lastActionRef.current.timestamp) < 500; // Allow more time for legitimate backspace
+      
+      debugLog(`BACKSPACE CHECK - wasComplete: ${wasCompleteCode}, recentInput: ${recentInput}, recentBackspace: ${recentBackspace}, index: ${index}`);
+        
+      // If this is NOT a legitimate backspace and the code was complete and there was recent input
+      if (wasCompleteCode && recentInput && !recentBackspace && index === 5) {
+        debugLog(`IGNORING iOS AUTO-CLEAR after complete code - Index: ${index}`);
+        return; // This is likely iOS auto-clearing after OTP completion
+      }
+      
+      // If this IS a legitimate backspace, allow it to proceed
+      if (recentBackspace) {
+        debugLog(`ALLOWING LEGITIMATE BACKSPACE - Index: ${index}`);
+      }
+      
+      debugLog(`iOS BACKSPACE DETECTED - Index: ${index}, "${oldValue}" → ""`);
+      
+      // Mark this as a legitimate backspace action when value is actually cleared
+      lastActionRef.current = {
+        type: 'backspace',
+        index: index,
+        timestamp: Date.now(),
+        value: oldValue
+      };
+      
+      // This is a legitimate backspace action (digit was cleared)
+      const newCode = [...code];
       newCode[index] = '';
       setCode(newCode);
+      
+      // Visual feedback
+      setAnimatingField(index);
+      setTimeout(() => setAnimatingField(null), 200);
+      
+      // Auto-navigate to previous field after deleting (if there is a previous field)
+      if (index > 0) {
+        debugLog(`BACKSPACE AUTO-NAVIGATE - From ${index} to ${index - 1}`);
+        const previousIndex = index - 1;
+        setTimeout(() => {
+          debugLog(`FOCUSING PREVIOUS FIELD - Index: ${previousIndex}`);
+          inputsRef.current[previousIndex]?.focus();
+        }, 150); // Slightly longer delay for iOS
+      } else {
+        debugLog(`BACKSPACE STAY - Already at first field (${index})`);
+      }
       
       // Reset validation states
       setIsCodeCorrect(false);
       setCodeValid(true);
-      return; // Don't auto-advance on backspace
+      return;
     }
     
-    // iOS Special Case: Handle backspace navigation (when field was already empty)
+    // iOS Special Case: Handle backspace navigation from empty field
     if (Platform.OS === 'ios' && cleanValue === '' && oldValue === '' && index > 0) {
-      // User is trying to backspace from an empty field, move to previous and clear it
-      newCode[index - 1] = '';
+      // This could be a legitimate backspace from empty field
+      // But only if it's not right after an auto-advance
+      const now = Date.now();
+      const recentAutoAdvance = lastInputAction.current && 
+        lastInputAction.current.action === 'input' &&
+        (now - lastInputAction.current.timestamp) < 300; // Give more time for auto-advance
+      
+      if (recentAutoAdvance) {
+        debugLog(`IGNORING potential iOS navigation backspace - too soon after input`);
+        return;
+      }
+      
+      debugLog(`iOS NAVIGATION BACKSPACE - From empty field ${index} to ${index - 1}`);
+      
+      // Mark this as a legitimate backspace navigation action
+      lastActionRef.current = {
+        type: 'backspace',
+        index: index - 1,
+        timestamp: Date.now(),
+        value: code[index - 1] || ''
+      };
+      
+      // User backspaced from empty field - move to previous and clear it
+      const newCode = [...code];
+      const previousIndex = index - 1;
+      newCode[previousIndex] = '';
       setCode(newCode);
       
-      // Move focus to previous field
+      // Visual feedback and focus change
+      setAnimatingField(previousIndex);
       setTimeout(() => {
-        inputsRef.current[index - 1]?.focus();
-      }, 50);
+        inputsRef.current[previousIndex]?.focus();
+        setAnimatingField(null);
+      }, 100);
       
       // Reset validation states
       setIsCodeCorrect(false);
@@ -152,26 +290,77 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
     }
     
     // Normal digit input
+    const currentTime = Date.now();
+    const recentBackspace = lastActionRef.current && 
+      lastActionRef.current.type === 'backspace' &&
+      (currentTime - lastActionRef.current.timestamp) < 500;
+      
+    debugLog(`SETTING DIGIT - Index: ${index}, Value: "${cleanValue}", AfterBackspace: ${recentBackspace}`);
+    
+    // Mark this as an input action (not from backspace)
+    lastActionRef.current = {
+      type: 'input',
+      index: index,
+      timestamp: currentTime,
+      value: cleanValue
+    };
+    
     newCode[index] = cleanValue;
     setCode(newCode);
     
-    // Auto-advance logic: only move focus if we entered a digit (not empty)
+    // Smart auto-advance logic with smooth transitions
     if (cleanValue !== '' && index < 5) {
-      const focusDelay = Platform.OS === 'ios' ? 100 : 50;
+      debugLog(`AUTO-ADVANCE - From ${index} to ${index + 1}`);
+      // Brief visual feedback before advancing
+      setAnimatingField(index);
+      
+      const focusDelay = Platform.OS === 'ios' ? 120 : 80;
       setTimeout(() => {
+        // Clear animation and move to next field
+        setAnimatingField(null);
         inputsRef.current[index + 1]?.focus();
+        
+        // Optional: Pre-select text in next field for better UX
+        setTimeout(() => {
+          if (Platform.OS === 'android') {
+            inputsRef.current[index + 1]?.setSelection(0, 0);
+          }
+        }, 20);
       }, focusDelay);
     }
     
-    // Validation logic
+    // Enhanced validation logic with smooth feedback
     const completeCode = newCode.join('');
     if (completeCode.length === 6) {
+      // Code complete - provide immediate feedback
       if (completeCode === verificationCode) {
         setIsCodeCorrect(true);
         setCodeValid(true);
+        
+        // Success animation: briefly highlight all fields
+        for (let i = 0; i < 6; i++) {
+          setTimeout(() => {
+            setAnimatingField(i);
+            setTimeout(() => setAnimatingField(null), 150);
+          }, i * 50);
+        }
+        
+        // Auto-dismiss keyboard for clean UX
+        setTimeout(() => {
+          inputsRef.current[5]?.blur();
+        }, 500);
+        
       } else {
         setIsCodeCorrect(false);
         setCodeValid(false);
+        
+        // Error animation: shake effect on all fields
+        for (let i = 0; i < 6; i++) {
+          setTimeout(() => {
+            setAnimatingField(i);
+            setTimeout(() => setAnimatingField(null), 200);
+          }, i * 30);
+        }
       }
     } else {
       // Reset validation states when code is incomplete
@@ -180,58 +369,52 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
     }
   };
 
-  const handleKeyPress = (e: any, index: number) => {
-    debugLog(`Key press - Index: ${index}, Key: "${e.nativeEvent.key}"`);
+  const handleBackspaceAction = (index: number) => {
+    debugLog(`BACKSPACE ACTION - Index: ${index}`);
+    
+    // Mark that this is a legitimate backspace action
+    lastActionRef.current = {
+      type: 'backspace',
+      index: index,
+      timestamp: Date.now()
+    };
+    
+    if (index > 0) {
+      const newCode = [...code];
+      newCode[index - 1] = '';
+      setCode(newCode);
+      inputsRef.current[index - 1]?.focus();
+      debugLog(`BACKSPACE - Cleared index ${index - 1}, focused previous`);
+    }
+  };  const handleKeyPress = (e: any, index: number) => {
+    debugLog(`KEY PRESS - Index: ${index}, Key: "${e.nativeEvent.key}", Platform: ${Platform.OS}`);
     
     if (e.nativeEvent.key === 'Backspace') {
-      // CRITICAL FIX: Prevent iOS automatic backspace when entering digits
-      // iOS tends to send automatic backspace events when replacing text
-      const now = Date.now();
+      debugLog(`MANUAL BACKSPACE DETECTED - Index: ${index}, Platform: ${Platform.OS}`);
       
-      // Check if this backspace comes immediately after an input (within 200ms)
-      // This indicates it's likely an automatic iOS backspace, not user-initiated
-      const isLikelyAutomaticBackspace = Platform.OS === 'ios' && 
-        lastInputAction.current &&
-        lastInputAction.current.action === 'input' &&
-        (now - lastInputAction.current.timestamp) < 200;
+      // Mark this as a legitimate manual backspace action
+      lastActionRef.current = {
+        type: 'backspace',
+        index: index,
+        timestamp: Date.now(),
+        value: code[index] || ''
+      };
       
-      if (isLikelyAutomaticBackspace) {
-        debugLog(`Ignoring automatic iOS backspace at index ${index} (${now - lastInputAction.current!.timestamp}ms after input)`);
-        return; // Don't process this backspace
-      }
-      
-      // Track this backspace action
+      // Also update the old tracking for compatibility
       lastInputAction.current = {
-        timestamp: now,
+        timestamp: Date.now(),
         index,
         action: 'backspace'
       };
       
-      const newCode = [...code];
-      
-      if (code[index] !== '') {
-        // Current field has a digit, delete it and stay in current field
-        newCode[index] = '';
-        debugLog(`Backspace - clearing current field ${index}`);
-        setCode(newCode);
-        // Cursor stays in current field (no focus change)
-      } else if (index > 0) {
-        // Current field is empty, move to previous field and clear it
-        newCode[index - 1] = '';
-        debugLog(`Backspace - clearing previous field ${index - 1}`);
-        setCode(newCode);
-        
-        // Move focus to previous field
-        const focusDelay = Platform.OS === 'ios' ? 50 : 25;
-        setTimeout(() => {
-          inputsRef.current[index - 1]?.focus();
-        }, focusDelay);
+      if (Platform.OS === 'android') {
+        debugLog(`EXECUTING BACKSPACE ACTION - Index: ${index}`);
+        // Execute backspace logic - this will handle the visual updates
+        handleBackspaceAction(index);
+      } else {
+        debugLog(`iOS BACKSPACE - Will be handled by onChangeText with recentBackspace=true`);
+        // For iOS, let onChangeText handle it but it will now know it's legitimate
       }
-      // If we're at the first field (index 0) and it's empty, do nothing
-      
-      // Reset validation states
-      setIsCodeCorrect(false);
-      setCodeValid(true);
     }
   };
 
@@ -267,23 +450,32 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
       
       if (clipboardContent && /^\d{6}$/.test(clipboardContent)) {
         const newCode = clipboardContent.split('');
-        debugLog('Setting clipboard code:', newCode);
         setCode(newCode);
         
-        // Focus the last input with platform-specific timing
-        const focusDelay = Platform.OS === 'ios' ? 150 : 100;
+        // Smooth clipboard paste animation
+        for (let i = 0; i < 6; i++) {
+          setTimeout(() => {
+            setAnimatingField(i);
+            setTimeout(() => setAnimatingField(null), 120);
+          }, i * 100);
+        }
+        
+        // Focus the last input with coordinated timing
+        const focusDelay = Platform.OS === 'ios' ? 800 : 700;
         setTimeout(() => {
           inputsRef.current[5]?.focus();
         }, focusDelay);
         
-        // Validate the complete code
-        if (clipboardContent === verificationCode) {
-          setIsCodeCorrect(true);
-          setCodeValid(true);
-        } else {
-          setIsCodeCorrect(false);
-          setCodeValid(false);
-        }
+        // Validate the complete code with slight delay for better UX
+        setTimeout(() => {
+          if (clipboardContent === verificationCode) {
+            setIsCodeCorrect(true);
+            setCodeValid(true);
+          } else {
+            setIsCodeCorrect(false);
+            setCodeValid(false);
+          }
+        }, 700);
       }
     } catch (error) {
       console.error('Error reading clipboard:', error);
@@ -336,16 +528,11 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
                 styles.codeInput,
                 !codeValid && !isCodeCorrect && styles.codeInputError,
                 isCodeCorrect && styles.codeInputSuccess,
+                animatingField === index && styles.codeInputAnimating,
               ]}
               value={digit}
               onChangeText={(value) => handleInputChange(value, index)}
-              {...(Platform.OS === 'android' && {
-                onKeyPress: (e) => handleKeyPress(e, index)
-              })}
-              {...(Platform.OS === 'ios' && {
-                // iOS: Handle backspace through onChangeText instead of onKeyPress
-                // to avoid automatic backspace events
-              })}
+              onKeyPress={(e) => handleKeyPress(e, index)}
               maxLength={1} // Consistent maxLength=1 for both platforms
               keyboardType="numeric"
               textAlign="center"
@@ -540,6 +727,21 @@ const styles = StyleSheet.create({
   codeInputSuccess: {
     borderColor: Theme.colors.success[500],
     backgroundColor: Theme.colors.success[50],
+  },
+
+  codeInputAnimating: {
+    borderColor: Theme.colors.primary[400],
+    backgroundColor: Theme.colors.primary[50],
+    transform: [{ scale: 0.95 }],
+    opacity: 0.9,
+    shadowColor: Theme.colors.primary[500],
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
 
   pasteContainer: {
