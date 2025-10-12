@@ -38,10 +38,10 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
   } | null>(null);
   
   // Debug hook para monitorear el comportamiento
-  const { debugLog, logInput, validateCodeIntegrity } = useVerificationCodeDebug(code, {
-    enabled: __DEV__,
-    logStateChanges: true,
-    logInputEvents: true,
+  const { debugLog, validateCodeIntegrity } = useVerificationCodeDebug(code, {
+    enabled: false, // Disabled after successful fix validation
+    logStateChanges: false,
+    logInputEvents: false,
     logFocusEvents: false,
   });
 
@@ -72,8 +72,6 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
       return;
     }
     
-    logInput(index, code[index] || '', value, 'change');
-    
     // Track this input action for iOS backspace prevention
     lastInputAction.current = {
       timestamp: Date.now(),
@@ -95,7 +93,7 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
         newCode[i] = digits[i];
       }
       
-      debugLog('Setting pasted code:', newCode);
+
       setCode(newCode);
       
       // Validate the complete code if 6 digits
@@ -127,7 +125,6 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
     // iOS Special Case: Handle backspace through onChangeText
     if (Platform.OS === 'ios' && cleanValue === '' && oldValue !== '') {
       // This is a backspace (clearing the current field)
-      debugLog(`iOS backspace detected via onChangeText - Index: ${index}`);
       newCode[index] = '';
       setCode(newCode);
       
@@ -140,7 +137,6 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
     // iOS Special Case: Handle backspace navigation (when field was already empty)
     if (Platform.OS === 'ios' && cleanValue === '' && oldValue === '' && index > 0) {
       // User is trying to backspace from an empty field, move to previous and clear it
-      debugLog(`iOS backspace navigation - moving from ${index} to ${index - 1}`);
       newCode[index - 1] = '';
       setCode(newCode);
       
@@ -157,7 +153,6 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
     
     // Normal digit input
     newCode[index] = cleanValue;
-    debugLog(`Single digit update - Index: ${index}, "${oldValue}" → "${cleanValue}"`);
     setCode(newCode);
     
     // Auto-advance logic: only move focus if we entered a digit (not empty)
