@@ -1,8 +1,18 @@
-import { Button } from '@/components/common';
+import { Button, KeyboardDismissWrapper } from '@/components/common';
 import { Theme } from '@/constants/Theme';
+import { useVerificationCodeDebug } from '@/hooks/useVerificationCodeDebug';
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useRef, useState } from 'react';
-import { Clipboard, StyleSheet, Text, TextInput, View } from 'react-native';
+import {
+  Clipboard,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View
+} from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import Register from './register';
 
@@ -19,10 +29,21 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
   const [isCodeCorrect, setIsCodeCorrect] = useState(false);
   const [showRegister, setShowRegister] = useState(false);
   const inputsRef = useRef<(TextInput | null)[]>([]);
+  
+  // Debug hook para monitorear el comportamiento
+  const { debugLog, logInput, validateCodeIntegrity } = useVerificationCodeDebug(code, {
+    enabled: __DEV__,
+    logStateChanges: true,
+    logInputEvents: true,
+    logFocusEvents: false,
+  });
 
   useEffect(() => {
-    // Auto-focus first input
-    inputsRef.current[0]?.focus();
+    // Auto-focus first input with platform-specific timing
+    const focusDelay = Platform.OS === 'ios' ? 100 : 50;
+    setTimeout(() => {
+      inputsRef.current[0]?.focus();
+    }, focusDelay);
   }, []);
 
   useEffect(() => {
@@ -36,12 +57,22 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
     }
   }, [timer]);
 
-    const handleInputChange = (value: string, index: number) => {
+  const handleInputChange = (value: string, index: number) => {
+    // Validate code integrity before processing
+    if (!validateCodeIntegrity()) {
+      debugLog('Code integrity check failed, resetting...');
+      setCode(Array(6).fill(''));
+      return;
+    }
+    
+    logInput(index, code[index] || '', value, 'change');
+    
     // Clean the value to only contain digits
     const cleanValue = value.replace(/\D/g, '');
     
     // If pasting multiple characters (6-digit code)
     if (cleanValue.length > 1) {
+      debugLog(`Paste detected - Length: ${cleanValue.length}, Value: "${cleanValue}"`);
       const digits = cleanValue.slice(0, 6).split('');
       const newCode = ['', '', '', '', '', ''];
       
@@ -50,6 +81,7 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
         newCode[i] = digits[i];
       }
       
+      debugLog('Setting pasted code:', newCode);
       setCode(newCode);
       
       // Validate the complete code if 6 digits
@@ -66,45 +98,78 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
       
       // Move focus to the last filled position or the next empty one
       const focusIndex = Math.min(digits.length, 5);
+      const focusDelay = Platform.OS === 'ios' ? 100 : 50;
       setTimeout(() => {
         inputsRef.current[focusIndex]?.focus();
-      }, 10);
-    } else {
-      // Single character input
-      const newCode = [...code];
-      newCode[index] = cleanValue;
-      setCode(newCode);
+      }, focusDelay);
       
-      // Check if code is complete and validate
-      const completeCode = newCode.join('');
-      if (completeCode.length === 6) {
-        if (completeCode === verificationCode) {
-          setIsCodeCorrect(true);
-          setCodeValid(true);
-        } else {
-          setIsCodeCorrect(false);
-          setCodeValid(false);
-        }
-      } else {
-        // Reset validation states when code is incomplete
-        setIsCodeCorrect(false);
+      return; // Early return to avoid further processing
+    }
+    
+    // Handle single character input (0 or 1 character)
+    const newCode = [...code];
+    const oldValue = code[index] || '';
+    
+    // Always update the current position with the clean value (could be empty string)
+    newCode[index] = cleanValue;
+    
+    debugLog(`Single digit update - Index: ${index}, "${oldValue}" → "${cleanValue}"`);
+    setCode(newCode);
+    
+    // Auto-advance logic: only move focus if we entered a digit (not empty)
+    if (cleanValue !== '' && index < 5) {
+      const focusDelay = Platform.OS === 'ios' ? 100 : 50;
+      setTimeout(() => {
+        inputsRef.current[index + 1]?.focus();
+      }, focusDelay);
+    }
+    
+    // Validation logic
+    const completeCode = newCode.join('');
+    if (completeCode.length === 6) {
+      if (completeCode === verificationCode) {
+        setIsCodeCorrect(true);
         setCodeValid(true);
+      } else {
+        setIsCodeCorrect(false);
+        setCodeValid(false);
       }
-      
-      // Move to next input if digit entered
-      if (cleanValue && index < 5) {
-        setTimeout(() => {
-          inputsRef.current[index + 1]?.focus();
-        }, 10);
-      }
+    } else {
+      // Reset validation states when code is incomplete
+      setIsCodeCorrect(false);
+      setCodeValid(true);
     }
   };
 
   const handleKeyPress = (e: any, index: number) => {
+    debugLog(`Key press - Index: ${index}, Key: "${e.nativeEvent.key}"`);
+    
     if (e.nativeEvent.key === 'Backspace') {
-      if (code[index] === '' && index > 0) {
-        inputsRef.current[index - 1]?.focus();
+      const newCode = [...code];
+      
+      if (code[index] !== '') {
+        // Current field has a digit, delete it and stay in current field
+        newCode[index] = '';
+        debugLog(`Backspace - clearing current field ${index}`);
+        setCode(newCode);
+        // Cursor stays in current field (no focus change)
+      } else if (index > 0) {
+        // Current field is empty, move to previous field and clear it
+        newCode[index - 1] = '';
+        debugLog(`Backspace - clearing previous field ${index - 1}`);
+        setCode(newCode);
+        
+        // Move focus to previous field
+        const focusDelay = Platform.OS === 'ios' ? 50 : 25;
+        setTimeout(() => {
+          inputsRef.current[index - 1]?.focus();
+        }, focusDelay);
       }
+      // If we're at the first field (index 0) and it's empty, do nothing
+      
+      // Reset validation states
+      setIsCodeCorrect(false);
+      setCodeValid(true);
     }
   };
 
@@ -125,18 +190,29 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
     setCode(Array(6).fill(''));
     setCodeValid(true);
     setIsCodeCorrect(false);
-    inputsRef.current[0]?.focus();
+    
+    // Focus first input with platform-specific timing
+    const focusDelay = Platform.OS === 'ios' ? 100 : 50;
+    setTimeout(() => {
+      inputsRef.current[0]?.focus();
+    }, focusDelay);
   };
 
   const handlePasteFromClipboard = async () => {
     try {
       const clipboardContent = await Clipboard.getString();
+      debugLog(`Clipboard content: "${clipboardContent}"`);
+      
       if (clipboardContent && /^\d{6}$/.test(clipboardContent)) {
         const newCode = clipboardContent.split('');
+        debugLog('Setting clipboard code:', newCode);
         setCode(newCode);
         
-        // Focus the last input
-        inputsRef.current[5]?.focus();
+        // Focus the last input with platform-specific timing
+        const focusDelay = Platform.OS === 'ios' ? 150 : 100;
+        setTimeout(() => {
+          inputsRef.current[5]?.focus();
+        }, focusDelay);
         
         // Validate the complete code
         if (clipboardContent === verificationCode) {
@@ -162,8 +238,20 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
         style="light" 
         backgroundColor={Theme.colors.primary[500]}
       />
-      <View style={styles.container}>
-        <View style={styles.content}>
+      <KeyboardDismissWrapper style={styles.container}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={styles.keyboardAvoidingView}
+          keyboardVerticalOffset={0}
+          enabled={Platform.OS === 'ios'}
+        >
+          <ScrollView
+            contentContainerStyle={styles.scrollContent}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+            bounces={false}
+          >
+            <View style={styles.content}>
         {/* Header with Icon */}
         <View style={styles.header}>
           <View style={styles.iconContainer}>
@@ -180,7 +268,7 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
         <View style={styles.codeContainer}>
           {code.map((digit, index) => (
             <TextInput
-              key={index}
+              key={`code-input-${index}`} // More stable key
               ref={(ref) => { inputsRef.current[index] = ref; }}
               style={[
                 styles.codeInput,
@@ -190,10 +278,16 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
               value={digit}
               onChangeText={(value) => handleInputChange(value, index)}
               onKeyPress={(e) => handleKeyPress(e, index)}
-              maxLength={6} // Allow pasting but control display
+              maxLength={1} // Consistent maxLength=1 for both platforms
               keyboardType="numeric"
               textAlign="center"
-              selectTextOnFocus
+              selectTextOnFocus={false} // Disabled for both platforms to prevent selection issues
+              autoCorrect={false}
+              autoComplete="off"
+              autoCapitalize="none"
+              contextMenuHidden={false}
+              returnKeyType="next"
+              blurOnSubmit={false}
             />
           ))}
         </View>
@@ -276,7 +370,9 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
           />
         </View>
       </View>
-    </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </KeyboardDismissWrapper>
     </>
   );
 };
@@ -285,8 +381,21 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Theme.colors.background.primary,
+  },
+
+  keyboardAvoidingView: {
+    flex: 1,
+  },
+
+  scrollContent: {
+    flexGrow: 1,
     paddingHorizontal: Theme.spacing.xl,
     justifyContent: 'center',
+    paddingTop: Theme.spacing.xl,
+    paddingBottom: Platform.select({
+      ios: Theme.spacing.xl,
+      android: Theme.spacing['4xl'], // Espacio extra para evitar solapamiento
+    }),
   },
 
   content: {
