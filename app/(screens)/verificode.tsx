@@ -30,6 +30,13 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
   const [showRegister, setShowRegister] = useState(false);
   const inputsRef = useRef<(TextInput | null)[]>([]);
   
+  // iOS Fix: Track the last input action to prevent automatic backspace
+  const lastInputAction = useRef<{
+    timestamp: number;
+    index: number;
+    action: 'input' | 'backspace';
+  } | null>(null);
+  
   // Debug hook para monitorear el comportamiento
   const { debugLog, logInput, validateCodeIntegrity } = useVerificationCodeDebug(code, {
     enabled: __DEV__,
@@ -66,6 +73,13 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
     }
     
     logInput(index, code[index] || '', value, 'change');
+    
+    // Track this input action for iOS backspace prevention
+    lastInputAction.current = {
+      timestamp: Date.now(),
+      index,
+      action: 'input'
+    };
     
     // Clean the value to only contain digits
     const cleanValue = value.replace(/\D/g, '');
@@ -110,9 +124,39 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
     const newCode = [...code];
     const oldValue = code[index] || '';
     
-    // Always update the current position with the clean value (could be empty string)
-    newCode[index] = cleanValue;
+    // iOS Special Case: Handle backspace through onChangeText
+    if (Platform.OS === 'ios' && cleanValue === '' && oldValue !== '') {
+      // This is a backspace (clearing the current field)
+      debugLog(`iOS backspace detected via onChangeText - Index: ${index}`);
+      newCode[index] = '';
+      setCode(newCode);
+      
+      // Reset validation states
+      setIsCodeCorrect(false);
+      setCodeValid(true);
+      return; // Don't auto-advance on backspace
+    }
     
+    // iOS Special Case: Handle backspace navigation (when field was already empty)
+    if (Platform.OS === 'ios' && cleanValue === '' && oldValue === '' && index > 0) {
+      // User is trying to backspace from an empty field, move to previous and clear it
+      debugLog(`iOS backspace navigation - moving from ${index} to ${index - 1}`);
+      newCode[index - 1] = '';
+      setCode(newCode);
+      
+      // Move focus to previous field
+      setTimeout(() => {
+        inputsRef.current[index - 1]?.focus();
+      }, 50);
+      
+      // Reset validation states
+      setIsCodeCorrect(false);
+      setCodeValid(true);
+      return;
+    }
+    
+    // Normal digit input
+    newCode[index] = cleanValue;
     debugLog(`Single digit update - Index: ${index}, "${oldValue}" → "${cleanValue}"`);
     setCode(newCode);
     
@@ -145,6 +189,29 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
     debugLog(`Key press - Index: ${index}, Key: "${e.nativeEvent.key}"`);
     
     if (e.nativeEvent.key === 'Backspace') {
+      // CRITICAL FIX: Prevent iOS automatic backspace when entering digits
+      // iOS tends to send automatic backspace events when replacing text
+      const now = Date.now();
+      
+      // Check if this backspace comes immediately after an input (within 200ms)
+      // This indicates it's likely an automatic iOS backspace, not user-initiated
+      const isLikelyAutomaticBackspace = Platform.OS === 'ios' && 
+        lastInputAction.current &&
+        lastInputAction.current.action === 'input' &&
+        (now - lastInputAction.current.timestamp) < 200;
+      
+      if (isLikelyAutomaticBackspace) {
+        debugLog(`Ignoring automatic iOS backspace at index ${index} (${now - lastInputAction.current!.timestamp}ms after input)`);
+        return; // Don't process this backspace
+      }
+      
+      // Track this backspace action
+      lastInputAction.current = {
+        timestamp: now,
+        index,
+        action: 'backspace'
+      };
+      
       const newCode = [...code];
       
       if (code[index] !== '') {
@@ -277,7 +344,13 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
               ]}
               value={digit}
               onChangeText={(value) => handleInputChange(value, index)}
-              onKeyPress={(e) => handleKeyPress(e, index)}
+              {...(Platform.OS === 'android' && {
+                onKeyPress: (e) => handleKeyPress(e, index)
+              })}
+              {...(Platform.OS === 'ios' && {
+                // iOS: Handle backspace through onChangeText instead of onKeyPress
+                // to avoid automatic backspace events
+              })}
               maxLength={1} // Consistent maxLength=1 for both platforms
               keyboardType="numeric"
               textAlign="center"
@@ -288,6 +361,13 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
               contextMenuHidden={false}
               returnKeyType="next"
               blurOnSubmit={false}
+              clearTextOnFocus={false} // iOS: Don't clear text when gaining focus
+              textContentType="oneTimeCode" // iOS: Help with OTP detection
+              {...(Platform.OS === 'ios' && {
+                spellCheck: false,
+                smartInsertDelete: false,
+                enablesReturnKeyAutomatically: false
+              })}
             />
           ))}
         </View>
