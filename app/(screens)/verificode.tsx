@@ -1315,7 +1315,7 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
                     value={digit}
                     onChangeText={(value) => handleInputChange(value, index)}
                     onKeyPress={(e) => handleKeyPress(e, index)}
-                    maxLength={1}
+                    maxLength={6}
                     keyboardType="numeric"
                     textAlign="center"
                     autoCorrect={false}
