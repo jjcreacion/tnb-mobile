@@ -389,12 +389,29 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
     // Clean input - only digits
     const cleanValue = value.replace(/\D/g, '');
     
+    // Detect if input likely came from contextual menu (paste operation)
+    const isLikelyContextualPaste = value.length > 1 && cleanValue.length > 1;
+    
     logDebugEvent('INPUT_CLEANED', {
       originalValue: value,
       cleanedValue: cleanValue,
       length: cleanValue.length,
-      index
+      index,
+      isLikelyContextualPaste,
+      inputSource: isLikelyContextualPaste ? 'contextual_menu_paste' : 'keyboard_input'
     });
+
+    // Log contextual menu usage for UX analysis
+    if (isLikelyContextualPaste) {
+      logDebugEvent('iOS_CONTEXTUAL_MENU_PASTE_DETECTED', {
+        originalValue: value,
+        cleanedValue: cleanValue,
+        fieldIndex: index,
+        pasteLength: cleanValue.length,
+        likely6DigitCode: cleanValue.length === 6,
+        platform: 'ios'
+      });
+    }
     
     // Handle iOS auto-complete (full 6-digit code)
     if (cleanValue.length === 6 && index === 0) {
@@ -1317,7 +1334,7 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
                       }),
                       selectTextOnFocus: false,
                       clearTextOnFocus: false,
-                      contextMenuHidden: true,
+                      contextMenuHidden: false, // ENABLED: Allow native iOS contextual menu (Copy/Paste/Select)
                       textContentType: index === 0 ? "oneTimeCode" : "none",
                       spellCheck: false,
                       smartInsertDelete: false,
