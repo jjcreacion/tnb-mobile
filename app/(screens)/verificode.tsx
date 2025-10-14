@@ -460,13 +460,80 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
     // Handle manual navigation for iOS (since auto-advance is disabled)
     if (e.nativeEvent.key >= '0' && e.nativeEvent.key <= '9') {
       const wasEmpty = code[index] === '';
+      const newDigit = e.nativeEvent.key;
       
       logDebugEvent('MANUAL_NAVIGATION_CHECK', {
-        key: e.nativeEvent.key,
+        key: newDigit,
         index,
         wasEmpty,
         shouldAdvance: wasEmpty && index < 5
       });
+      
+      // Handle overflow to next field if current field has content
+      if (!wasEmpty) {
+        logDebugEvent('MANUAL_DIGIT_OVERFLOW', {
+          reason: 'Field had content - moving new digit to next available field',
+          currentIndex: index,
+          currentValue: code[index],
+          newDigit: newDigit
+        });
+        
+        // Find next available empty field
+        let targetIndex = -1;
+        for (let i = index + 1; i < 6; i++) {
+          if (code[i] === '') {
+            targetIndex = i;
+            break;
+          }
+        }
+        
+        if (targetIndex !== -1) {
+          // Place new digit in next available field
+          const newCode = [...code];
+          newCode[targetIndex] = newDigit;
+          
+          // Track the input for phantom backspace protection
+          recentInputRef.current = {
+            timestamp: Date.now(),
+            index: targetIndex,
+            value: newDigit
+          };
+          
+          logDebugEvent('RECENT_INPUT_TRACKED', {
+            trackedInput: recentInputRef.current
+          });
+          
+          logDebugEvent('MANUAL_OVERFLOW_SETTING_CODE', {
+            newCode,
+            previousCode: [...code],
+            targetIndex,
+            newValue: newDigit,
+            originalIndex: index,
+            originalValue: code[index]
+          });
+          
+          setCode(newCode);
+          validateCode(newCode.join(''));
+          
+          // Move focus to the field where we placed the digit
+          addTimeout(() => {
+            logDebugEvent('MANUAL_OVERFLOW_FOCUS', {
+              fromIndex: index,
+              toIndex: targetIndex
+            });
+            inputsRef.current[targetIndex]?.focus();
+          }, 150);
+        } else {
+          // No available fields - just ignore the input
+          logDebugEvent('MANUAL_OVERFLOW_IGNORED', {
+            reason: 'No available empty fields to place new digit',
+            currentIndex: index,
+            newDigit: newDigit
+          });
+        }
+        
+        return; // Prevent default handling
+      }
       
       // Only navigate if the field was empty (new input, not replacement)
       if (wasEmpty && index < 5) {
@@ -477,16 +544,9 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
           });
           inputsRef.current[index + 1]?.focus();
         }, 150);
-      } else if (!wasEmpty) {
-        logDebugEvent('MANUAL_NAVIGATION_SKIPPED', {
-          reason: 'Field had content - allowing replacement without navigation',
-          index,
-          previousValue: code[index],
-          newKey: e.nativeEvent.key
-        });
       }
     }
-  }, [code, addTimeout, logDebugEvent]);
+  }, [code, addTimeout, logDebugEvent, validateCode]);
 
   // Android backspace handling (original)
   const handleKeyPressAndroid = useCallback((e: any, index: number) => {
