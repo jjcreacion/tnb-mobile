@@ -29,6 +29,7 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
   const [timer, setTimer] = useState(300);
   const [showRegister, setShowRegister] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [hasValidClipboard, setHasValidClipboard] = useState(false);
   const inputsRef = useRef<(TextInput | null)[]>([]);
   const timeoutsRef = useRef<number[]>([]);
   
@@ -151,6 +152,48 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
     timeoutsRef.current.push(timeout);
     return timeout;
   }, []);
+
+  // Check clipboard for valid 6-digit code
+  const checkClipboardForValidCode = useCallback(async () => {
+    try {
+      const clipboardContent = await Clipboard.getString();
+      
+      // Clean the clipboard content (remove spaces, dashes, etc.)
+      const cleanedContent = clipboardContent.replace(/\D/g, '');
+      
+      // Check if it's exactly 6 digits
+      const isValid6DigitCode = /^\d{6}$/.test(cleanedContent);
+      
+      logDebugEvent('CLIPBOARD_CHECK', {
+        originalContent: clipboardContent,
+        cleanedContent,
+        isValid: isValid6DigitCode,
+        length: cleanedContent.length,
+        platform: Platform.OS
+      });
+      
+      setHasValidClipboard(isValid6DigitCode);
+      return isValid6DigitCode;
+    } catch (error) {
+      logDebugEvent('CLIPBOARD_CHECK_ERROR', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        platform: Platform.OS
+      });
+      setHasValidClipboard(false);
+      return false;
+    }
+  }, [logDebugEvent]);
+
+  // Monitor clipboard changes periodically
+  useEffect(() => {
+    // Initial check
+    checkClipboardForValidCode();
+
+    // Check clipboard every 2 seconds when component is focused
+    const interval = setInterval(checkClipboardForValidCode, 2000);
+    
+    return () => clearInterval(interval);
+  }, [checkClipboardForValidCode]);
 
   // Optimized focus function for immediate response
   const focusInput = useCallback((index: number) => {
@@ -1310,11 +1353,11 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
                 ))}
               </View>
 
-              {/* Paste Button - Show only when no digits entered */}
-              {code.every(digit => digit === '') && (
+              {/* Paste Button - Show only when clipboard has valid 6-digit code */}
+              {hasValidClipboard && (
                 <View style={styles.pasteContainer}>
                   <Button
-                    title="Paste Code"
+                    title="Paste 6-Digit Code"
                     variant="ghost"
                     size="sm"
                     onPress={handlePasteFromClipboard}
