@@ -39,8 +39,8 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
     value: string;
   } | null>(null);
   
-  // ANDROID FIX: Track overflow processing to prevent visual glitch
-  const overflowProcessingRef = useRef<{
+  // CROSS-PLATFORM FIX: Track replacement processing to prevent visual glitch
+  const replacementProcessingRef = useRef<{
     index: number;
     timestamp: number;
   } | null>(null);
@@ -328,15 +328,15 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
       return;
     }
     
-    // iOS FIX: Check if overflow is being processed for this field to prevent visual glitch
-    if (overflowProcessingRef.current?.index === index) {
-      const timeDiff = Date.now() - overflowProcessingRef.current.timestamp;
+    // iOS FIX: Check if replacement is being processed for this field to prevent visual glitch
+    if (replacementProcessingRef.current?.index === index) {
+      const timeDiff = Date.now() - replacementProcessingRef.current.timestamp;
       if (timeDiff < 100) { // Within 100ms of overflow processing
-        logDebugEvent('iOS_OVERFLOW_BLOCKED_DUPLICATE', {
+        logDebugEvent('iOS_REPLACEMENT_BLOCKED_DUPLICATE', {
           value,
           index,
           timeDiff,
-          reason: 'onChangeText blocked - overflow already processed in onKeyPress',
+          reason: 'onChangeText blocked - replacement already processed in onKeyPress',
           platform: 'ios'
         });
         return;
@@ -498,15 +498,15 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
       return;
     }
     
-    // ANDROID FIX: Check if overflow is being processed for this field to prevent visual glitch
-    if (overflowProcessingRef.current?.index === index) {
-      const timeDiff = Date.now() - overflowProcessingRef.current.timestamp;
+    // ANDROID FIX: Check if replacement is being processed for this field to prevent visual glitch
+    if (replacementProcessingRef.current?.index === index) {
+      const timeDiff = Date.now() - replacementProcessingRef.current.timestamp;
       if (timeDiff < 100) { // Within 100ms of overflow processing
-        logDebugEvent('ANDROID_OVERFLOW_BLOCKED_DUPLICATE', {
+        logDebugEvent('ANDROID_REPLACEMENT_BLOCKED_DUPLICATE', {
           value,
           index,
           timeDiff,
-          reason: 'onChangeText blocked - overflow already processed in onKeyPress',
+          reason: 'onChangeText blocked - replacement already processed in onKeyPress',
           platform: 'android'
         });
         return;
@@ -524,18 +524,18 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
       platform: 'android'
     });
     
-    // CRITICAL FIX: Detect Android overflow scenario (field has content + new digit)
+    // DETECT: Android replacement scenario (field has content + new digit)
     const currentValue = code[index];
-    const isAndroidOverflow = cleanValue.length === 2 && 
-                             currentValue !== '' && 
-                             cleanValue.startsWith(currentValue) &&
-                             cleanValue.length === currentValue.length + 1;
+    const isAndroidReplacement = cleanValue.length === 2 && 
+                                currentValue !== '' && 
+                                cleanValue.startsWith(currentValue) &&
+                                cleanValue.length === currentValue.length + 1;
     
-    if (isAndroidOverflow) {
+    if (isAndroidReplacement) {
       // Extract the new digit (last character of cleanValue)
       const newDigit = cleanValue.slice(-1);
       
-      logDebugEvent('ANDROID_OVERFLOW_DETECTED', {
+      logDebugEvent('ANDROID_REPLACEMENT_DETECTED', {
         currentValue,
         newDigit,
         fullValue: cleanValue,
@@ -543,27 +543,33 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
         platform: 'android'
       });
       
-      // Use overflow logic like iOS
-      const overflowExecuted = handleDigitOverflow(
-        index, 
-        newDigit, 
-        `Android: Field had content "${currentValue}" - attempting overflow with "${newDigit}"`
-      );
+      // NEW BEHAVIOR: Replace current field and advance sequentially
+      const newCode = [...code];
+      newCode[index] = newDigit;
       
-      if (overflowExecuted) {
-        logDebugEvent('ANDROID_OVERFLOW_SUCCESS', {
-          originalIndex: index,
-          newDigit,
+      logDebugEvent('ANDROID_REPLACEMENT_EXECUTED', {
+        newCode,
+        previousCode: [...code],
+        replacedIndex: index,
+        newValue: newDigit,
+        previousValue: currentValue,
+        platform: 'android'
+      });
+      
+      setCode(newCode);
+      validateCode(newCode.join(''));
+      
+      // Move focus to next field sequentially (regardless of content)
+      if (index < 5) {
+        logDebugEvent('ANDROID_REPLACEMENT_ADVANCE', {
+          fromIndex: index,
+          toIndex: index + 1,
           platform: 'android'
         });
-      } else {
-        logDebugEvent('ANDROID_OVERFLOW_FAILED', {
-          originalIndex: index,
-          newDigit,
-          reason: 'No available fields',
-          platform: 'android'
-        });
+        
+        focusInput(index + 1);
       }
+      
       return;
     }
     
@@ -627,7 +633,7 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
       resultingCode: [...code],
       platform: 'android'
     });
-  }, [code, isProcessing, validateCode, logDebugEvent, focusInput, handleSingleDigitInput, handleDigitOverflow]);
+  }, [code, isProcessing, validateCode, logDebugEvent, focusInput, handleSingleDigitInput]);
 
   // Platform-specific input handler
   const handleInputChange = Platform.OS === 'ios' ? handleInputChangeiOS : handleInputChangeAndroid;
@@ -746,79 +752,62 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
         shouldAdvance: wasEmpty && index < 5
       });
       
-      // Handle overflow to next field if current field has content
+      // NEW BEHAVIOR: Replace current field value and advance sequentially
       if (!wasEmpty) {
-        // Mark overflow processing to prevent onChangeText interference (same as Android)
-        overflowProcessingRef.current = {
+        // Mark replacement processing to prevent onChangeText interference
+        replacementProcessingRef.current = {
           index,
           timestamp: Date.now()
         };
         
-        logDebugEvent('MANUAL_DIGIT_OVERFLOW', {
-          reason: 'Field had content - moving new digit to next available field',
+        logDebugEvent('MANUAL_DIGIT_REPLACEMENT', {
+          reason: 'Field had content - replacing and advancing sequentially',
           currentIndex: index,
           currentValue: code[index],
           newDigit: newDigit,
           processingMarked: true
         });
         
-        // Find next available empty field
-        let targetIndex = -1;
-        for (let i = index + 1; i < 6; i++) {
-          if (code[i] === '') {
-            targetIndex = i;
-            break;
-          }
-        }
+        // Replace current field with new digit
+        const newCode = [...code];
+        newCode[index] = newDigit;
         
-        if (targetIndex !== -1) {
-          // Place new digit in next available field
-          const newCode = [...code];
-          newCode[targetIndex] = newDigit;
-          
-          // Track the input for phantom backspace protection
-          recentInputRef.current = {
-            timestamp: Date.now(),
-            index: targetIndex,
-            value: newDigit
-          };
-          
-          logDebugEvent('RECENT_INPUT_TRACKED', {
-            trackedInput: recentInputRef.current
-          });
-          
-          logDebugEvent('MANUAL_OVERFLOW_SETTING_CODE', {
-            newCode,
-            previousCode: [...code],
-            targetIndex,
-            newValue: newDigit,
-            originalIndex: index,
-            originalValue: code[index]
-          });
-          
-          setCode(newCode);
-          validateCode(newCode.join(''));
-          
-          // Move focus immediately to the field where we placed the digit
-          logDebugEvent('MANUAL_OVERFLOW_FOCUS', {
+        // Track the input for phantom backspace protection
+        recentInputRef.current = {
+          timestamp: Date.now(),
+          index: index,
+          value: newDigit
+        };
+        
+        logDebugEvent('RECENT_INPUT_TRACKED', {
+          trackedInput: recentInputRef.current
+        });
+        
+        logDebugEvent('MANUAL_REPLACEMENT_SETTING_CODE', {
+          newCode,
+          previousCode: [...code],
+          replacedIndex: index,
+          newValue: newDigit,
+          previousValue: code[index]
+        });
+        
+        setCode(newCode);
+        validateCode(newCode.join(''));
+        
+        // Move focus to next field sequentially (regardless of content)
+        if (index < 5) {
+          logDebugEvent('MANUAL_REPLACEMENT_FOCUS', {
             fromIndex: index,
-            toIndex: targetIndex
+            toIndex: index + 1
           });
           
           // Use optimized focus for immediate response
-          focusInput(targetIndex);
-        } else {
-          // No available fields - just ignore the input
-          logDebugEvent('MANUAL_OVERFLOW_IGNORED', {
-            reason: 'No available empty fields to place new digit',
-            currentIndex: index,
-            newDigit: newDigit
-          });
+          focusInput(index + 1);
         }
         
-        // Clear processing marker after a brief moment (same as Android)
+        // Clear processing marker after a brief moment
         setTimeout(() => {
-          overflowProcessingRef.current = null;
+          replacementProcessingRef.current = null;
         }, 50);
         
         return; // Prevent default handling
@@ -918,38 +907,52 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
         platform: 'android'
       });
       
-      // Handle overflow to next field if current field has content (iOS-like behavior)
+      // NEW BEHAVIOR: Replace current field value and advance sequentially (same as iOS)
       if (!wasEmpty) {
-        // Mark overflow processing to prevent onChangeText interference
-        overflowProcessingRef.current = {
+        // Mark replacement processing to prevent onChangeText interference
+        replacementProcessingRef.current = {
           index,
           timestamp: Date.now()
         };
         
-        logDebugEvent('ANDROID_OVERFLOW_PROCESSING_START', {
+        logDebugEvent('ANDROID_REPLACEMENT_PROCESSING_START', {
           originalIndex: index,
           newDigit,
+          currentValue: code[index],
           platform: 'android',
           processingMarked: true
         });
         
-        const overflowExecuted = handleDigitOverflow(
-          index,
-          newDigit,
-          'Android: Field had content - moving to next available field'
-        );
+        // Replace current field with new digit
+        const newCode = [...code];
+        newCode[index] = newDigit;
         
-        if (overflowExecuted) {
-          logDebugEvent('ANDROID_OVERFLOW_SUCCESS', {
-            originalIndex: index,
-            newDigit,
+        logDebugEvent('ANDROID_REPLACEMENT_SETTING_CODE', {
+          newCode,
+          previousCode: [...code],
+          replacedIndex: index,
+          newValue: newDigit,
+          previousValue: code[index],
+          platform: 'android'
+        });
+        
+        setCode(newCode);
+        validateCode(newCode.join(''));
+        
+        // Move focus to next field sequentially (regardless of content)
+        if (index < 5) {
+          logDebugEvent('ANDROID_REPLACEMENT_FOCUS', {
+            fromIndex: index,
+            toIndex: index + 1,
             platform: 'android'
           });
+          
+          focusInput(index + 1);
         }
         
         // Clear processing marker after a brief moment
         setTimeout(() => {
-          overflowProcessingRef.current = null;
+          replacementProcessingRef.current = null;
         }, 50);
         
         return; // Prevent default handling
@@ -963,7 +966,7 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
         platform: 'android'
       });
     }
-  }, [code, focusInput, logDebugEvent, handleDigitOverflow]);
+  }, [code, focusInput, logDebugEvent, validateCode]);
 
   // Platform-specific keypress handler
   const handleKeyPress = Platform.OS === 'ios' ? handleKeyPressiOS : handleKeyPressAndroid;
