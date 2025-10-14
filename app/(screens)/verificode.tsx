@@ -82,14 +82,21 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
     };
   }, []);
 
-  // Auto-focus first input on mount - Simplified approach
+  // Auto-focus first input on mount - Optimized approach
   useEffect(() => {
-    const focusDelay = Platform.OS === 'ios' ? 300 : 100;
-    const timeout = setTimeout(() => {
-      inputsRef.current[0]?.focus();
-    }, focusDelay);
+    // Use requestAnimationFrame for immediate, smooth focus
+    const frame = requestAnimationFrame(() => {
+      // Small delay only for iOS to ensure component is ready
+      if (Platform.OS === 'ios') {
+        setTimeout(() => {
+          inputsRef.current[0]?.focus();
+        }, 100);
+      } else {
+        inputsRef.current[0]?.focus();
+      }
+    });
     
-    timeoutsRef.current.push(timeout);
+    return () => cancelAnimationFrame(frame);
   }, []);
 
   // iOS DEBUG - Monitor code changes
@@ -125,6 +132,13 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
     const timeout = setTimeout(callback, delay) as unknown as number;
     timeoutsRef.current.push(timeout);
     return timeout;
+  }, []);
+
+  // Optimized focus function for immediate response
+  const focusInput = useCallback((index: number) => {
+    requestAnimationFrame(() => {
+      inputsRef.current[index]?.focus();
+    });
   }, []);
 
   // Validate code helper
@@ -249,8 +263,8 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
       const nextIndex = Math.min(index + digits.length, 5);
       if (nextIndex < 6) {
         logDebugEvent('MULTI_DIGIT_FOCUS_NEXT', { nextIndex });
-        // Longer delay to prevent iOS quirks
-        addTimeout(() => inputsRef.current[nextIndex]?.focus(), 200);
+        // Use optimized focus for better performance
+        focusInput(nextIndex);
       }
       return;
     }
@@ -310,7 +324,7 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
       index,
       resultingCode: [...code]
     });
-  }, [code, isProcessing, validateCode, addTimeout, logDebugEvent]);
+  }, [code, isProcessing, validateCode, addTimeout, logDebugEvent, focusInput]);
 
   // Android input handling (original logic)
   const handleInputChangeAndroid = useCallback((value: string, index: number) => {
@@ -447,13 +461,13 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
           newCode: [...newCode]
         });
         
-        // Move focus to previous input with longer delay for iOS
-        addTimeout(() => {
-          logDebugEvent('BACKSPACE_FOCUS_PREVIOUS', {
-            focusIndex: index - 1
-          });
-          inputsRef.current[index - 1]?.focus();
-        }, 100);
+        // Move focus to previous input immediately
+        logDebugEvent('BACKSPACE_FOCUS_PREVIOUS', {
+          focusIndex: index - 1
+        });
+        
+        // Use optimized focus for immediate response
+        focusInput(index - 1);
       }
     }
     
@@ -515,14 +529,14 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
           setCode(newCode);
           validateCode(newCode.join(''));
           
-          // Move focus to the field where we placed the digit
-          addTimeout(() => {
-            logDebugEvent('MANUAL_OVERFLOW_FOCUS', {
-              fromIndex: index,
-              toIndex: targetIndex
-            });
-            inputsRef.current[targetIndex]?.focus();
-          }, 150);
+          // Move focus immediately to the field where we placed the digit
+          logDebugEvent('MANUAL_OVERFLOW_FOCUS', {
+            fromIndex: index,
+            toIndex: targetIndex
+          });
+          
+          // Use optimized focus for immediate response
+          focusInput(targetIndex);
         } else {
           // No available fields - just ignore the input
           logDebugEvent('MANUAL_OVERFLOW_IGNORED', {
@@ -537,16 +551,16 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
       
       // Only navigate if the field was empty (new input, not replacement)
       if (wasEmpty && index < 5) {
-        addTimeout(() => {
-          logDebugEvent('MANUAL_ADVANCE_EXECUTED', {
-            fromIndex: index,
-            toIndex: index + 1
-          });
-          inputsRef.current[index + 1]?.focus();
-        }, 150);
+        logDebugEvent('MANUAL_ADVANCE_EXECUTED', {
+          fromIndex: index,
+          toIndex: index + 1
+        });
+        
+        // Use optimized focus for immediate response
+        focusInput(index + 1);
       }
     }
-  }, [code, addTimeout, logDebugEvent, validateCode]);
+  }, [code, logDebugEvent, validateCode, focusInput]);
 
   // Android backspace handling (original)
   const handleKeyPressAndroid = useCallback((e: any, index: number) => {
