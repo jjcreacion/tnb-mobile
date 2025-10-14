@@ -562,7 +562,7 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
     }
   }, [code, logDebugEvent, validateCode, focusInput]);
 
-  // Android backspace handling (original)
+  // Android backspace handling - Optimized for performance
   const handleKeyPressAndroid = useCallback((e: any, index: number) => {
     if (e.nativeEvent.key === 'Backspace' && code[index] === '' && index > 0) {
       // Clear previous field and move focus
@@ -571,11 +571,10 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
       setCode(newCode);
       setValidationState('idle');
       
-      addTimeout(() => {
-        inputsRef.current[index - 1]?.focus();
-      }, 50);
+      // Use optimized focus for immediate response (no 50ms delay)
+      focusInput(index - 1);
     }
-  }, [code, addTimeout]);
+  }, [code, focusInput]);
 
   // Platform-specific keypress handler
   const handleKeyPress = Platform.OS === 'ios' ? handleKeyPressiOS : handleKeyPressAndroid;
@@ -606,12 +605,15 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
     setValidationState('idle');
     setIsProcessing(false);
     
-    // Simple focus with platform-specific delay
-    const focusDelay = Platform.OS === 'ios' ? 200 : 100;
-    addTimeout(() => {
-      inputsRef.current[0]?.focus();
-    }, focusDelay);
-  }, [addTimeout]);
+    // Optimized focus - immediate response
+    if (Platform.OS === 'ios') {
+      // Small delay only for iOS to ensure state is fully reset
+      addTimeout(() => focusInput(0), 50);
+    } else {
+      // Immediate focus for Android
+      focusInput(0);
+    }
+  }, [addTimeout, focusInput]);
 
   // iOS-specific clipboard handling - Simplified and robust
   const handlePasteFromClipboardiOS = useCallback(async () => {
@@ -627,11 +629,10 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
         setCode(digits);
         validateCode(cleanContent);
         
-        // Focus last input briefly
-        addTimeout(() => {
-          inputsRef.current[5]?.focus();
-          addTimeout(() => inputsRef.current[5]?.blur(), 200);
-        }, 100);
+        // Focus last input briefly - optimized
+        focusInput(5);
+        // Brief blur after focus for completion indication
+        addTimeout(() => inputsRef.current[5]?.blur(), 150);
       } else if (cleanContent.length > 0 && cleanContent.length < 6) {
         // Partial code - fill from beginning
         const newCode = Array(6).fill('');
@@ -643,16 +644,14 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
         
         setCode(newCode);
         
-        // Focus next empty position
+        // Focus next empty position - optimized
         const nextIndex = Math.min(digits.length, 5);
-        addTimeout(() => {
-          inputsRef.current[nextIndex]?.focus();
-        }, 100);
+        focusInput(nextIndex);
       }
     } catch (error) {
       console.error('Clipboard paste failed:', error);
     }
-  }, [isProcessing, validateCode, addTimeout]);
+  }, [isProcessing, validateCode, addTimeout, focusInput]);
 
   // Android clipboard handling (original)
   const handlePasteFromClipboardAndroid = useCallback(async () => {
@@ -667,15 +666,13 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
         setCode(newCode);
         validateCode(cleanContent);
         
-        // Focus last input
-        addTimeout(() => {
-          inputsRef.current[5]?.focus();
-        }, 150);
+        // Focus last input - optimized
+        focusInput(5);
       }
     } catch (error) {
       console.error('Clipboard access failed:', error);
     }
-  }, [isProcessing, validateCode, addTimeout]);
+  }, [isProcessing, validateCode, focusInput]);
 
   // Platform-specific clipboard handler
   const handlePasteFromClipboard = Platform.OS === 'ios' ? handlePasteFromClipboardiOS : handlePasteFromClipboardAndroid;
