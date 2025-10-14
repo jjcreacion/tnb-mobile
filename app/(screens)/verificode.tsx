@@ -39,36 +39,40 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
     value: string;
   } | null>(null);
   
-  // iOS DEBUG SYSTEM - Solo activo en iOS
+  // CROSS-PLATFORM DEBUG SYSTEM - Now supports both iOS and Android
   const debugLog = useRef<{
     timestamp: string;
     event: string;
     details: any;
     codeState: string[];
+    platform: string;
   }[]>([]);
   
   const logDebugEvent = useCallback((event: string, details: any) => {
-    if (Platform.OS === 'ios') {
-      const timestamp = new Date().toISOString().split('T')[1].slice(0, 12);
-      const logEntry = {
-        timestamp,
-        event,
-        details,
-        codeState: [...code]
-      };
-      debugLog.current.push(logEntry);
-      
-      // Keep only last 50 entries
-      if (debugLog.current.length > 50) {
-        debugLog.current = debugLog.current.slice(-50);
-      }
-      
-      console.log(`🔍 iOS OTP DEBUG [${timestamp}] ${event}:`, {
-        details,
-        currentCode: code,
-        codeString: code.join('')
-      });
+    const timestamp = new Date().toISOString().split('T')[1].slice(0, 12);
+    const platform = Platform.OS;
+    const logEntry = {
+      timestamp,
+      event,
+      details,
+      codeState: [...code],
+      platform
+    };
+    debugLog.current.push(logEntry);
+    
+    // Keep only last 100 entries for both platforms
+    if (debugLog.current.length > 100) {
+      debugLog.current = debugLog.current.slice(-100);
     }
+    
+    // Enhanced logging with platform identification
+    const platformIcon = platform === 'ios' ? '🍎' : '🤖';
+    console.log(`🔍 ${platformIcon} ${platform.toUpperCase()} OTP DEBUG [${timestamp}] ${event}:`, {
+      details,
+      currentCode: code,
+      codeString: code.join(''),
+      platform
+    });
   }, [code]);
 
   // Cleanup timeouts on unmount
@@ -99,14 +103,22 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
     return () => cancelAnimationFrame(frame);
   }, []);
 
-  // iOS DEBUG - Monitor code changes
+  // CROSS-PLATFORM DEBUG - Monitor code changes
   useEffect(() => {
-    if (Platform.OS === 'ios') {
-      logDebugEvent('CODE_STATE_CHANGED', {
-        newCode: [...code],
+    logDebugEvent('CODE_STATE_CHANGED', {
+      newCode: [...code],
+      codeString: code.join(''),
+      emptyCount: code.filter(d => d === '').length,
+      filledCount: code.filter(d => d !== '').length,
+      platform: Platform.OS
+    });
+    
+    // Android-specific state monitoring
+    if (Platform.OS === 'android') {
+      console.log('🤖 Android Code State Update:', {
+        code,
         codeString: code.join(''),
-        emptyCount: code.filter(d => d === '').length,
-        filledCount: code.filter(d => d !== '').length
+        timestamp: new Date().toISOString()
       });
     }
   }, [code, logDebugEvent]);
@@ -173,6 +185,128 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
       setValidationState('idle');
     }
   }, [verificationCode, validationState, addTimeout, logDebugEvent]);
+
+  // Common helper: Handle digit overflow to next available field
+  const handleDigitOverflow = useCallback((currentIndex: number, newDigit: string, reason: string) => {
+    // Find next available empty field
+    let targetIndex = -1;
+    for (let i = currentIndex + 1; i < 6; i++) {
+      if (code[i] === '') {
+        targetIndex = i;
+        break;
+      }
+    }
+    
+    if (targetIndex !== -1) {
+      // Place new digit in next available field
+      const newCode = [...code];
+      newCode[targetIndex] = newDigit;
+      
+      // Track the input for potential phantom backspace protection
+      if (Platform.OS === 'ios') {
+        recentInputRef.current = {
+          timestamp: Date.now(),
+          index: targetIndex,
+          value: newDigit
+        };
+        
+        logDebugEvent('RECENT_INPUT_TRACKED', {
+          trackedInput: recentInputRef.current
+        });
+      }
+      
+      logDebugEvent('DIGIT_OVERFLOW_EXECUTED', {
+        reason,
+        originalIndex: currentIndex,
+        originalValue: code[currentIndex],
+        targetIndex,
+        newValue: newDigit,
+        newCode
+      });
+      
+      setCode(newCode);
+      validateCode(newCode.join(''));
+      
+      // Move focus to where we placed the digit
+      focusInput(targetIndex);
+      
+      return true; // Overflow executed
+    } else {
+      // No available fields - ignore input
+      logDebugEvent('DIGIT_OVERFLOW_IGNORED', {
+        reason: 'No available empty fields',
+        currentIndex,
+        newDigit
+      });
+      return false; // Overflow not possible
+    }
+  }, [code, focusInput, logDebugEvent, validateCode]);
+
+  // Common helper: Handle single digit input with smart navigation
+  const handleSingleDigitInput = useCallback((value: string, index: number, platform: 'ios' | 'android') => {
+    const cleanValue = value.replace(/\D/g, '');
+    
+    if (cleanValue.length <= 1) {
+      const newCode = [...code];
+      const previousValue = newCode[index];
+      const wasEmpty = previousValue === '';
+      
+      // Set the new digit
+      newCode[index] = cleanValue;
+      
+      // Track input for iOS phantom backspace protection
+      if (platform === 'ios' && cleanValue !== '') {
+        recentInputRef.current = {
+          timestamp: Date.now(),
+          index,
+          value: cleanValue
+        };
+        
+        logDebugEvent('RECENT_INPUT_TRACKED', {
+          trackedInput: recentInputRef.current
+        });
+      }
+      
+      logDebugEvent('SINGLE_DIGIT_PROCESSED', {
+        digit: cleanValue,
+        index,
+        wasEmpty,
+        previousValue,
+        newValue: cleanValue,
+        platform
+      });
+      
+      setCode(newCode);
+      
+      // Only validate if we have some digits
+      if (newCode.some(digit => digit !== '')) {
+        validateCode(newCode.join(''));
+      }
+      
+      // Smart navigation: only advance if field was empty
+      if (cleanValue && wasEmpty && index < 5) {
+        logDebugEvent('SMART_NAVIGATION_EXECUTED', {
+          reason: 'Field was empty - advancing to next',
+          fromIndex: index,
+          toIndex: index + 1,
+          platform
+        });
+        focusInput(index + 1);
+      } else if (cleanValue && !wasEmpty) {
+        logDebugEvent('SMART_NAVIGATION_SKIPPED', {
+          reason: 'Field had content - staying in place',
+          index,
+          previousValue,
+          newValue: cleanValue,
+          platform
+        });
+      }
+      
+      return true; // Single digit processed
+    }
+    
+    return false; // Not a single digit
+  }, [code, focusInput, logDebugEvent, validateCode]);
 
   // iOS-specific input handling - FIXED to prevent phantom backspace
   const handleInputChangeiOS = useCallback((value: string, index: number) => {
@@ -326,45 +460,138 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
     });
   }, [code, isProcessing, validateCode, addTimeout, logDebugEvent, focusInput]);
 
-  // Android input handling (original logic)
+  // Android input handling - Enhanced with iOS-like smart behavior
   const handleInputChangeAndroid = useCallback((value: string, index: number) => {
-    if (isProcessing) return;
+    logDebugEvent('ANDROID_INPUT_CHANGE_START', {
+      rawValue: value,
+      index,
+      currentCode: [...code],
+      isProcessing,
+      platform: 'android',
+      timestamp: Date.now(),
+      triggerSource: 'onChangeText'
+    });
     
+    if (isProcessing) {
+      logDebugEvent('INPUT_BLOCKED_PROCESSING', { value, index, platform: 'android' });
+      return;
+    }
+    
+    // Clean input - only digits
     const cleanValue = value.replace(/\D/g, '');
     
+    logDebugEvent('INPUT_CLEANED', {
+      originalValue: value,
+      cleanedValue: cleanValue,
+      length: cleanValue.length,
+      index,
+      platform: 'android'
+    });
+    
+    // CRITICAL FIX: Detect Android overflow scenario (field has content + new digit)
+    const currentValue = code[index];
+    const isAndroidOverflow = cleanValue.length === 2 && 
+                             currentValue !== '' && 
+                             cleanValue.startsWith(currentValue) &&
+                             cleanValue.length === currentValue.length + 1;
+    
+    if (isAndroidOverflow) {
+      // Extract the new digit (last character of cleanValue)
+      const newDigit = cleanValue.slice(-1);
+      
+      logDebugEvent('ANDROID_OVERFLOW_DETECTED', {
+        currentValue,
+        newDigit,
+        fullValue: cleanValue,
+        index,
+        platform: 'android'
+      });
+      
+      // Use overflow logic like iOS
+      const overflowExecuted = handleDigitOverflow(
+        index, 
+        newDigit, 
+        `Android: Field had content "${currentValue}" - attempting overflow with "${newDigit}"`
+      );
+      
+      if (overflowExecuted) {
+        logDebugEvent('ANDROID_OVERFLOW_SUCCESS', {
+          originalIndex: index,
+          newDigit,
+          platform: 'android'
+        });
+      } else {
+        logDebugEvent('ANDROID_OVERFLOW_FAILED', {
+          originalIndex: index,
+          newDigit,
+          reason: 'No available fields',
+          platform: 'android'
+        });
+      }
+      return;
+    }
+    
+    // Handle multi-digit paste (genuine paste operations)
     if (cleanValue.length > 1) {
-      // Handle paste of multiple digits
+      logDebugEvent('MULTI_DIGIT_PASTE_ANDROID', {
+        value: cleanValue,
+        length: cleanValue.length,
+        startIndex: index
+      });
+      
       const digits = cleanValue.slice(0, 6).split('');
       const newCode = Array(6).fill('');
       
       digits.forEach((digit, i) => {
-        if (i < 6) newCode[i] = digit;
+        if (i < 6) {
+          logDebugEvent('FILLING_DIGIT_ANDROID', {
+            digit,
+            position: i,
+            previousValue: newCode[i]
+          });
+          newCode[i] = digit;
+        }
+      });
+      
+      logDebugEvent('MULTI_DIGIT_SETTING_CODE_ANDROID', {
+        newCode,
+        previousCode: [...code]
       });
       
       setCode(newCode);
       validateCode(newCode.join(''));
       
-      // Focus management for paste
+      // Focus next available position with optimization
       const focusIndex = Math.min(digits.length - 1, 5);
-      addTimeout(() => {
-        inputsRef.current[focusIndex]?.focus();
-      }, 80);
-    } else {
-      // Handle single character input
-      const newCode = [...code];
-      newCode[index] = cleanValue;
-      setCode(newCode);
+      logDebugEvent('MULTI_DIGIT_FOCUS_ANDROID', { focusIndex });
+      focusInput(focusIndex);
+      return;
+    }
+    
+    // Handle single digit input with smart behavior
+    if (cleanValue.length <= 1) {
+      const wasEmpty = code[index] === '';
       
-      validateCode(newCode.join(''));
+      // Use common helper for smart single digit handling
+      const processed = handleSingleDigitInput(value, index, 'android');
       
-      // Auto-advance to next input
-      if (cleanValue && index < 5) {
-        addTimeout(() => {
-          inputsRef.current[index + 1]?.focus();
-        }, 80);
+      if (processed) {
+        logDebugEvent('ANDROID_SMART_INPUT_PROCESSED', {
+          digit: cleanValue,
+          index,
+          wasEmpty,
+          previousValue: code[index]
+        });
       }
     }
-  }, [code, isProcessing, validateCode, addTimeout]);
+    
+    logDebugEvent('INPUT_CHANGE_END', {
+      finalValue: cleanValue,
+      index,
+      resultingCode: [...code],
+      platform: 'android'
+    });
+  }, [code, isProcessing, validateCode, logDebugEvent, focusInput, handleSingleDigitInput, handleDigitOverflow]);
 
   // Platform-specific input handler
   const handleInputChange = Platform.OS === 'ios' ? handleInputChangeiOS : handleInputChangeAndroid;
@@ -562,19 +789,115 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
     }
   }, [code, logDebugEvent, validateCode, focusInput]);
 
-  // Android backspace handling - Optimized for performance
+  // Android keypress handling - Enhanced with iOS-like smart behavior
   const handleKeyPressAndroid = useCallback((e: any, index: number) => {
-    if (e.nativeEvent.key === 'Backspace' && code[index] === '' && index > 0) {
-      // Clear previous field and move focus
-      const newCode = [...code];
-      newCode[index - 1] = '';
-      setCode(newCode);
-      setValidationState('idle');
+    logDebugEvent('ANDROID_KEY_PRESS_START', {
+      key: e.nativeEvent.key,
+      index,
+      currentValue: code[index],
+      currentCode: [...code],
+      platform: 'android',
+      timestamp: Date.now(),
+      triggerSource: 'onKeyPress'
+    });
+    
+    if (e.nativeEvent.key === 'Backspace') {
+      logDebugEvent('BACKSPACE_DETECTED', {
+        index,
+        currentValue: code[index],
+        hasContent: code[index] !== '',
+        platform: 'android'
+      });
       
-      // Use optimized focus for immediate response (no 50ms delay)
-      focusInput(index - 1);
+      const newCode = [...code];
+      
+      if (code[index] !== '') {
+        // Current field has content - just clear it
+        logDebugEvent('BACKSPACE_CLEAR_CURRENT', {
+          index,
+          clearingValue: code[index],
+          platform: 'android'
+        });
+        
+        newCode[index] = '';
+        setCode(newCode);
+        setValidationState('idle');
+        
+        logDebugEvent('BACKSPACE_CURRENT_CLEARED', {
+          index,
+          newCode: [...newCode],
+          platform: 'android'
+        });
+      } else if (index > 0) {
+        // Current field empty - clear previous field and move back
+        logDebugEvent('BACKSPACE_CLEAR_PREVIOUS', {
+          currentIndex: index,
+          previousIndex: index - 1,
+          previousValue: code[index - 1],
+          platform: 'android'
+        });
+        
+        newCode[index - 1] = '';
+        setCode(newCode);
+        setValidationState('idle');
+        
+        logDebugEvent('BACKSPACE_PREVIOUS_CLEARED', {
+          clearedIndex: index - 1,
+          newCode: [...newCode],
+          platform: 'android'
+        });
+        
+        // Move focus to previous input
+        logDebugEvent('BACKSPACE_FOCUS_PREVIOUS', {
+          focusIndex: index - 1,
+          platform: 'android'
+        });
+        
+        focusInput(index - 1);
+      }
     }
-  }, [code, focusInput]);
+    
+    // Handle digit input with smart overflow behavior (like iOS)
+    if (e.nativeEvent.key >= '0' && e.nativeEvent.key <= '9') {
+      const wasEmpty = code[index] === '';
+      const newDigit = e.nativeEvent.key;
+      
+      logDebugEvent('ANDROID_DIGIT_KEY_DETECTED', {
+        key: newDigit,
+        index,
+        wasEmpty,
+        currentValue: code[index],
+        platform: 'android'
+      });
+      
+      // Handle overflow to next field if current field has content (iOS-like behavior)
+      if (!wasEmpty) {
+        const overflowExecuted = handleDigitOverflow(
+          index,
+          newDigit,
+          'Android: Field had content - moving to next available field'
+        );
+        
+        if (overflowExecuted) {
+          logDebugEvent('ANDROID_OVERFLOW_SUCCESS', {
+            originalIndex: index,
+            newDigit,
+            platform: 'android'
+          });
+        }
+        
+        return; // Prevent default handling
+      }
+      
+      // If field is empty, let the normal onChangeText handle it
+      logDebugEvent('ANDROID_NORMAL_INPUT', {
+        reason: 'Field was empty - letting onChangeText handle',
+        index,
+        newDigit,
+        platform: 'android'
+      });
+    }
+  }, [code, focusInput, logDebugEvent, handleDigitOverflow]);
 
   // Platform-specific keypress handler
   const handleKeyPress = Platform.OS === 'ios' ? handleKeyPressiOS : handleKeyPressAndroid;
@@ -677,43 +1000,140 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
   // Platform-specific clipboard handler
   const handlePasteFromClipboard = Platform.OS === 'ios' ? handlePasteFromClipboardiOS : handlePasteFromClipboardAndroid;
 
-  // iOS DEBUG - Export debug logs
+  // CROSS-PLATFORM DEBUG - Export debug logs
   const exportDebugLogs = useCallback(() => {
-    if (Platform.OS === 'ios') {
-      console.log('🔍 ===== iOS OTP DEBUG REPORT =====');
-      console.log('Total events:', debugLog.current.length);
-      console.log('Current code state:', code);
-      console.log('Current validation state:', validationState);
-      console.log('\n📋 Event Log:');
+    const platformIcon = Platform.OS === 'ios' ? '🍎' : '🤖';
+    const platformName = Platform.OS.toUpperCase();
+    
+    console.log(`🔍 ===== ${platformIcon} ${platformName} OTP DEBUG REPORT =====`);
+    console.log('Platform:', Platform.OS);
+    console.log('Total events:', debugLog.current.length);
+    console.log('Current code state:', code);
+    console.log('Current validation state:', validationState);
+    console.log('\n📋 Event Log:');
+    
+    debugLog.current.forEach((entry, i) => {
+      const entryIcon = entry.platform === 'ios' ? '🍎' : '🤖';
+      console.log(`${i + 1}. ${entryIcon} [${entry.timestamp}] ${entry.event}`);
+      console.log('   Platform:', entry.platform);
+      console.log('   Details:', entry.details);
+      console.log('   Code State:', entry.codeState);
+      console.log('   ---');
+    });
+    
+    // Enhanced diagnostic info for Android
+    if (Platform.OS === 'android') {
+      console.log('\n🤖 ===== ANDROID DIAGNOSTIC ANALYSIS =====');
       
-      debugLog.current.forEach((entry, i) => {
-        console.log(`${i + 1}. [${entry.timestamp}] ${entry.event}`);
-        console.log('   Details:', entry.details);
-        console.log('   Code State:', entry.codeState);
-        console.log('   ---');
+      // Analyze input change events
+      const inputChangeEvents = debugLog.current.filter(e => 
+        e.event.includes('INPUT_CHANGE') || e.event.includes('ANDROID')
+      );
+      console.log('Android Input Change Events:', inputChangeEvents.length);
+      
+      // Analyze keypress events
+      const keyPressEvents = debugLog.current.filter(e => 
+        e.event === 'KEY_PRESS' && e.platform === 'android'
+      );
+      console.log('Android Key Press Events:', keyPressEvents.length);
+      
+      // Check for overflow attempts
+      const overflowEvents = debugLog.current.filter(e => 
+        e.event.includes('OVERFLOW') && e.platform === 'android'
+      );
+      console.log('Android Overflow Events:', overflowEvents.length);
+      
+      // Analyze focus events
+      const focusEvents = debugLog.current.filter(e => 
+        (e.event.includes('FOCUSED') || e.event.includes('BLURRED')) && e.platform === 'android'
+      );
+      console.log('Android Focus Events:', focusEvents.length);
+      
+      console.log('\n🔍 Recent Android Events (last 10):');
+      const recentAndroidEvents = debugLog.current
+        .filter(e => e.platform === 'android')
+        .slice(-10);
+        
+      recentAndroidEvents.forEach((event, i) => {
+        console.log(`${i + 1}. [${event.timestamp}] ${event.event}`, event.details);
       });
-      
-
-      
-      // Copy to clipboard for easy sharing
-      Clipboard.setString(JSON.stringify({
-        currentCode: code,
-        validationState,
-        events: debugLog.current,
-        timestamp: new Date().toISOString()
-      }, null, 2));
-      
-      console.log('📋 Debug logs copied to clipboard');
     }
+    
+    // Copy to clipboard for easy sharing
+    Clipboard.setString(JSON.stringify({
+      platform: Platform.OS,
+      currentCode: code,
+      validationState,
+      events: debugLog.current,
+      timestamp: new Date().toISOString()
+    }, null, 2));
+    
+    console.log(`📋 ${platformName} Debug logs copied to clipboard`);
   }, [code, validationState]);
 
-  // iOS DEBUG - Clear debug logs
+  // CROSS-PLATFORM DEBUG - Clear debug logs  
   const clearDebugLogs = useCallback(() => {
-    if (Platform.OS === 'ios') {
-      debugLog.current = [];
-      console.log('🧹 Debug logs cleared');
-    }
+    debugLog.current = [];
+    const platformIcon = Platform.OS === 'ios' ? '🍎' : '🤖';
+    console.log(`🧹 ${platformIcon} ${Platform.OS.toUpperCase()} Debug logs cleared`);
   }, []);
+
+  // ANDROID SPECIFIC - State vs Input Value Monitor
+  const monitorAndroidState = useCallback(() => {
+    if (Platform.OS === 'android') {
+      console.log('🤖 ===== ANDROID STATE MONITOR =====');
+      
+      // Check each input's actual value vs state
+      inputsRef.current.forEach((input, index) => {
+        if (input) {
+          // Get the actual value from the TextInput
+          const actualValue = input.props.value || '';
+          const stateValue = code[index] || '';
+          
+          console.log(`Field ${index}:`, {
+            stateValue,
+            actualValue,
+            match: stateValue === actualValue,
+            inputRef: !!input,
+            isFocused: input.isFocused ? input.isFocused() : 'unknown'
+          });
+          
+          // Log discrepancy if found
+          if (stateValue !== actualValue) {
+            logDebugEvent('ANDROID_STATE_DISCREPANCY', {
+              index,
+              stateValue,
+              actualValue,
+              discrepancy: true
+            });
+          }
+        }
+      });
+      
+      console.log('Current code state:', code);
+      console.log('Code string:', code.join(''));
+      console.log('===========================');
+    }
+  }, [code, logDebugEvent]);
+
+  // ANDROID SPECIFIC - Test overflow behavior manually
+  const testAndroidOverflow = useCallback(() => {
+    if (Platform.OS === 'android') {
+      console.log('� Testing Android Overflow Behavior...');
+      
+      // Simulate overflow test
+      const testResult = handleDigitOverflow(2, '9', 'Manual Test');
+      
+      logDebugEvent('ANDROID_OVERFLOW_TEST', {
+        testExecuted: true,
+        result: testResult,
+        codeBeforeTest: [...code],
+        codeAfterTest: [...code]
+      });
+      
+      console.log('Overflow test result:', testResult);
+    }
+  }, [handleDigitOverflow, code, logDebugEvent]);
 
   if (showRegister) {
     return <Register isVisible={true} onClose={() => {}} IsVerify={() => {}} />;
@@ -794,6 +1214,25 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
                       dataDetectorTypes: 'none'
                     })}
                     {...(Platform.OS === 'android' && {
+                      onFocus: () => logDebugEvent('ANDROID_INPUT_FOCUSED', { 
+                        index, 
+                        currentValue: digit,
+                        codeState: code,
+                        timestamp: Date.now()
+                      }),
+                      onBlur: () => logDebugEvent('ANDROID_INPUT_BLURRED', { 
+                        index, 
+                        currentValue: digit,
+                        codeState: code,
+                        timestamp: Date.now()
+                      }),
+                      onSelectionChange: (e) => logDebugEvent('ANDROID_SELECTION_CHANGED', { 
+                        index, 
+                        selection: e.nativeEvent.selection,
+                        currentValue: digit,
+                        codeState: code,
+                        timestamp: Date.now()
+                      }),
                       selectTextOnFocus: false,
                       clearTextOnFocus: false,
                       contextMenuHidden: false
@@ -817,10 +1256,12 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
                 </View>
               )}
 
-              {/* iOS DEBUG BUTTONS - Solo visible en iOS durante desarrollo */}
-              {Platform.OS === 'ios' && __DEV__ && (
+              {/* CROSS-PLATFORM DEBUG BUTTONS - Visible during development */}
+              {__DEV__ && (
                 <View style={styles.debugContainer}>
-                  <Text style={styles.debugTitle}>🔍 iOS OTP Debug</Text>
+                  <Text style={styles.debugTitle}>
+                    🔍 {Platform.OS === 'ios' ? '🍎 iOS' : '🤖 Android'} OTP Debug
+                  </Text>
                   <View style={styles.debugButtons}>
                     <Button
                       title="Export Logs"
@@ -837,8 +1278,29 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
                       style={styles.debugButton}
                     />
                   </View>
+                  
+                  {/* Android-specific debug tools */}
+                  {Platform.OS === 'android' && (
+                    <View style={styles.debugButtons}>
+                      <Button
+                        title="Monitor State"
+                        variant="ghost"
+                        size="sm"
+                        onPress={monitorAndroidState}
+                        style={styles.debugButton}
+                      />
+                      <Button
+                        title="Test Overflow"
+                        variant="ghost"
+                        size="sm"
+                        onPress={testAndroidOverflow}
+                        style={styles.debugButton}
+                      />
+                    </View>
+                  )}
+                  
                   <Text style={styles.debugInfo}>
-                    Events: {debugLog.current.length} | Code: "{code.join('')}" | State: {validationState}
+                    Platform: {Platform.OS} | Events: {debugLog.current.length} | Code: "{code.join('')}" | State: {validationState}
                   </Text>
                 </View>
               )}
