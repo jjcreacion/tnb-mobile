@@ -39,6 +39,12 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
     value: string;
   } | null>(null);
   
+  // ANDROID FIX: Track overflow processing to prevent visual glitch
+  const overflowProcessingRef = useRef<{
+    index: number;
+    timestamp: number;
+  } | null>(null);
+  
   // CROSS-PLATFORM DEBUG SYSTEM - Now supports both iOS and Android
   const debugLog = useRef<{
     timestamp: string;
@@ -322,6 +328,21 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
       return;
     }
     
+    // iOS FIX: Check if overflow is being processed for this field to prevent visual glitch
+    if (overflowProcessingRef.current?.index === index) {
+      const timeDiff = Date.now() - overflowProcessingRef.current.timestamp;
+      if (timeDiff < 100) { // Within 100ms of overflow processing
+        logDebugEvent('iOS_OVERFLOW_BLOCKED_DUPLICATE', {
+          value,
+          index,
+          timeDiff,
+          reason: 'onChangeText blocked - overflow already processed in onKeyPress',
+          platform: 'ios'
+        });
+        return;
+      }
+    }
+    
     // Clean input - only digits
     const cleanValue = value.replace(/\D/g, '');
     
@@ -475,6 +496,21 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
     if (isProcessing) {
       logDebugEvent('INPUT_BLOCKED_PROCESSING', { value, index, platform: 'android' });
       return;
+    }
+    
+    // ANDROID FIX: Check if overflow is being processed for this field to prevent visual glitch
+    if (overflowProcessingRef.current?.index === index) {
+      const timeDiff = Date.now() - overflowProcessingRef.current.timestamp;
+      if (timeDiff < 100) { // Within 100ms of overflow processing
+        logDebugEvent('ANDROID_OVERFLOW_BLOCKED_DUPLICATE', {
+          value,
+          index,
+          timeDiff,
+          reason: 'onChangeText blocked - overflow already processed in onKeyPress',
+          platform: 'android'
+        });
+        return;
+      }
     }
     
     // Clean input - only digits
@@ -712,11 +748,18 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
       
       // Handle overflow to next field if current field has content
       if (!wasEmpty) {
+        // Mark overflow processing to prevent onChangeText interference (same as Android)
+        overflowProcessingRef.current = {
+          index,
+          timestamp: Date.now()
+        };
+        
         logDebugEvent('MANUAL_DIGIT_OVERFLOW', {
           reason: 'Field had content - moving new digit to next available field',
           currentIndex: index,
           currentValue: code[index],
-          newDigit: newDigit
+          newDigit: newDigit,
+          processingMarked: true
         });
         
         // Find next available empty field
@@ -772,6 +815,11 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
             newDigit: newDigit
           });
         }
+        
+        // Clear processing marker after a brief moment (same as Android)
+        setTimeout(() => {
+          overflowProcessingRef.current = null;
+        }, 50);
         
         return; // Prevent default handling
       }
@@ -872,6 +920,19 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
       
       // Handle overflow to next field if current field has content (iOS-like behavior)
       if (!wasEmpty) {
+        // Mark overflow processing to prevent onChangeText interference
+        overflowProcessingRef.current = {
+          index,
+          timestamp: Date.now()
+        };
+        
+        logDebugEvent('ANDROID_OVERFLOW_PROCESSING_START', {
+          originalIndex: index,
+          newDigit,
+          platform: 'android',
+          processingMarked: true
+        });
+        
         const overflowExecuted = handleDigitOverflow(
           index,
           newDigit,
@@ -885,6 +946,11 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
             platform: 'android'
           });
         }
+        
+        // Clear processing marker after a brief moment
+        setTimeout(() => {
+          overflowProcessingRef.current = null;
+        }, 50);
         
         return; // Prevent default handling
       }
