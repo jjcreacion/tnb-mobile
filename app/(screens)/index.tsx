@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import { useEffect } from 'react';
-import { Image, Text, View } from 'react-native';
+import { Image, Platform, StatusBar, Text, View } from 'react-native';
 
 // Theme System Components
 import { MigratedStyles } from '../../constants/MigratedStyles';
@@ -12,6 +12,20 @@ export default function HomeScreens() {
   
   // Configure white navigation bar for splash screen
   useNavigationBar(Theme.colors.navigation.barSplash);
+
+  useEffect(() => {
+    // Hide status bar only on Android for splash screen
+    if (Platform.OS === 'android') {
+      StatusBar.setHidden(true);
+    }
+
+    // Clean up: restore status bar visibility when component unmounts (Android only)
+    return () => {
+      if (Platform.OS === 'android') {
+        StatusBar.setHidden(false);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     const timer = setTimeout(() => {
