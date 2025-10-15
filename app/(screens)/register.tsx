@@ -30,17 +30,15 @@ interface RegisterProps {
   isVisible: boolean;
   onClose: () => void;
   IsVerify: () => void;
+  password?: string;
 }
 
-const Register: React.FC<RegisterProps> = ({ isVisible, onClose, IsVerify }) => {
+const Register: React.FC<RegisterProps> = ({ isVisible, onClose, IsVerify, password: propPassword }) => {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [focusedInput, setFocusedInput] = useState<string | null>(null);
   const [showComplete, setshowComplete] = useState(false);
-  // State for password visibility
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [referralCode, setReferralCode] = useState<string | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [loadingReferralCode, setLoadingReferralCode] = useState(true); 
@@ -226,8 +224,6 @@ const Register: React.FC<RegisterProps> = ({ isVisible, onClose, IsVerify }) => 
     first_name: Yup.string().required('First Name is required'),
     last_name: Yup.string().required('Last Name is required'),
     address: Yup.string().required('Address is required'),
-    password: Yup.string().min(8, 'Password must be at least 8 characters').required('Password is required'),
-    confirmPassword: Yup.string().oneOf([Yup.ref('password'), undefined], 'Passwords must match').required('Confirm Password is required'),
   });
 
   const getCurrentLocation = async () => {
@@ -271,11 +267,19 @@ const Register: React.FC<RegisterProps> = ({ isVisible, onClose, IsVerify }) => 
     setMessage('');
 
     try {
-      // Get email from AsyncStorage like in the original
+      // Get email and password from AsyncStorage
       const email = await AsyncStorage.getItem('emailForSignIn');
+      const storedPassword = propPassword || await AsyncStorage.getItem('passwordForSignUp');
+
       if (!email) {
         setLoading(false);
         setError('User email not found. Please log in again.');
+        return;
+      }
+
+      if (!storedPassword) {
+        setLoading(false);
+        setError('Password not found. Please start the registration process again.');
         return;
       }
 
@@ -290,7 +294,7 @@ const Register: React.FC<RegisterProps> = ({ isVisible, onClose, IsVerify }) => 
         city_id: selectedCityId,
         latitude: markerCoordinate?.latitude || null,
         longitude: markerCoordinate?.longitude || null,
-        password: values.password,
+        password: storedPassword,
         referral_code: referralCode || null,
       };
 
@@ -393,8 +397,6 @@ const Register: React.FC<RegisterProps> = ({ isVisible, onClose, IsVerify }) => 
             first_name: '',
             last_name: '',
             address: '',
-            password: '',
-            confirmPassword: '',
           }}
           validationSchema={validationSchema}
           onSubmit={handleSubmit}
@@ -567,40 +569,6 @@ const Register: React.FC<RegisterProps> = ({ isVisible, onClose, IsVerify }) => 
                     ))}
                   </Picker>
                 </View>
-
-
-
-                <Input
-                  label="Password"
-                  value={values.password}
-                  onChangeText={handleChange('password')}
-                  onBlur={handleBlur('password')}
-                  error={touched.password && errors.password ? errors.password : undefined}
-                  secureTextEntry={!showPassword}
-                  rightIcon={showPassword ? "eye-off-outline" : "eye-outline"}
-                  onRightIconPress={() => setShowPassword(!showPassword)}
-                  required
-                  leftIcon="lock-closed-outline"
-                  autoComplete="new-password"
-                  textContentType="newPassword"
-                  style={MigratedStyles.registerPasswordInput}
-                />
-
-                <Input
-                  label="Confirm Password"
-                  value={values.confirmPassword}
-                  onChangeText={handleChange('confirmPassword')}
-                  onBlur={handleBlur('confirmPassword')}
-                  error={touched.confirmPassword && errors.confirmPassword ? errors.confirmPassword : undefined}
-                  secureTextEntry={!showConfirmPassword}
-                  rightIcon={showConfirmPassword ? "eye-off-outline" : "eye-outline"}
-                  onRightIconPress={() => setShowConfirmPassword(!showConfirmPassword)}
-                  autoComplete="new-password"
-                  textContentType="newPassword"
-                  style={MigratedStyles.registerPasswordInput}
-                  required
-                  leftIcon="lock-closed-outline"
-                />
 
                 {loading && <Loading variant="inline" message="Creating your account..." />}
                 

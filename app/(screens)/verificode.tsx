@@ -13,6 +13,7 @@ import {
   View
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import Register from './register';
 
 interface VerifyCodeProps {
@@ -33,6 +34,7 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
   const [showRegister, setShowRegister] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [hasValidClipboard, setHasValidClipboard] = useState(false);
+  const [storedPassword, setStoredPassword] = useState<string>('');
   const inputsRef = useRef<(TextInput | null)[]>([]);
   const timeoutsRef = useRef<number[]>([]);
   const validationTimeoutRef = useRef<number | null>(null);
@@ -103,6 +105,21 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
     };
   }, []);
 
+  // Load password from AsyncStorage on mount
+  useEffect(() => {
+    const loadPassword = async () => {
+      try {
+        const password = await AsyncStorage.getItem('passwordForSignUp');
+        if (password) {
+          setStoredPassword(password);
+        }
+      } catch (error) {
+        console.error('Error loading password from AsyncStorage:', error);
+      }
+    };
+    loadPassword();
+  }, []);
+
   // Auto-focus first input on mount - Optimized approach
   useEffect(() => {
     // Use requestAnimationFrame for immediate, smooth focus
@@ -116,7 +133,7 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
         inputsRef.current[0]?.focus();
       }
     });
-    
+
     return () => cancelAnimationFrame(frame);
   }, []);
 
@@ -1318,7 +1335,7 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
 
 
   if (showRegister) {
-    return <Register isVisible={true} onClose={() => {}} IsVerify={() => {}} />;
+    return <Register isVisible={true} onClose={() => {}} IsVerify={() => {}} password={storedPassword} />;
   }
 
   return (

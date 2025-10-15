@@ -28,12 +28,18 @@ interface ModalProps {
 const SignUp: React.FC<ModalProps> = ({ isVisible, onClose }) => {
   // State management
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [emailError, setEmailError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+  const [confirmPasswordError, setConfirmPasswordError] = useState('');
   const [exist, setExist] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showVerifyCode, setShowVerifyCode] = useState(false);
   const [verificationCode, setVerificationCode] = useState('');
-  
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
   // Hooks
   const { dismissKeyboard } = useKeyboard();
   const API_URL = Constants.expoConfig?.extra?.API_BASE_URL;
@@ -42,9 +48,15 @@ const SignUp: React.FC<ModalProps> = ({ isVisible, onClose }) => {
   useEffect(() => {
     if (isVisible) {
       setEmail('');
+      setPassword('');
+      setConfirmPassword('');
       setEmailError('');
+      setPasswordError('');
+      setConfirmPasswordError('');
       setShowVerifyCode(false);
       setExist(false);
+      setShowPassword(false);
+      setShowConfirmPassword(false);
     }
   }, [isVisible]);
 
@@ -99,11 +111,25 @@ const SignUp: React.FC<ModalProps> = ({ isVisible, onClose }) => {
   const handleNext = async () => {
     // Reset errors
     setEmailError('');
+    setPasswordError('');
+    setConfirmPasswordError('');
     setExist(false);
 
     // Validate email
     if (!validateEmail(email)) {
       setEmailError('Please enter a valid email');
+      return;
+    }
+
+    // Validate password
+    if (!password || password.length < 8) {
+      setPasswordError('Password must be at least 8 characters');
+      return;
+    }
+
+    // Validate confirm password
+    if (password !== confirmPassword) {
+      setConfirmPasswordError('Passwords must match');
       return;
     }
 
@@ -117,6 +143,7 @@ const SignUp: React.FC<ModalProps> = ({ isVisible, onClose }) => {
         // setEmailError('This email is already registered');
       } else {
         await AsyncStorage.setItem('emailForSignIn', email);
+        await AsyncStorage.setItem('passwordForSignUp', password);
         await generateVerificationCode();
         setShowVerifyCode(true);
       }
@@ -209,16 +236,56 @@ const SignUp: React.FC<ModalProps> = ({ isVisible, onClose }) => {
                         autoCapitalize="none"
                         autoComplete="email"
                         editable={!loading}
+                        returnKeyType="next"
+                      />
+
+                      <Input
+                        label="Password"
+                        placeholder="Enter your password"
+                        value={password}
+                        onChangeText={(text) => {
+                          setPassword(text);
+                          setPasswordError('');
+                        }}
+                        error={passwordError}
+                        leftIcon="lock-closed-outline"
+                        secureTextEntry={!showPassword}
+                        rightIcon={showPassword ? "eye-off-outline" : "eye-outline"}
+                        onRightIconPress={() => setShowPassword(!showPassword)}
+                        autoCapitalize="none"
+                        autoComplete="new-password"
+                        textContentType="newPassword"
+                        editable={!loading}
+                        returnKeyType="next"
+                      />
+
+                      <Input
+                        label="Confirm Password"
+                        placeholder="Confirm your password"
+                        value={confirmPassword}
+                        onChangeText={(text) => {
+                          setConfirmPassword(text);
+                          setConfirmPasswordError('');
+                        }}
+                        error={confirmPasswordError}
+                        leftIcon="lock-closed-outline"
+                        secureTextEntry={!showConfirmPassword}
+                        rightIcon={showConfirmPassword ? "eye-off-outline" : "eye-outline"}
+                        onRightIconPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                        autoCapitalize="none"
+                        autoComplete="new-password"
+                        textContentType="newPassword"
+                        editable={!loading}
                         returnKeyType="done"
                         onSubmitEditing={handleNext}
                       />
 
                       {exist && (
                         <View style={styles.errorContainer}>
-                          <Ionicons 
-                            name="alert-circle" 
-                            size={20} 
-                            color={Theme.colors.error[500]} 
+                          <Ionicons
+                            name="alert-circle"
+                            size={20}
+                            color={Theme.colors.error[500]}
                           />
                           <Text style={styles.errorMessage}>
                             This email is already in use.{'\n'}
