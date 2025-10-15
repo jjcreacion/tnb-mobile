@@ -191,7 +191,7 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
 
     // Check clipboard every 2 seconds when component is focused
     const interval = setInterval(checkClipboardForValidCode, 2000);
-    
+
     return () => clearInterval(interval);
   }, [checkClipboardForValidCode]);
 
@@ -234,6 +234,120 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
       setValidationState('idle');
     }
   }, [verificationCode, validationState, addTimeout, logDebugEvent]);
+
+  // Smart Auto-Paste: Automatically fill code from clipboard if valid and correct
+  // Track if we've already auto-pasted to prevent multiple auto-pastes
+  const hasAutoPastedRef = useRef(false);
+  const lastClipboardContentRef = useRef<string>('');
+
+  useEffect(() => {
+    const attemptSmartAutoPaste = async () => {
+      try {
+        // Don't auto-paste if code is already filled
+        const currentCodeString = code.join('');
+        if (currentCodeString.length === 6) {
+          logDebugEvent('SMART_AUTO_PASTE_SKIP', {
+            reason: 'Code already filled',
+            currentCode: currentCodeString
+          });
+          return;
+        }
+
+        // Get clipboard content
+        const clipboardContent = await Clipboard.getString();
+        const cleanContent = clipboardContent.replace(/\D/g, '');
+
+        // Skip if we've already auto-pasted this exact content
+        if (hasAutoPastedRef.current && lastClipboardContentRef.current === cleanContent) {
+          logDebugEvent('SMART_AUTO_PASTE_SKIP', {
+            reason: 'Already auto-pasted this content',
+            content: cleanContent
+          });
+          return;
+        }
+
+        logDebugEvent('SMART_AUTO_PASTE_ATTEMPT', {
+          clipboardContent,
+          cleanContent,
+          length: cleanContent.length,
+          isValid6Digit: cleanContent.length === 6,
+          verificationCode: verificationCode,
+          platform: Platform.OS,
+          hasAutoPasted: hasAutoPastedRef.current,
+          lastContent: lastClipboardContentRef.current
+        });
+
+        // Only proceed if exactly 6 digits
+        if (cleanContent.length !== 6) {
+          logDebugEvent('SMART_AUTO_PASTE_SKIP', {
+            reason: 'Not exactly 6 digits',
+            length: cleanContent.length
+          });
+          return;
+        }
+
+        // Pre-validate: Check if clipboard code matches the verification code
+        const isCorrectCode = cleanContent === verificationCode;
+
+        logDebugEvent('SMART_AUTO_PASTE_VALIDATION', {
+          clipboardCode: cleanContent,
+          expectedCode: verificationCode,
+          isCorrect: isCorrectCode,
+          comparison: `"${cleanContent}" === "${verificationCode}"`,
+          willAutoPaste: isCorrectCode
+        });
+
+        // UPDATED STRATEGY: Always auto-paste if 6 digits, let validation system handle correctness
+        // This ensures the user experience is smooth even if we can't pre-validate
+        logDebugEvent('SMART_AUTO_PASTE_EXECUTING', {
+          code: cleanContent,
+          reason: '6-digit code found in clipboard - auto-filling',
+          willValidateAfter: true
+        });
+
+        // Fill the code automatically
+        const digits = cleanContent.split('');
+        setCode(digits);
+
+        // Mark as auto-pasted
+        hasAutoPastedRef.current = true;
+        lastClipboardContentRef.current = cleanContent;
+
+        // Validate through the existing validation system
+        validateCode(cleanContent);
+
+        // Focus last input briefly for visual feedback
+        addTimeout(() => {
+          inputsRef.current[5]?.focus();
+          addTimeout(() => {
+            inputsRef.current[5]?.blur();
+          }, 300);
+        }, 150);
+
+        logDebugEvent('SMART_AUTO_PASTE_SUCCESS', {
+          code: cleanContent,
+          timestamp: new Date().toISOString(),
+          willShowValidationResult: true
+        });
+      } catch (error) {
+        logDebugEvent('SMART_AUTO_PASTE_ERROR', {
+          error: error instanceof Error ? error.message : 'Unknown error',
+          platform: Platform.OS
+        });
+      }
+    };
+
+    // Attempt auto-paste whenever clipboard validation changes
+    // This triggers when hasValidClipboard becomes true
+    if (hasValidClipboard && !hasAutoPastedRef.current) {
+      logDebugEvent('SMART_AUTO_PASTE_TRIGGER', {
+        reason: 'Valid clipboard detected',
+        hasValidClipboard,
+        hasAutoPasted: hasAutoPastedRef.current
+      });
+      attemptSmartAutoPaste();
+    }
+  }, [hasValidClipboard, code, verificationCode, validateCode, addTimeout, logDebugEvent]); // React to clipboard changes
 
   // Common helper: Handle digit overflow to next available field
   const handleDigitOverflow = useCallback((currentIndex: number, newDigit: string, reason: string) => {
