@@ -8,11 +8,11 @@ import { StatusBar } from 'expo-status-bar';
 import { Formik } from 'formik';
 import { useCallback, useState } from 'react';
 import {
-    Image,
-    ImageBackground,
-    KeyboardAvoidingView,
-    Platform,
-    View
+  Image,
+  ImageBackground,
+  KeyboardAvoidingView,
+  Platform,
+  View
 } from 'react-native';
 import * as Animatable from 'react-native-animatable';
 import * as Yup from 'yup';
@@ -24,9 +24,9 @@ const API_URL = Constants.expoConfig?.extra?.API_BASE_URL;
 const validationSchema = Yup.object().shape({
   email: Yup.string()
     .email('Please enter a valid email address')
-    .required('Email is required'),
+    .required('Please enter your email'),
   password: Yup.string()
-    .required('Password is required')
+    .required('Please enter your password')
     .min(6, 'Password must be at least 6 characters'),
 });
 
@@ -67,11 +67,11 @@ export default function LoginScreenMigrated() {
         AsyncStorage.setItem('userId', String(data.pkUser));
         router.push('/(tabs)');
       } else {
-        setErrorMessage(data.message || 'Invalid credentials. Please try again.');
+        setErrorMessage(`Email or password incorrect.\nPlease try again.`);
       }
     } catch (error) {
-      setErrorMessage('Unable to connect to the server. Please try again.');
-      console.error('Login error:', error);
+      setErrorMessage('Connection failed. Please check your internet and try again.');
+      console.log('SERVER OFFLINE? Login error:', error);
     } finally {
       setLoading(false);
     }
@@ -123,11 +123,11 @@ export default function LoginScreenMigrated() {
               </Animatable.View>
               
               <Typography variant="h2" color="inverse" style={MigratedStyles.loginWelcomeText}>
-                Welcome Back
+                Welcome Back!
               </Typography>
               
               <Typography variant="body1" color="inverse" style={MigratedStyles.loginSubtitle}>
-                Sign in to continue
+                Sign in to get started
               </Typography>
             </Animatable.View>
 
@@ -189,7 +189,7 @@ export default function LoginScreenMigrated() {
                       />
 
                       <Button
-                        title="Forgot Password?"
+                        title="Forgot your password?"
                         onPress={() => setResetModalVisible(true)}
                         variant="ghost"
                         size="sm"
@@ -208,7 +208,7 @@ export default function LoginScreenMigrated() {
                 </View>
 
                 <Button
-                  title="Create New Account"
+                  title="Create Account"
                   onPress={() => setSignUpModalVisible(true)}
                   variant="outline"
                   fullWidth
@@ -224,7 +224,7 @@ export default function LoginScreenMigrated() {
         <Loading
           visible={loading}
           variant="overlay"
-          message="Signing in..."
+          message="Signing you in..."
           size="lg"
         />
 

@@ -400,62 +400,6 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
     }
   }, [hasValidClipboard, code, verificationCode, validateCode, addTimeout, logDebugEvent]); // React to clipboard changes
 
-  // Common helper: Handle digit overflow to next available field
-  const handleDigitOverflow = useCallback((currentIndex: number, newDigit: string, reason: string) => {
-    // Find next available empty field
-    let targetIndex = -1;
-    for (let i = currentIndex + 1; i < 6; i++) {
-      if (code[i] === '') {
-        targetIndex = i;
-        break;
-      }
-    }
-    
-    if (targetIndex !== -1) {
-      // Place new digit in next available field
-      const newCode = [...code];
-      newCode[targetIndex] = newDigit;
-      
-      // Track the input for potential phantom backspace protection
-      if (Platform.OS === 'ios') {
-        recentInputRef.current = {
-          timestamp: Date.now(),
-          index: targetIndex,
-          value: newDigit
-        };
-        
-        logDebugEvent('RECENT_INPUT_TRACKED', {
-          trackedInput: recentInputRef.current
-        });
-      }
-      
-      logDebugEvent('DIGIT_OVERFLOW_EXECUTED', {
-        reason,
-        originalIndex: currentIndex,
-        originalValue: code[currentIndex],
-        targetIndex,
-        newValue: newDigit,
-        newCode
-      });
-      
-      setCode(newCode);
-      validateCode(newCode.join(''));
-      
-      // Move focus to where we placed the digit
-      focusInput(targetIndex);
-      
-      return true; // Overflow executed
-    } else {
-      // No available fields - ignore input
-      logDebugEvent('DIGIT_OVERFLOW_IGNORED', {
-        reason: 'No available empty fields',
-        currentIndex,
-        newDigit
-      });
-      return false; // Overflow not possible
-    }
-  }, [code, focusInput, logDebugEvent, validateCode]);
-
   // Common helper: Handle single digit input with smart navigation
   const handleSingleDigitInput = useCallback((value: string, index: number, platform: 'ios' | 'android') => {
     const cleanValue = value.replace(/\D/g, '');
