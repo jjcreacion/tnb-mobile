@@ -1346,7 +1346,7 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
                 <View style={styles.iconContainer}>
                   <Icon name="mail-outline" size={48} color={Theme.colors.primary[500]} />
                 </View>
-                <Text style={styles.title}>Enter Verification Code</Text>
+                <Text style={styles.title}>Verify your identity</Text>
                 <Text style={styles.subtitle}>
                   We sent a code to{' '}
                   <Text style={styles.emailText}>{email}</Text>
