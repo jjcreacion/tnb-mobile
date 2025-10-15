@@ -103,7 +103,7 @@ const SignUp: React.FC<ModalProps> = ({ isVisible, onClose }) => {
 
     // Validate email
     if (!validateEmail(email)) {
-      setEmailError('Please enter a valid email address');
+      setEmailError('Please enter a valid email');
       return;
     }
 
@@ -122,7 +122,7 @@ const SignUp: React.FC<ModalProps> = ({ isVisible, onClose }) => {
       }
     } catch (error) {
       console.error('Error verificando email:', error);
-      setEmailError('An error occurred. Please try again later.');
+      setEmailError(`We couldn't verify your email. Please try again.`);
     } finally {
       setLoading(false);
     }
@@ -174,8 +174,8 @@ const SignUp: React.FC<ModalProps> = ({ isVisible, onClose }) => {
                     <View style={styles.content}>
                     {/* Header */}
                     <View style={styles.header}>
-                      <Text style={styles.title}>Create Account</Text>
-                      <Text style={styles.subtitle}>Enter your email to get started</Text>
+                      <Text style={styles.title}>Create Your Account</Text>
+                      <Text style={styles.subtitle}>Let's get you started!</Text>
                     </View>
 
                     {/* Close Button */}
@@ -196,7 +196,7 @@ const SignUp: React.FC<ModalProps> = ({ isVisible, onClose }) => {
                     <View style={styles.form}>
                       <Input
                         label="Email Address"
-                        placeholder="johndoe@gmail.com"
+                        placeholder="you@example.com"
                         value={email}
                         onChangeText={(text) => {
                           setEmail(text);
@@ -221,8 +221,8 @@ const SignUp: React.FC<ModalProps> = ({ isVisible, onClose }) => {
                             color={Theme.colors.error[500]} 
                           />
                           <Text style={styles.errorMessage}>
-                            This email is already registered.{'\n'}
-                            Please sign in instead.
+                            This email is already in use.{'\n'}
+                            Please sign in or use a different email.
                           </Text>
                         </View>
                       )}
