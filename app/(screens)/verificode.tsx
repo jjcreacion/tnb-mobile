@@ -23,6 +23,9 @@ interface VerifyCodeProps {
 
 type ValidationState = 'idle' | 'valid' | 'invalid' | 'expired';
 
+// Debug configuration - Enable only when debugging OTP issues
+const DEBUG_OTP = __DEV__ && false;
+
 const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email }) => {
   const [code, setCode] = useState<string[]>(Array(6).fill(''));
   const [validationState, setValidationState] = useState<ValidationState>('idle');
@@ -33,20 +36,20 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
   const inputsRef = useRef<(TextInput | null)[]>([]);
   const timeoutsRef = useRef<number[]>([]);
   
-  // iOS FIX: Track recent input activity to prevent phantom backspaces
+  // Track recent input activity to prevent phantom backspaces (iOS)
   const recentInputRef = useRef<{
     timestamp: number;
     index: number;
     value: string;
   } | null>(null);
   
-  // CROSS-PLATFORM FIX: Track replacement processing to prevent visual glitch
+  // Track replacement processing to prevent visual glitch
   const replacementProcessingRef = useRef<{
     index: number;
     timestamp: number;
   } | null>(null);
-  
-  // CROSS-PLATFORM DEBUG SYSTEM - Now supports both iOS and Android
+
+  // Debug system - Only active when DEBUG_OTP is enabled
   const debugLog = useRef<{
     timestamp: string;
     event: string;
@@ -54,8 +57,10 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
     codeState: string[];
     platform: string;
   }[]>([]);
-  
+
   const logDebugEvent = useCallback((event: string, details: any) => {
+    if (!DEBUG_OTP) return; // Skip logging if debug is disabled
+
     const timestamp = new Date().toISOString().split('T')[1].slice(0, 12);
     const platform = Platform.OS;
     const logEntry = {
@@ -66,12 +71,12 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
       platform
     };
     debugLog.current.push(logEntry);
-    
-    // Keep only last 100 entries for both platforms
+
+    // Keep only last 100 entries
     if (debugLog.current.length > 100) {
       debugLog.current = debugLog.current.slice(-100);
     }
-    
+
     // Enhanced logging with platform identification
     const platformIcon = platform === 'ios' ? '🍎' : '🤖';
     console.log(`🔍 ${platformIcon} ${platform.toUpperCase()} OTP DEBUG [${timestamp}] ${event}:`, {
@@ -110,22 +115,15 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
     return () => cancelAnimationFrame(frame);
   }, []);
 
-  // CROSS-PLATFORM DEBUG - Monitor code changes
+  // Monitor code changes for debugging
   useEffect(() => {
-    logDebugEvent('CODE_STATE_CHANGED', {
-      newCode: [...code],
-      codeString: code.join(''),
-      emptyCount: code.filter(d => d === '').length,
-      filledCount: code.filter(d => d !== '').length,
-      platform: Platform.OS
-    });
-    
-    // Android-specific state monitoring
-    if (Platform.OS === 'android') {
-      console.log('🤖 Android Code State Update:', {
-        code,
+    if (DEBUG_OTP) {
+      logDebugEvent('CODE_STATE_CHANGED', {
+        newCode: [...code],
         codeString: code.join(''),
-        timestamp: new Date().toISOString()
+        emptyCount: code.filter(d => d === '').length,
+        filledCount: code.filter(d => d !== '').length,
+        platform: Platform.OS
       });
     }
   }, [code, logDebugEvent]);
@@ -485,7 +483,7 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
     return false; // Not a single digit
   }, [code, focusInput, logDebugEvent, validateCode]);
 
-  // iOS-specific input handling - FIXED to prevent phantom backspace
+  // iOS input handling
   const handleInputChangeiOS = useCallback((value: string, index: number) => {
     logDebugEvent('INPUT_CHANGE_START', {
       rawValue: value,
@@ -499,7 +497,7 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
       return;
     }
     
-    // iOS FIX: Check if replacement is being processed for this field to prevent visual glitch
+    // Check if replacement is being processed for this field to prevent visual glitch
     if (replacementProcessingRef.current?.index === index) {
       const timeDiff = Date.now() - replacementProcessingRef.current.timestamp;
       if (timeDiff < 100) { // Within 100ms of overflow processing
@@ -625,7 +623,7 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
       const previousValue = newCode[index];
       newCode[index] = cleanValue;
       
-      // CRITICAL: Track this input to prevent phantom backspace
+      // Track this input to prevent phantom backspace
       if (cleanValue !== '') {
         recentInputRef.current = {
           timestamp: Date.now(),
@@ -669,7 +667,7 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
     });
   }, [code, isProcessing, validateCode, addTimeout, logDebugEvent, focusInput]);
 
-  // Android input handling - Enhanced with iOS-like smart behavior
+  // Android input handling
   const handleInputChangeAndroid = useCallback((value: string, index: number) => {
     logDebugEvent('ANDROID_INPUT_CHANGE_START', {
       rawValue: value,
@@ -686,7 +684,7 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
       return;
     }
     
-    // ANDROID FIX: Check if replacement is being processed for this field to prevent visual glitch
+    // Check if replacement is being processed for this field to prevent visual glitch
     if (replacementProcessingRef.current?.index === index) {
       const timeDiff = Date.now() - replacementProcessingRef.current.timestamp;
       if (timeDiff < 100) { // Within 100ms of overflow processing
@@ -731,7 +729,7 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
         platform: 'android'
       });
       
-      // NEW BEHAVIOR: Replace current field and advance sequentially
+      // Replace current field and advance sequentially
       const newCode = [...code];
       newCode[index] = newDigit;
       
@@ -826,7 +824,7 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
   // Platform-specific input handler
   const handleInputChange = Platform.OS === 'ios' ? handleInputChangeiOS : handleInputChangeAndroid;
 
-  // iOS-specific backspace handling - FIXED to ignore phantom backspaces
+  // iOS backspace handling
   const handleKeyPressiOS = useCallback((e: any, index: number) => {
     logDebugEvent('KEY_PRESS', {
       key: e.nativeEvent.key,
@@ -842,7 +840,7 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
         hasContent: code[index] !== ''
       });
       
-      // ENHANCED PHANTOM BACKSPACE DETECTION V3
+      // Phantom backspace detection
       const now = Date.now();
       const recentInput = recentInputRef.current;
       
@@ -940,7 +938,7 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
         shouldAdvance: wasEmpty && index < 5
       });
       
-      // NEW BEHAVIOR: Replace current field value and advance sequentially
+      // Replace current field value and advance sequentially
       if (!wasEmpty) {
         // Mark replacement processing to prevent onChangeText interference
         replacementProcessingRef.current = {
@@ -1014,7 +1012,7 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
     }
   }, [code, logDebugEvent, validateCode, focusInput]);
 
-  // Android keypress handling - Enhanced with iOS-like smart behavior
+  // Android keypress handling
   const handleKeyPressAndroid = useCallback((e: any, index: number) => {
     logDebugEvent('ANDROID_KEY_PRESS_START', {
       key: e.nativeEvent.key,
@@ -1095,7 +1093,7 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
         platform: 'android'
       });
       
-      // NEW BEHAVIOR: Replace current field value and advance sequentially (same as iOS)
+      // Replace current field value and advance sequentially
       if (!wasEmpty) {
         // Mark replacement processing to prevent onChangeText interference
         replacementProcessingRef.current = {
@@ -1195,7 +1193,7 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
     }
   }, [addTimeout, focusInput]);
 
-  // iOS-specific clipboard handling - Simplified and robust
+  // iOS clipboard handling
   const handlePasteFromClipboardiOS = useCallback(async () => {
     if (isProcessing) return;
     
@@ -1257,7 +1255,7 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
   // Platform-specific clipboard handler
   const handlePasteFromClipboard = Platform.OS === 'ios' ? handlePasteFromClipboardiOS : handlePasteFromClipboardAndroid;
 
-  // CROSS-PLATFORM DEBUG - Export debug logs
+  // Export debug logs
   const exportDebugLogs = useCallback(() => {
     const platformIcon = Platform.OS === 'ios' ? '🍎' : '🤖';
     const platformName = Platform.OS.toUpperCase();
@@ -1328,69 +1326,13 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
     console.log(`📋 ${platformName} Debug logs copied to clipboard`);
   }, [code, validationState]);
 
-  // CROSS-PLATFORM DEBUG - Clear debug logs  
+  // Clear debug logs
   const clearDebugLogs = useCallback(() => {
     debugLog.current = [];
     const platformIcon = Platform.OS === 'ios' ? '🍎' : '🤖';
     console.log(`🧹 ${platformIcon} ${Platform.OS.toUpperCase()} Debug logs cleared`);
   }, []);
 
-  // ANDROID SPECIFIC - State vs Input Value Monitor
-  const monitorAndroidState = useCallback(() => {
-    if (Platform.OS === 'android') {
-      console.log('🤖 ===== ANDROID STATE MONITOR =====');
-      
-      // Check each input's actual value vs state
-      inputsRef.current.forEach((input, index) => {
-        if (input) {
-          // Get the actual value from the TextInput
-          const actualValue = input.props.value || '';
-          const stateValue = code[index] || '';
-          
-          console.log(`Field ${index}:`, {
-            stateValue,
-            actualValue,
-            match: stateValue === actualValue,
-            inputRef: !!input,
-            isFocused: input.isFocused ? input.isFocused() : 'unknown'
-          });
-          
-          // Log discrepancy if found
-          if (stateValue !== actualValue) {
-            logDebugEvent('ANDROID_STATE_DISCREPANCY', {
-              index,
-              stateValue,
-              actualValue,
-              discrepancy: true
-            });
-          }
-        }
-      });
-      
-      console.log('Current code state:', code);
-      console.log('Code string:', code.join(''));
-      console.log('===========================');
-    }
-  }, [code, logDebugEvent]);
-
-  // ANDROID SPECIFIC - Test overflow behavior manually
-  const testAndroidOverflow = useCallback(() => {
-    if (Platform.OS === 'android') {
-      console.log('� Testing Android Overflow Behavior...');
-      
-      // Simulate overflow test
-      const testResult = handleDigitOverflow(2, '9', 'Manual Test');
-      
-      logDebugEvent('ANDROID_OVERFLOW_TEST', {
-        testExecuted: true,
-        result: testResult,
-        codeBeforeTest: [...code],
-        codeAfterTest: [...code]
-      });
-      
-      console.log('Overflow test result:', testResult);
-    }
-  }, [handleDigitOverflow, code, logDebugEvent]);
 
   if (showRegister) {
     return <Register isVisible={true} onClose={() => {}} IsVerify={() => {}} />;
@@ -1463,16 +1405,9 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
                     }}
                     editable={!isProcessing}
                     {...(Platform.OS === 'ios' && {
-                      onFocus: () => logDebugEvent('INPUT_FOCUSED', { index, currentValue: digit }),
-                      onBlur: () => logDebugEvent('INPUT_BLURRED', { index, currentValue: digit }),
-                      onSelectionChange: (e) => logDebugEvent('SELECTION_CHANGED', { 
-                        index, 
-                        selection: e.nativeEvent.selection,
-                        currentValue: digit 
-                      }),
                       selectTextOnFocus: false,
                       clearTextOnFocus: false,
-                      contextMenuHidden: false, // ENABLED: Allow native iOS contextual menu (Copy/Paste/Select)
+                      contextMenuHidden: false,
                       textContentType: index === 0 ? "oneTimeCode" : "none",
                       spellCheck: false,
                       smartInsertDelete: false,
@@ -1481,25 +1416,6 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
                       dataDetectorTypes: 'none'
                     })}
                     {...(Platform.OS === 'android' && {
-                      onFocus: () => logDebugEvent('ANDROID_INPUT_FOCUSED', { 
-                        index, 
-                        currentValue: digit,
-                        codeState: code,
-                        timestamp: Date.now()
-                      }),
-                      onBlur: () => logDebugEvent('ANDROID_INPUT_BLURRED', { 
-                        index, 
-                        currentValue: digit,
-                        codeState: code,
-                        timestamp: Date.now()
-                      }),
-                      onSelectionChange: (e) => logDebugEvent('ANDROID_SELECTION_CHANGED', { 
-                        index, 
-                        selection: e.nativeEvent.selection,
-                        currentValue: digit,
-                        codeState: code,
-                        timestamp: Date.now()
-                      }),
                       selectTextOnFocus: false,
                       clearTextOnFocus: false,
                       contextMenuHidden: false
@@ -1523,8 +1439,8 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
                 </View>
               )}
 
-              {/* CROSS-PLATFORM DEBUG BUTTONS - Visible during development */}
-              {__DEV__ && (
+              {/* Debug UI - Only visible when DEBUG_OTP is enabled */}
+              {DEBUG_OTP && (
                 <View style={styles.debugContainer}>
                   <Text style={styles.debugTitle}>
                     🔍 {Platform.OS === 'ios' ? '🍎 iOS' : '🤖 Android'} OTP Debug
@@ -1545,27 +1461,7 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
                       style={styles.debugButton}
                     />
                   </View>
-                  
-                  {/* Android-specific debug tools */}
-                  {Platform.OS === 'android' && (
-                    <View style={styles.debugButtons}>
-                      <Button
-                        title="Monitor State"
-                        variant="ghost"
-                        size="sm"
-                        onPress={monitorAndroidState}
-                        style={styles.debugButton}
-                      />
-                      <Button
-                        title="Test Overflow"
-                        variant="ghost"
-                        size="sm"
-                        onPress={testAndroidOverflow}
-                        style={styles.debugButton}
-                      />
-                    </View>
-                  )}
-                  
+
                   <Text style={styles.debugInfo}>
                     Platform: {Platform.OS} | Events: {debugLog.current.length} | Code: "{code.join('')}" | State: {validationState}
                   </Text>

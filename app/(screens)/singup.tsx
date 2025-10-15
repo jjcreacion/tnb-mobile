@@ -221,7 +221,8 @@ const SignUp: React.FC<ModalProps> = ({ isVisible, onClose }) => {
                             color={Theme.colors.error[500]} 
                           />
                           <Text style={styles.errorMessage}>
-                            This email is already registered. Please sign in instead.
+                            This email is already registered.{'\n'}
+                            Please sign in instead.
                           </Text>
                         </View>
                       )}
