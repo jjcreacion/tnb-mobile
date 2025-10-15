@@ -153,27 +153,32 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
     return timeout;
   }, []);
 
-  // Check clipboard for valid 6-digit code
+  // Check clipboard for valid 6-digit code that matches verification code
   const checkClipboardForValidCode = useCallback(async () => {
     try {
       const clipboardContent = await Clipboard.getString();
-      
+
       // Clean the clipboard content (remove spaces, dashes, etc.)
       const cleanedContent = clipboardContent.replace(/\D/g, '');
-      
-      // Check if it's exactly 6 digits
+
+      // Check if it's exactly 6 digits AND matches verification code
       const isValid6DigitCode = /^\d{6}$/.test(cleanedContent);
-      
+      const isCorrectCode = cleanedContent === verificationCode;
+      const shouldShowPasteButton = isValid6DigitCode && isCorrectCode;
+
       logDebugEvent('CLIPBOARD_CHECK', {
         originalContent: clipboardContent,
         cleanedContent,
-        isValid: isValid6DigitCode,
+        isValid6Digit: isValid6DigitCode,
+        isCorrectCode: isCorrectCode,
+        shouldShowPasteButton: shouldShowPasteButton,
+        expectedCode: verificationCode,
         length: cleanedContent.length,
         platform: Platform.OS
       });
-      
-      setHasValidClipboard(isValid6DigitCode);
-      return isValid6DigitCode;
+
+      setHasValidClipboard(shouldShowPasteButton);
+      return shouldShowPasteButton;
     } catch (error) {
       logDebugEvent('CLIPBOARD_CHECK_ERROR', {
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -182,7 +187,7 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
       setHasValidClipboard(false);
       return false;
     }
-  }, [logDebugEvent]);
+  }, [logDebugEvent, verificationCode]);
 
   // Monitor clipboard changes periodically
   useEffect(() => {
@@ -297,11 +302,20 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
           willAutoPaste: isCorrectCode
         });
 
-        // UPDATED STRATEGY: Always auto-paste if 6 digits, let validation system handle correctness
-        // This ensures the user experience is smooth even if we can't pre-validate
+        // Only auto-paste if the code is correct
+        if (!isCorrectCode) {
+          logDebugEvent('SMART_AUTO_PASTE_SKIP', {
+            reason: 'Clipboard code does not match verification code',
+            clipboardCode: cleanContent,
+            expectedCode: verificationCode
+          });
+          return;
+        }
+
+        // Code is correct - proceed with auto-paste
         logDebugEvent('SMART_AUTO_PASTE_EXECUTING', {
           code: cleanContent,
-          reason: '6-digit code found in clipboard - auto-filling',
+          reason: 'Correct 6-digit code found in clipboard - auto-filling',
           willValidateAfter: true
         });
 
@@ -1435,8 +1449,18 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
                     autoCorrect={false}
                     autoComplete="off"
                     autoCapitalize="none"
-                    returnKeyType="next"
-                    blurOnSubmit={false}
+                    returnKeyType={validationState === 'valid' ? 'done' : 'next'}
+                    blurOnSubmit={validationState === 'valid'}
+                    onSubmitEditing={() => {
+                      if (validationState === 'valid') {
+                        // Dismiss keyboard and trigger continue action
+                        inputsRef.current.forEach(input => input?.blur());
+                        handleNext();
+                      } else if (index < 5) {
+                        // Move to next input if not at the end
+                        focusInput(index + 1);
+                      }
+                    }}
                     editable={!isProcessing}
                     {...(Platform.OS === 'ios' && {
                       onFocus: () => logDebugEvent('INPUT_FOCUSED', { index, currentValue: digit }),
@@ -1484,8 +1508,8 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
                 ))}
               </View>
 
-              {/* Paste Button - Show only when clipboard has valid 6-digit code */}
-              {hasValidClipboard && (
+              {/* Paste Button - Show only when clipboard has valid code and fields are not already filled */}
+              {hasValidClipboard && code.join('').length < 6 && (
                 <View style={styles.pasteContainer}>
                   <Button
                     title="Paste 6-Digit Code"
