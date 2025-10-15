@@ -35,6 +35,7 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
   const [hasValidClipboard, setHasValidClipboard] = useState(false);
   const inputsRef = useRef<(TextInput | null)[]>([]);
   const timeoutsRef = useRef<number[]>([]);
+  const validationTimeoutRef = useRef<number | null>(null);
   
   // Track recent input activity to prevent phantom backspaces (iOS)
   const recentInputRef = useRef<{
@@ -91,6 +92,10 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
   useEffect(() => {
     return () => {
       timeoutsRef.current.forEach(clearTimeout);
+      // Clear validation timeout
+      if (validationTimeoutRef.current !== null) {
+        clearTimeout(validationTimeoutRef.current);
+      }
       // Clear iOS tracking
       if (Platform.OS === 'ios') {
         recentInputRef.current = null;
@@ -127,6 +132,18 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
       });
     }
   }, [code, logDebugEvent]);
+
+  // Monitor validation state changes
+  useEffect(() => {
+    if (DEBUG_OTP) {
+      logDebugEvent('VALIDATION_STATE_CHANGED', {
+        newValidationState: validationState,
+        currentCode: code.join(''),
+        verificationCode,
+        match: code.join('') === verificationCode
+      });
+    }
+  }, [validationState, code, verificationCode, logDebugEvent]);
 
   // Timer countdown
   useEffect(() => {
@@ -205,38 +222,60 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
     });
   }, []);
 
-  // Validate code helper
+  // Validate code helper - Only validates when code is complete (6 digits)
   const validateCode = useCallback((codeString: string) => {
+    // Cancel any pending validation timeout when user makes changes
+    if (validationTimeoutRef.current !== null) {
+      clearTimeout(validationTimeoutRef.current);
+      validationTimeoutRef.current = null;
+      logDebugEvent('VALIDATION_TIMEOUT_CANCELLED', {
+        reason: 'User made changes to code'
+      });
+    }
+
     if (codeString.length === 6) {
-      // Keep iOS phantom backspace protection even when code is complete
+      // Code is complete - validate correctness
       if (Platform.OS === 'ios') {
-        logDebugEvent('CODE_COMPLETE_DETECTED', { 
-          reason: 'Code complete - maintaining phantom protection',
-          codeString 
+        logDebugEvent('CODE_COMPLETE_DETECTED', {
+          reason: 'Code complete - validating',
+          codeString
         });
       }
-      
+
       if (codeString === verificationCode) {
+        logDebugEvent('VALIDATION_SUCCESS', {
+          codeString,
+          verificationCode,
+          newState: 'valid'
+        });
         setValidationState('valid');
-        setIsProcessing(true);
-        // Auto-dismiss keyboard after validation
-        addTimeout(() => {
-          inputsRef.current.forEach(input => input?.blur());
-          setIsProcessing(false);
-        }, 800);
+        // Dismiss keyboard immediately
+        inputsRef.current.forEach(input => input?.blur());
       } else {
+        logDebugEvent('VALIDATION_FAILED', {
+          codeString,
+          verificationCode,
+          match: codeString === verificationCode,
+          newState: 'invalid'
+        });
         setValidationState('invalid');
-        // Reset validation state after showing error
-        addTimeout(() => {
-          if (validationState === 'invalid') {
-            setValidationState('idle');
-          }
-        }, 2000);
+        // Keep invalid state - user must edit to clear the error
       }
-    } else {
-      setValidationState('idle');
+    } else if (codeString.length < 6) {
+      // Code is incomplete - reset to idle immediately
+      // This allows user to correct their input
+      setValidationState((prevState) => {
+        if (prevState !== 'idle') {
+          logDebugEvent('VALIDATION_RESET_TO_IDLE', {
+            reason: 'Code incomplete - user is editing',
+            codeLength: codeString.length
+          });
+          return 'idle';
+        }
+        return prevState;
+      });
     }
-  }, [verificationCode, validationState, addTimeout, logDebugEvent]);
+  }, [verificationCode, logDebugEvent]);
 
   // Smart Auto-Paste: Automatically fill code from clipboard if valid and correct
   // Track if we've already auto-pasted to prevent multiple auto-pastes
