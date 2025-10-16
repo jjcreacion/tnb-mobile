@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Modal,
@@ -7,6 +7,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   TouchableWithoutFeedback,
   View,
@@ -37,8 +38,11 @@ const SignUp: React.FC<ModalProps> = ({ isVisible, onClose }) => {
   const [loading, setLoading] = useState(false);
   const [showVerifyCode, setShowVerifyCode] = useState(false);
   const [verificationCode, setVerificationCode] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  // Refs for keyboard navigation (iOS)
+  const emailRef = useRef<TextInput>(null);
+  const passwordRef = useRef<TextInput>(null);
+  const confirmPasswordRef = useRef<TextInput>(null);
 
   // Hooks
   const { dismissKeyboard } = useKeyboard();
@@ -55,8 +59,6 @@ const SignUp: React.FC<ModalProps> = ({ isVisible, onClose }) => {
       setConfirmPasswordError('');
       setShowVerifyCode(false);
       setExist(false);
-      setShowPassword(false);
-      setShowConfirmPassword(false);
     }
   }, [isVisible]);
 
@@ -222,6 +224,7 @@ const SignUp: React.FC<ModalProps> = ({ isVisible, onClose }) => {
                     {/* Form */}
                     <View style={styles.form}>
                       <Input
+                        ref={emailRef}
                         label="Email Address"
                         placeholder="you@example.com"
                         value={email}
@@ -237,9 +240,11 @@ const SignUp: React.FC<ModalProps> = ({ isVisible, onClose }) => {
                         autoComplete="email"
                         editable={!loading}
                         returnKeyType="next"
+                        onSubmitEditing={() => passwordRef.current?.focus()}
                       />
 
                       <Input
+                        ref={passwordRef}
                         label="Password"
                         placeholder="Enter your password"
                         value={password}
@@ -249,17 +254,18 @@ const SignUp: React.FC<ModalProps> = ({ isVisible, onClose }) => {
                         }}
                         error={passwordError}
                         leftIcon="lock-closed-outline"
-                        secureTextEntry={!showPassword}
-                        rightIcon={showPassword ? "eye-off-outline" : "eye-outline"}
-                        onRightIconPress={() => setShowPassword(!showPassword)}
+                        secureTextEntry={true}
                         autoCapitalize="none"
+                        autoCorrect={false}
                         autoComplete="new-password"
                         textContentType="newPassword"
                         editable={!loading}
                         returnKeyType="next"
+                        onSubmitEditing={() => confirmPasswordRef.current?.focus()}
                       />
 
                       <Input
+                        ref={confirmPasswordRef}
                         label="Confirm Password"
                         placeholder="Confirm your password"
                         value={confirmPassword}
@@ -269,14 +275,13 @@ const SignUp: React.FC<ModalProps> = ({ isVisible, onClose }) => {
                         }}
                         error={confirmPasswordError}
                         leftIcon="lock-closed-outline"
-                        secureTextEntry={!showConfirmPassword}
-                        rightIcon={showConfirmPassword ? "eye-off-outline" : "eye-outline"}
-                        onRightIconPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                        secureTextEntry={true}
                         autoCapitalize="none"
+                        autoCorrect={false}
                         autoComplete="new-password"
                         textContentType="newPassword"
                         editable={!loading}
-                        returnKeyType="done"
+                        returnKeyType="go"
                         onSubmitEditing={handleNext}
                       />
 

@@ -1,7 +1,8 @@
 import { Theme } from '@/constants/Theme';
-import React, { useState } from 'react';
+import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import {
   NativeSyntheticEvent,
+  Platform,
   StyleProp,
   StyleSheet,
   Text,
@@ -16,7 +17,7 @@ import Icon from 'react-native-vector-icons/Ionicons';
 
 export type InputSize = 'sm' | 'md' | 'lg';
 
-interface CustomInputProps extends TextInputProps {
+export interface CustomInputProps extends TextInputProps {
   label?: string;
   error?: string;
   helperText?: string;
@@ -29,25 +30,46 @@ interface CustomInputProps extends TextInputProps {
   required?: boolean;
 }
 
-export const Input: React.FC<CustomInputProps> = ({
-  label,
-  error,
-  helperText,
-  size = 'md',
-  leftIcon,
-  rightIcon,
-  onRightIconPress,
-  containerStyle,
-  disabled = false,
-  required = false,
-  style,
-  secureTextEntry,
-  onFocus,
-  onBlur,
-  ...rest
-}) => {
+export const Input = forwardRef((
+  {
+    label,
+    error,
+    helperText,
+    size = 'md',
+    leftIcon,
+    rightIcon,
+    onRightIconPress,
+    containerStyle,
+    disabled = false,
+    required = false,
+    style,
+    secureTextEntry,
+    onFocus,
+    onBlur,
+    ...rest
+  }: CustomInputProps,
+  ref: React.Ref<TextInput>
+) => {
   const [isFocused, setIsFocused] = useState(false);
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
+
+  // Internal ref to manage cursor position
+  const inputRef = useRef<TextInput>(null);
+  const cursorPositionRef = useRef<number>(0);
+
+  // iOS specific: Store the value to force re-sync after secureTextEntry change
+  const [internalValue, setInternalValue] = useState(rest.value || '');
+  const isTogglingRef = useRef(false);
+
+  // Expose the ref to parent components
+  useImperativeHandle(ref, () => inputRef.current as TextInput);
+
+  // iOS: Sync internal value with prop value
+  useEffect(() => {
+    if (!isTogglingRef.current && rest.value !== undefined) {
+      setInternalValue(rest.value as string);
+    }
+  }, [rest.value]);
 
   const handleFocus = (e: NativeSyntheticEvent<TextInputFocusEventData>) => {
     setIsFocused(true);
@@ -63,9 +85,72 @@ export const Input: React.FC<CustomInputProps> = ({
     }
   };
 
-  const togglePasswordVisibility = () => {
-    setIsPasswordVisible(!isPasswordVisible);
-  };
+  // Track cursor position on selection change
+  const handleSelectionChange = useCallback((event: any) => {
+    if (event?.nativeEvent?.selection?.start !== undefined) {
+      cursorPositionRef.current = event.nativeEvent.selection.start;
+    }
+
+    // Call parent's onSelectionChange if provided
+    if (rest.onSelectionChange) {
+      rest.onSelectionChange(event);
+    }
+  }, [rest.onSelectionChange]);
+
+  const togglePasswordVisibility = useCallback(() => {
+    if (Platform.OS === 'ios') {
+      // iOS specific: Mark that we're toggling to prevent value sync issues
+      isTogglingRef.current = true;
+
+      // Store current value and cursor position
+      const currentValue = rest.value as string || internalValue;
+      const currentCursorPos = cursorPositionRef.current;
+      const wasFocused = isFocused;
+
+      setIsPasswordVisible((prev) => {
+        const newVisibility = !prev;
+
+        // iOS: Use multiple frames to ensure proper state updates
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            if (inputRef.current) {
+              // Force value update using setNativeProps
+              inputRef.current.setNativeProps({
+                text: currentValue,
+              });
+
+              // Restore focus if it was focused before
+              if (wasFocused) {
+                inputRef.current.focus();
+              }
+
+              // Restore cursor position
+              if (currentCursorPos !== undefined) {
+                requestAnimationFrame(() => {
+                  inputRef.current?.setNativeProps({
+                    selection: {
+                      start: currentCursorPos,
+                      end: currentCursorPos,
+                    },
+                  });
+                });
+              }
+
+              // Reset toggling flag
+              setTimeout(() => {
+                isTogglingRef.current = false;
+              }, 100);
+            }
+          });
+        });
+
+        return newVisibility;
+      });
+    } else {
+      // Android: Simple toggle
+      setIsPasswordVisible((prev) => !prev);
+    }
+  }, [rest.value, internalValue, isFocused]);
 
   const inputContainerStyles = [
     styles.inputContainer,
@@ -102,17 +187,30 @@ export const Input: React.FC<CustomInputProps> = ({
         )}
 
         <TextInput
+          ref={inputRef}
+          key={Platform.OS === 'ios' && secureTextEntry ? `secure-${isPasswordVisible}` : undefined}
           style={inputStyles}
           placeholderTextColor={Theme.colors.text.tertiary}
           editable={!disabled}
           onFocus={handleFocus}
           onBlur={handleBlur}
+          onSelectionChange={handleSelectionChange}
           secureTextEntry={secureTextEntry && !isPasswordVisible}
+          defaultValue={Platform.OS === 'ios' && secureTextEntry ? internalValue : undefined}
+          autoCorrect={rest.autoCorrect ?? (secureTextEntry ? false : undefined)}
+          autoCapitalize={rest.autoCapitalize ?? (secureTextEntry ? 'none' : undefined)}
+          autoComplete={rest.autoComplete as any}
+          textContentType={rest.textContentType as any}
+          keyboardType={rest.keyboardType}
           {...(rest as any)}
         />
 
         {secureTextEntry && (
-          <TouchableOpacity onPress={togglePasswordVisibility} style={styles.rightIcon}>
+          <TouchableOpacity
+            onPress={togglePasswordVisibility}
+            style={styles.rightIcon}
+            activeOpacity={0.7}
+          >
             <Icon
               name={isPasswordVisible ? 'eye-outline' : 'eye-off-outline'}
               size={Theme.iconSize.sm}
@@ -136,7 +234,9 @@ export const Input: React.FC<CustomInputProps> = ({
       {helperText && !error && <Text style={styles.helperText}>{helperText}</Text>}
     </View>
   );
-};
+});
+
+Input.displayName = 'Input';
 
 const styles = StyleSheet.create({
   container: {

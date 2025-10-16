@@ -17,7 +17,7 @@ import {
 import * as Animatable from 'react-native-animatable';
 import * as Yup from 'yup';
 import ResetModal from './resetPassword';
-import SignUpModal from './singup';
+import SignUpModal from './signup';
 
 const API_URL = Constants.expoConfig?.extra?.API_BASE_URL;
 

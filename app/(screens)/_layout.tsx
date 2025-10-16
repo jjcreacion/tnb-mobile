@@ -18,7 +18,7 @@ export default function RootLayout() {
         <Stack.Screen name="ServiceRequestDetail" options={{ headerShown: false }} />
         <Stack.Screen name="registerComplete" options={{ headerShown: false }} />
         <Stack.Screen name="resetPassword" options={{ headerShown: false }} />
-        <Stack.Screen name="singup" options={{ headerShown: false }} />
+        <Stack.Screen name="signup" options={{ headerShown: false }} />
         <Stack.Screen name="verificode" options={{ headerShown: false }} />
         <Stack.Screen name="verificodeReset" options={{ headerShown: false }} />
         <Stack.Screen name="SetNewPassword" options={{ headerShown: false }} />
