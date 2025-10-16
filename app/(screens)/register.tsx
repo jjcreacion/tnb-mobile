@@ -71,6 +71,15 @@ const Register: React.FC<RegisterProps> = ({ isVisible, onClose, IsVerify, passw
     // Add other mappings if necessary
   } as { [key: string]: string }), []);
 
+  // Configure StatusBar on mount
+  useEffect(() => {
+    StatusBar.setBarStyle('dark-content');
+    if (Platform.OS === 'android') {
+      StatusBar.setBackgroundColor('#FFFFFF');
+      StatusBar.setTranslucent(false);
+    }
+  }, []);
+
   useEffect(() => {
     (async () => {
       const { status } = await Location.requestForegroundPermissionsAsync();
