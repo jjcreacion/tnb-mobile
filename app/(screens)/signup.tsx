@@ -66,7 +66,7 @@ const SignUp: React.FC<ModalProps> = ({ isVisible, onClose }) => {
   const generateVerificationCode = async () => {
     const code = Math.floor(100000 + Math.random() * 900000).toString();
     setVerificationCode(code);
-
+    console.log('Generated verification code:', code);
     const verifyData = {
       email: email,
       code: code,

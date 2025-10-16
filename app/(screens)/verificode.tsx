@@ -3,7 +3,6 @@ import { Theme } from '@/constants/Theme';
 import { StatusBar } from 'expo-status-bar';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  Clipboard,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -12,6 +11,7 @@ import {
   TextInput,
   View
 } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import Icon from 'react-native-vector-icons/Ionicons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Register from './register';
@@ -188,7 +188,7 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
   // Check clipboard for valid 6-digit code that matches verification code
   const checkClipboardForValidCode = useCallback(async () => {
     try {
-      const clipboardContent = await Clipboard.getString();
+      const clipboardContent = await Clipboard.getStringAsync();
 
       // Clean the clipboard content (remove spaces, dashes, etc.)
       const cleanedContent = clipboardContent.replace(/\D/g, '');
@@ -313,7 +313,7 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
         }
 
         // Get clipboard content
-        const clipboardContent = await Clipboard.getString();
+        const clipboardContent = await Clipboard.getStringAsync();
         const cleanContent = clipboardContent.replace(/\D/g, '');
 
         // Skip if we've already auto-pasted this exact content
@@ -1196,9 +1196,9 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
   // iOS clipboard handling
   const handlePasteFromClipboardiOS = useCallback(async () => {
     if (isProcessing) return;
-    
+
     try {
-      const clipboardContent = await Clipboard.getString();
+      const clipboardContent = await Clipboard.getStringAsync();
       const cleanContent = clipboardContent.replace(/\D/g, '');
       
       if (cleanContent.length === 6) {
@@ -1234,9 +1234,9 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
   // Android clipboard handling (original)
   const handlePasteFromClipboardAndroid = useCallback(async () => {
     if (isProcessing) return;
-    
+
     try {
-      const clipboardContent = await Clipboard.getString();
+      const clipboardContent = await Clipboard.getStringAsync();
       const cleanContent = clipboardContent.replace(/\D/g, '');
       
       if (cleanContent.length === 6) {
@@ -1315,7 +1315,7 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
     }
     
     // Copy to clipboard for easy sharing
-    Clipboard.setString(JSON.stringify({
+    Clipboard.setStringAsync(JSON.stringify({
       platform: Platform.OS,
       currentCode: code,
       validationState,
