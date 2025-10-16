@@ -6,12 +6,13 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { Formik } from 'formik';
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import {
   Image,
   ImageBackground,
   KeyboardAvoidingView,
   Platform,
+  TextInput,
   View
 } from 'react-native';
 import * as Animatable from 'react-native-animatable';
@@ -27,7 +28,7 @@ const validationSchema = Yup.object().shape({
     .required('Please enter your email'),
   password: Yup.string()
     .required('Please enter your password')
-    .min(6, 'Password must be at least 6 characters'),
+    // .min(6, 'Password must be at least 6 characters'),
 });
 
 export default function LoginScreenMigrated() {
@@ -36,6 +37,9 @@ export default function LoginScreenMigrated() {
   const [errorMessage, setErrorMessage] = useState('');
   const [isSignUpModalVisible, setSignUpModalVisible] = useState(false);
   const [resetModalVisible, setResetModalVisible] = useState(false);
+
+  // Referencias para navegación del teclado
+  const passwordInputRef = useRef<TextInput>(null);
 
   // Configure StatusBar to be transparent only on this screen (Android)
   useFocusEffect(
@@ -156,18 +160,24 @@ export default function LoginScreenMigrated() {
                         keyboardType="email-address"
                         autoCapitalize="none"
                         autoComplete="email"
+                        returnKeyType='next'
+                        onSubmitEditing={() => passwordInputRef.current?.focus()}
+                        blurOnSubmit={false}
                       />
 
                       <Input
+                        ref={passwordInputRef}
                         placeholder="Password"
                         leftIcon="lock-closed-outline"
                         value={values.password}
                         onChangeText={handleChange('password')}
                         onBlur={handleBlur('password')}
                         error={touched.password && errors.password ? errors.password : undefined}
-                        secureTextEntry
+                        secureTextEntry={true}
                         autoCapitalize="none"
                         autoComplete="password"
+                        returnKeyType='go'
+                        onSubmitEditing={() => handleSubmit() }
                       />
 
                       {errorMessage ? (
