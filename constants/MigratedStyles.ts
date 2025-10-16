@@ -873,17 +873,17 @@ export const MigratedStyles = StyleSheet.create({
 
   registerScrollContent: {
     paddingBottom: Theme.spacing.xl,
-    paddingTop: Theme.spacing.md,
+    paddingTop: Platform.OS === 'ios' ? Theme.spacing['2xl'] : Theme.spacing.lg,
+    paddingHorizontal: Theme.spacing.lg,
   },
 
   registerTitle: {
     textAlign: 'center',
-    marginTop: Theme.spacing.sm,
+    marginTop: Platform.OS === 'ios' ? Theme.spacing.xl : Theme.spacing.sm,
     marginBottom: Theme.spacing.lg,
   },
 
   registerFormContainer: {
-    paddingHorizontal: Theme.spacing.base,
     gap: Theme.spacing.md,
   },
 

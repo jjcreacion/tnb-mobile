@@ -9,14 +9,22 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.thenationalbuilders.tnb"
+      "bundleIdentifier": "com.thenationalbuilders.tnb",
+      "infoPlist": {
+        "UIViewControllerBasedStatusBarAppearance": false
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.thenationalbuilders.tnb"
+      "package": "com.thenationalbuilders.tnb",
+      "statusBar": {
+        "barStyle": "dark-content",
+        "backgroundColor": "#FFFFFF",
+        "translucent": false
+      }
     },
     "web": {
       "bundler": "metro",

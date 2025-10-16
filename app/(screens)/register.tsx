@@ -3,10 +3,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Picker } from '@react-native-picker/picker';
 import Constants from 'expo-constants';
 import * as Location from 'expo-location';
-import { StatusBar } from 'expo-status-bar';
 import { Formik } from 'formik';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, StatusBar, View } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { WebView } from 'react-native-webview';
@@ -364,8 +363,13 @@ const Register: React.FC<RegisterProps> = ({ isVisible, onClose, IsVerify, passw
 
   return (
     <>
-      <SafeAreaView style={MigratedStyles.registerContainer} edges={['top', 'left', 'right']}>
-        <KeyboardAvoidingView 
+      <StatusBar
+        barStyle="dark-content"
+        backgroundColor="#FFFFFF"
+        translucent={false}
+      />
+      <SafeAreaView style={MigratedStyles.registerContainer} edges={['top', 'left', 'right', 'bottom']}>
+        <KeyboardAvoidingView
         style={MigratedStyles.registerKeyboardAvoidingView}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 20}
@@ -608,7 +612,6 @@ const Register: React.FC<RegisterProps> = ({ isVisible, onClose, IsVerify, passw
       )}
       </KeyboardAvoidingView>
     </SafeAreaView>
-    <StatusBar style="light" backgroundColor={Theme.colors.primary[500]} />
     </>
   );
 };
