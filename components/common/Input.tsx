@@ -102,46 +102,39 @@ export const Input = forwardRef((
       // iOS specific: Mark that we're toggling to prevent value sync issues
       isTogglingRef.current = true;
 
-      // Store current value and cursor position
+      // Store current value and cursor position BEFORE changing state
       const currentValue = rest.value as string || internalValue;
       const currentCursorPos = cursorPositionRef.current;
-      const wasFocused = isFocused;
 
       setIsPasswordVisible((prev) => {
         const newVisibility = !prev;
 
-        // iOS: Use multiple frames to ensure proper state updates
+        // iOS: Use requestAnimationFrame to ensure proper state updates
+        // without losing focus or dismissing the keyboard
         requestAnimationFrame(() => {
-          requestAnimationFrame(() => {
-            if (inputRef.current) {
-              // Force value update using setNativeProps
-              inputRef.current.setNativeProps({
-                text: currentValue,
-              });
+          if (inputRef.current) {
+            // Force value update using setNativeProps to maintain the text
+            inputRef.current.setNativeProps({
+              text: currentValue,
+            });
 
-              // Restore focus if it was focused before
-              if (wasFocused) {
-                inputRef.current.focus();
-              }
-
-              // Restore cursor position
-              if (currentCursorPos !== undefined) {
-                requestAnimationFrame(() => {
-                  inputRef.current?.setNativeProps({
-                    selection: {
-                      start: currentCursorPos,
-                      end: currentCursorPos,
-                    },
-                  });
+            // Restore cursor position without changing focus
+            if (currentCursorPos !== undefined) {
+              requestAnimationFrame(() => {
+                inputRef.current?.setNativeProps({
+                  selection: {
+                    start: currentCursorPos,
+                    end: currentCursorPos,
+                  },
                 });
-              }
-
-              // Reset toggling flag
-              setTimeout(() => {
-                isTogglingRef.current = false;
-              }, 100);
+              });
             }
-          });
+
+            // Reset toggling flag
+            setTimeout(() => {
+              isTogglingRef.current = false;
+            }, 50);
+          }
         });
 
         return newVisibility;
@@ -150,7 +143,7 @@ export const Input = forwardRef((
       // Android: Simple toggle
       setIsPasswordVisible((prev) => !prev);
     }
-  }, [rest.value, internalValue, isFocused]);
+  }, [rest.value, internalValue]);
 
   const inputContainerStyles = [
     styles.inputContainer,
@@ -188,7 +181,6 @@ export const Input = forwardRef((
 
         <TextInput
           ref={inputRef}
-          key={Platform.OS === 'ios' && secureTextEntry ? `secure-${isPasswordVisible}` : undefined}
           style={inputStyles}
           placeholderTextColor={Theme.colors.text.tertiary}
           editable={!disabled}
@@ -196,7 +188,7 @@ export const Input = forwardRef((
           onBlur={handleBlur}
           onSelectionChange={handleSelectionChange}
           secureTextEntry={secureTextEntry && !isPasswordVisible}
-          defaultValue={Platform.OS === 'ios' && secureTextEntry ? internalValue : undefined}
+          value={Platform.OS === 'ios' && secureTextEntry ? internalValue : rest.value}
           autoCorrect={rest.autoCorrect ?? (secureTextEntry ? false : undefined)}
           autoCapitalize={rest.autoCapitalize ?? (secureTextEntry ? 'none' : undefined)}
           autoComplete={rest.autoComplete as any}
