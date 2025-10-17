@@ -189,139 +189,138 @@ const SignUp: React.FC<ModalProps> = ({ isVisible, onClose }) => {
             <View style={styles.keyboardAvoidingView}>
               {!showVerifyCode ? (
                 <KeyboardAvoidingView
-                  behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+                  behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                   style={styles.innerContainer}
-                  keyboardVerticalOffset={0}
-                  enabled={Platform.OS === 'ios'}
+                  keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
                 >
-                  <ScrollView
-                    contentContainerStyle={styles.scrollContent}
-                    keyboardShouldPersistTaps="handled"
-                    showsVerticalScrollIndicator={false}
-                    bounces={false}
-                  >
-                    <View style={styles.content}>
-                    {/* Header */}
-                    <View style={styles.header}>
-                      <Text style={styles.title}>Create Your Account</Text>
-                      <Text style={styles.subtitle}>Let's get you started!</Text>
-                    </View>
-
-                    {/* Close Button */}
-                    <TouchableOpacity
-                      onPress={handleClose}
-                      style={styles.closeButton}
-                      activeOpacity={0.7}
-                      disabled={loading}
+                  <View style={styles.content}>
+                    <ScrollView
+                      contentContainerStyle={styles.scrollContent}
+                      keyboardShouldPersistTaps="handled"
+                      showsVerticalScrollIndicator={false}
+                      bounces={true}
                     >
-                      <Ionicons 
-                        name="close" 
-                        size={24} 
-                        color={Theme.colors.neutral[500]} 
-                      />
-                    </TouchableOpacity>
-
-                    {/* Form */}
-                    <View style={styles.form}>
-                      <Input
-                        ref={emailRef}
-                        label="Email Address"
-                        placeholder="you@example.com"
-                        value={email}
-                        onChangeText={(text) => {
-                          setEmail(text);
-                          setEmailError('');
-                          setExist(false);
-                        }}
-                        error={emailError}
-                        leftIcon="mail-outline"
-                        keyboardType="email-address"
-                        autoCapitalize="none"
-                        autoComplete="email"
-                        editable={!loading}
-                        returnKeyType="next"
-                        onSubmitEditing={() => passwordRef.current?.focus()}
-                      />
-
-                      <Input
-                        ref={passwordRef}
-                        label="Password"
-                        placeholder="Enter your password"
-                        value={password}
-                        onChangeText={(text) => {
-                          setPassword(text);
-                          setPasswordError('');
-                        }}
-                        error={passwordError}
-                        leftIcon="lock-closed-outline"
-                        secureTextEntry={true}
-                        autoCapitalize="none"
-                        autoCorrect={false}
-                        autoComplete="new-password"
-                        textContentType="newPassword"
-                        editable={!loading}
-                        returnKeyType="next"
-                        onSubmitEditing={() => confirmPasswordRef.current?.focus()}
-                      />
-
-                      <Input
-                        ref={confirmPasswordRef}
-                        label="Confirm Password"
-                        placeholder="Confirm your password"
-                        value={confirmPassword}
-                        onChangeText={(text) => {
-                          setConfirmPassword(text);
-                          setConfirmPasswordError('');
-                        }}
-                        error={confirmPasswordError}
-                        leftIcon="lock-closed-outline"
-                        secureTextEntry={true}
-                        autoCapitalize="none"
-                        autoCorrect={false}
-                        autoComplete="new-password"
-                        textContentType="newPassword"
-                        editable={!loading}
-                        returnKeyType="go"
-                        onSubmitEditing={handleNext}
-                      />
-
-                      {exist && (
-                        <View style={styles.errorContainer}>
-                          <Ionicons
-                            name="alert-circle"
-                            size={20}
-                            color={Theme.colors.error[500]}
-                          />
-                          <Text style={styles.errorMessage}>
-                            This email is already in use.{'\n'}
-                            Please sign in or use a different email.
-                          </Text>
-                        </View>
-                      )}
-
-                      <Button
-                        title="Continue"
-                        onPress={handleNext}
-                        loading={loading}
-                        fullWidth
-                        size="lg"
-                        variant="primary"
-                        style={styles.continueButton}
-                      />
-
-                      <View style={styles.footer}>
-                        <Text style={styles.footerText}>Already have an account? </Text>
-                        <Button
-                          title="Sign In"
-                          variant="ghost"
-                          size="sm"
-                          onPress={handleClose}
-                          disabled={loading}
-                        />
+                      {/* Header */}
+                      <View style={styles.header}>
+                        <Text style={styles.title}>Create Your Account</Text>
+                        <Text style={styles.subtitle}>Let's get you started!</Text>
                       </View>
-                    </View>
+
+                      {/* Close Button */}
+                      <TouchableOpacity
+                        onPress={handleClose}
+                        style={styles.closeButton}
+                        activeOpacity={0.7}
+                        disabled={loading}
+                      >
+                        <Ionicons
+                          name="close"
+                          size={24}
+                          color={Theme.colors.neutral[500]}
+                        />
+                      </TouchableOpacity>
+
+                      {/* Form */}
+                      <View style={styles.form}>
+                        <Input
+                          ref={emailRef}
+                          label="Email Address"
+                          placeholder="you@example.com"
+                          value={email}
+                          onChangeText={(text) => {
+                            setEmail(text);
+                            setEmailError('');
+                            setExist(false);
+                          }}
+                          error={emailError}
+                          leftIcon="mail-outline"
+                          keyboardType="email-address"
+                          autoCapitalize="none"
+                          autoComplete="email"
+                          editable={!loading}
+                          returnKeyType="next"
+                          onSubmitEditing={() => passwordRef.current?.focus()}
+                        />
+
+                        <Input
+                          ref={passwordRef}
+                          label="Password"
+                          placeholder="Enter your password"
+                          value={password}
+                          onChangeText={(text) => {
+                            setPassword(text);
+                            setPasswordError('');
+                          }}
+                          error={passwordError}
+                          leftIcon="lock-closed-outline"
+                          secureTextEntry={true}
+                          autoCapitalize="none"
+                          autoCorrect={false}
+                          autoComplete="new-password"
+                          textContentType="newPassword"
+                          editable={!loading}
+                          returnKeyType="next"
+                          onSubmitEditing={() => confirmPasswordRef.current?.focus()}
+                        />
+
+                        <Input
+                          ref={confirmPasswordRef}
+                          label="Confirm Password"
+                          placeholder="Confirm your password"
+                          value={confirmPassword}
+                          onChangeText={(text) => {
+                            setConfirmPassword(text);
+                            setConfirmPasswordError('');
+                          }}
+                          error={confirmPasswordError}
+                          leftIcon="lock-closed-outline"
+                          secureTextEntry={true}
+                          autoCapitalize="none"
+                          autoCorrect={false}
+                          autoComplete="new-password"
+                          textContentType="newPassword"
+                          editable={!loading}
+                          returnKeyType="go"
+                          onSubmitEditing={handleNext}
+                        />
+
+                        {exist && (
+                          <View style={styles.errorContainer}>
+                            <Ionicons
+                              name="alert-circle"
+                              size={20}
+                              color={Theme.colors.error[500]}
+                            />
+                            <Text style={styles.errorMessage}>
+                              This email is already in use.{'\n'}
+                              Please sign in or use a different email.
+                            </Text>
+                          </View>
+                        )}
+
+                        <Button
+                          title="Continue"
+                          onPress={handleNext}
+                          loading={loading}
+                          fullWidth
+                          size="lg"
+                          variant="primary"
+                          style={styles.continueButton}
+                        />
+
+                        <View style={styles.footer}>
+                          <Text style={styles.footerText}>Already have an account? </Text>
+                          <Button
+                            title="Sign In"
+                            variant="ghost"
+                            size="sm"
+                            onPress={handleClose}
+                            disabled={loading}
+                          />
+                        </View>
+                      </View>
+                    </ScrollView>
                   </View>
-                </ScrollView>
                 </KeyboardAvoidingView>
               ) : (
                 <VerifyCode
@@ -351,28 +350,26 @@ const styles = StyleSheet.create({
   },
 
   innerContainer: {
-    flex: 1,
     justifyContent: 'flex-end',
-  },
-
-  scrollContent: {
-    flexGrow: 1,
-    justifyContent: 'flex-end',
+    maxHeight: '90%',
   },
 
   content: {
     backgroundColor: Theme.colors.background.primary,
     borderTopLeftRadius: Theme.borderRadius['3xl'],
     borderTopRightRadius: Theme.borderRadius['3xl'],
+    maxHeight: '100%',
+    overflow: 'hidden',
+    ...Theme.shadows.xl,
+  },
+
+  scrollContent: {
     paddingTop: Theme.spacing['2xl'],
     paddingHorizontal: Theme.spacing.xl,
     paddingBottom: Platform.select({
-      ios: Theme.spacing.xl,
-      android: Theme.spacing.lg,
+      ios: Theme.spacing['3xl'],
+      android: Theme.spacing['2xl'],
     }),
-    minHeight: '65%',
-    maxHeight: '90%',
-    ...Theme.shadows.xl,
   },
 
   header: {
@@ -407,7 +404,7 @@ const styles = StyleSheet.create({
   },
 
   form: {
-    flex: 1,
+    width: '100%',
   },
 
   errorContainer: {
@@ -440,6 +437,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginTop: Theme.spacing.lg,
     paddingVertical: Theme.spacing.sm,
+    marginBottom: Theme.spacing.md,
   },
 
   footerText: {
