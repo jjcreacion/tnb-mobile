@@ -202,6 +202,7 @@ export const Input = forwardRef((
           autoComplete={rest.autoComplete as any}
           textContentType={rest.textContentType as any}
           keyboardType={rest.keyboardType}
+          submitBehavior={rest.returnKeyType === 'next' || rest.returnKeyType === 'done' ? 'submit' : 'blurAndSubmit'}
           {...(rest as any)}
         />
 
