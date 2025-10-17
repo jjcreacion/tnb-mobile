@@ -25,6 +25,7 @@ interface AddressAutocompleteProps {
   style?: any
   addressLine2Ref?: React.RefObject<TextInput | null>
   addressLine2Value?: string
+  onScrollEnabledChange?: (enabled: boolean) => void
 }
 
 export const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
@@ -37,8 +38,11 @@ export const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
   style,
   addressLine2Ref,
   addressLine2Value = '',
+  onScrollEnabledChange,
 }) => {
   const [suggestions, setSuggestions] = useState<AddressAutocompleteSuggestion[]>([])
+  const [allSuggestions, setAllSuggestions] = useState<AddressAutocompleteSuggestion[]>([])
+  const [displayedCount, setDisplayedCount] = useState(5)
   const [isLoading, setIsLoading] = useState(false)
   const [showSuggestions, setShowSuggestions] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -47,10 +51,21 @@ export const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
   const [selectedValue, setSelectedValue] = useState<string>('')
   const [isSelectionInProgress, setIsSelectionInProgress] = useState(false)
   const [internalValue, setInternalValue] = useState<string>(value)
+  const [isInputFocused, setIsInputFocused] = useState(false)
 
   const textInputRef = useRef<TextInput>(null)
   const isMounted = useRef(true)
   const debounceTimerRef = useRef<number | null>(null)
+  const scrollViewRef = useRef<ScrollView>(null)
+  const lastQueryRef = useRef<string>('')
+
+  // Control parent scroll based on input focus and suggestions
+  useEffect(() => {
+    if (onScrollEnabledChange) {
+      const shouldDisableScroll = isInputFocused && showSuggestions && suggestions.length > 0
+      onScrollEnabledChange(!shouldDisableScroll)
+    }
+  }, [isInputFocused, showSuggestions, suggestions.length, onScrollEnabledChange])
 
   // Cleanup on unmount
   useEffect(() => {
@@ -60,8 +75,12 @@ export const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
         clearTimeout(debounceTimerRef.current)
         debounceTimerRef.current = null
       }
+      // Re-enable parent scroll on unmount
+      if (onScrollEnabledChange) {
+        onScrollEnabledChange(true)
+      }
     }
-  }, [])
+  }, [onScrollEnabledChange])
 
   // Sync external value with internal value
   useEffect(() => {
@@ -77,14 +96,27 @@ export const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
       setSelectedValue('')
       setIsSelectionInProgress(false)
       setSuggestions([])
+      setAllSuggestions([])
+      setDisplayedCount(5)
       setShowSuggestions(false)
     }
   }, [internalValue, hasCompletedSelection, selectedValue])
 
-  // Debounced search function
+  // Reset suggestions when query changes
+  useEffect(() => {
+    if (internalValue !== lastQueryRef.current && internalValue.length >= MAPBOX_CONFIG.minChars) {
+      lastQueryRef.current = internalValue
+      setDisplayedCount(5)
+      setAllSuggestions([])
+    }
+  }, [internalValue])
+
+  // Debounced search function - fetch up to 30 results but show only 5 initially
   const searchAddresses = useCallback(async (query: string) => {
     if (!isMounted.current || query.length < MAPBOX_CONFIG.minChars) {
       setSuggestions([])
+      setAllSuggestions([])
+      setDisplayedCount(5)
       setIsLoading(false)
       setHasSearched(false)
       return
@@ -98,17 +130,20 @@ export const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
 
     try {
       setError(null)
-      const results = await mapboxSearchService.searchAddresses(query)
-      
+      // Request 30 results from API (we'll display 5 at a time)
+      const results = await mapboxSearchService.searchAddresses(query, 30)
+
       if (isMounted.current) {
-        setSuggestions(results)
+        setAllSuggestions(results)
+        setSuggestions(results.slice(0, 5))
+        setDisplayedCount(5)
         setShowSuggestions(true)
         setHasSearched(true)
       }
     } catch (err) {
       if (isMounted.current) {
         const mapboxError = err as MapboxError
-        
+
         // Handle timeout errors more gracefully
         if (mapboxError.isTimeoutError) {
           // For timeout errors, just clear suggestions and allow manual entry
@@ -118,8 +153,10 @@ export const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
           // For other errors, show the error message
           setError(mapboxError.message)
         }
-        
+
         setSuggestions([])
+        setAllSuggestions([])
+        setDisplayedCount(5)
         setHasSearched(true)
       }
     } finally {
@@ -127,7 +164,6 @@ export const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
         setIsLoading(false)
       }
     }
-  // }, [hasCompletedSelection, selectedValue, isSelectionInProgress])
   }, [hasCompletedSelection, selectedValue, isSelectionInProgress])
 
   const debouncedSearch = useCallback((query: string) => {
@@ -141,6 +177,28 @@ export const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
       searchAddresses(query)
     }, MAPBOX_CONFIG.debounceMs)
   }, [searchAddresses])
+
+  // Load more suggestions when scrolling to the end
+  const handleLoadMore = useCallback(() => {
+    if (displayedCount >= allSuggestions.length || displayedCount >= 30) {
+      return // Already showing all or reached max limit
+    }
+
+    const nextCount = Math.min(displayedCount + 5, allSuggestions.length, 30)
+    setDisplayedCount(nextCount)
+    setSuggestions(allSuggestions.slice(0, nextCount))
+  }, [displayedCount, allSuggestions])
+
+  // Handle scroll end event
+  const handleScroll = useCallback((event: any) => {
+    const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent
+    const paddingToBottom = 20
+    const isCloseToBottom = layoutMeasurement.height + contentOffset.y >= contentSize.height - paddingToBottom
+
+    if (isCloseToBottom) {
+      handleLoadMore()
+    }
+  }, [handleLoadMore])
 
   // Handle text input changes
   const handleTextChange = (text: string) => {
@@ -288,6 +346,8 @@ export const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
 
   // Hide suggestions when input loses focus
   const handleBlur = () => {
+    setIsInputFocused(false)
+
     // Don't hide suggestions if selection is in progress
     if (isSelectionInProgress) {
       return
@@ -303,6 +363,8 @@ export const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
 
   // Show suggestions when input gains focus
   const handleFocus = () => {
+    setIsInputFocused(true)
+
     // Don't show suggestions if selection is in progress
     if (isSelectionInProgress) {
       return
@@ -386,11 +448,14 @@ export const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
             </View>
           ) : suggestions.length > 0 ? (
             <ScrollView
+              ref={scrollViewRef}
               style={addressStyles.suggestionsList}
               keyboardShouldPersistTaps="handled"
               showsVerticalScrollIndicator={true}
               bounces={true}
               nestedScrollEnabled={true}
+              onScroll={handleScroll}
+              scrollEventThrottle={16}
             >
               {suggestions.map((item) => (
                 <TouchableOpacity
@@ -414,6 +479,13 @@ export const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
                   </View>
                 </TouchableOpacity>
               ))}
+              {displayedCount < allSuggestions.length && displayedCount < 30 && (
+                <View style={addressStyles.loadingMoreContainer}>
+                  <Text style={addressStyles.loadingMoreText}>
+                    Showing {displayedCount} of {Math.min(allSuggestions.length, 30)} results
+                  </Text>
+                </View>
+              )}
             </ScrollView>
           ) : hasSearched && !isLoading ? (
             <View style={addressStyles.noResultsContainer}>
