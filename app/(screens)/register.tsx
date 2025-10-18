@@ -1,630 +1,700 @@
-import { FontAwesome } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Picker } from '@react-native-picker/picker';
-import Constants from 'expo-constants';
-import * as Location from 'expo-location';
-import { Formik } from 'formik';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StatusBar, View } from 'react-native';
-import MapView, { Marker } from 'react-native-maps';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { WebView } from 'react-native-webview';
-import * as Yup from 'yup';
+import { FontAwesome } from '@expo/vector-icons'
+import { useRouter } from 'expo-router'
+import { Formik } from 'formik'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
+import {
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native'
+import { SafeAreaView } from 'react-native-safe-area-context'
+import * as Yup from 'yup'
 
-// Theme and modern components
-import { Button } from '../../components/common/Button';
-import { Input } from '../../components/common/Input';
-import { Loading } from '../../components/common/Loading';
+// Components
+import { Button } from '../../components/common/Button'
+import { Input } from '../../components/common/Input'
+import { Loading } from '../../components/common/Loading'
+import { Typography } from '../../components/common/Typography'
+import { CountryCodeSelector } from '../../components/registration/CountryCodeSelector'
+import { DateInput } from '../../components/registration/DateInput'
 
-import { Typography } from '../../components/common/Typography';
-import { MigratedStyles } from '../../constants/MigratedStyles';
-import { Theme } from '../../constants/Theme';
+// Address components (reused from AddressModal)
+import { AddressAutocomplete } from '../../components/person-address/AddressAutocomplete'
+import { AddressMappingService } from '../../components/person-address/AddressMappingService'
+import { CitySelector } from '../../components/person-address/CitySelector'
+import { StateSelector } from '../../components/person-address/StateSelector'
+import type { City, State } from '../../components/person-address/types'
+import type { ParsedMapboxAddress } from '../../components/person-address/mapbox'
+import { isMapboxAvailable, MAPBOX_CONFIG } from '../../components/person-address/mapbox'
 
-import RegisterComplete from './registerComplete';
+// Services
+import { authService } from '../../services/api/authService'
 
-const API_BASE_URL = Constants.expoConfig?.extra?.API_BASE_URL || 'http://216.246.113.71:8080';
-const RECOVERY_URL = `${API_BASE_URL}/referrals/get-referral-code`; 
+// Hooks
+import { useRegistration } from '../../hooks/useRegistration'
 
-interface RegisterProps {
-  isVisible: boolean;
-  onClose: () => void;
-  IsVerify: () => void;
-  password?: string;
-}
+// Theme
+import { Theme } from '../../constants/Theme'
+import type { RegistrationFormData } from '../../types/registration'
 
-const Register: React.FC<RegisterProps> = ({ isVisible, onClose, IsVerify, password: propPassword }) => {
-  const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState('');
-  const [error, setError] = useState('');
-  const [focusedInput, setFocusedInput] = useState<string | null>(null);
-  const [showComplete, setshowComplete] = useState(false);
-  const [referralCode, setReferralCode] = useState<string | null>(null);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [loadingReferralCode, setLoadingReferralCode] = useState(true); 
-  const [referralCodeStatus, setReferralCodeStatus] = useState<'loading' | 'found' | 'not_found' | 'error'>('loading'); 
-  const DEFAULT_LATITUDE_DELTA = 0.0922;
-  const DEFAULT_LONGITUDE_DELTA = 0.0421;
+// Validation Schema
+const validationSchema = Yup.object().shape({
+  firstName: Yup.string().required('First Name is required').min(2, 'Too short'),
+  lastName: Yup.string().required('Last Name is required').min(2, 'Too short'),
+  birthDate: Yup.string().required('Date of Birth is required'),
+  phoneNumber: Yup.string()
+    .required('Phone number is required')
+    .min(10, 'Phone number must be at least 10 digits'),
+  address: Yup.string().required('Address is required'),
+  city: Yup.string().required('City is required'),
+  state: Yup.string().required('State is required'),
+  zipCode: Yup.string().required('Zip Code is required'),
+})
 
-  const [mapRegion, setMapRegion] = useState<{ latitude: number; longitude: number; latitudeDelta: number; longitudeDelta: number } | null>(null);
-  const [markerCoordinate, setMarkerCoordinate] = useState<{ latitude: number; longitude: number } | null>(null);
+// Main Register Component
+const Register: React.FC = () => {
+  const router = useRouter()
+  const { loading, registerUser } = useRegistration()
 
-  const [selectedCountryId, setSelectedCountryId] = useState<number | null>(null);
-  const [selectedStateId, setSelectedStateId] = useState<number | null>(null);
-  const [selectedCityId, setSelectedCityId] = useState<number | null>(null);
+  const [cities, setCities] = useState<City[]>([])
+  const [states, setStates] = useState<State[]>([])
+  const [loadingData, setLoadingData] = useState(true)
 
-  const [dynamicCountries, setDynamicCountries] = useState<{ label: string; value: number }[]>([]);
-  const [dynamicStates, setDynamicStates] = useState<{ [countryName: string]: { label: string; value: number }[] }>({});
-  const [dynamicCities, setDynamicCities] = useState<{ [stateName: string]: { label: string; value: number }[] }>({});
+  // Screen navigation
+  const [currentScreen, setCurrentScreen] = useState<'form' | 'city' | 'state'>('form')
+  const [filteredCities, setFilteredCities] = useState<City[]>([])
+  const [citySearchText, setCitySearchText] = useState('')
+  const [stateSearchText, setStateSearchText] = useState('')
 
-  const [countryIdToNameMap, setCountryIdToNameMap] = useState<{ [key: number]: string }>({});
-  const [stateIdToNameMap, setStateIdToNameMap] = useState<{ [key: number]: string }>({});
+  // Form state (shared across screens)
+  const [formData, setFormData] = useState<any>({
+    firstName: '',
+    lastName: '',
+    birthDate: '',
+    countryCode: '+1',
+    phoneNumber: '',
+    address: '',
+    addressLine2: '',
+    city: '',
+    cityId: null,
+    state: '',
+    stateId: null,
+    zipCode: '',
+    latitude: undefined,
+    longitude: undefined,
+    isMapboxResult: false,
+  })
 
-  const mapRef = useRef<MapView>(null);
-  const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const API_URL = Constants.expoConfig?.extra?.API_BASE_URL || 'http://216.246.113.71:8080';
+  // Address field refs
+  const zipCodeRef = useRef<TextInput>(null)
+  const addressLine2Ref = useRef<TextInput>(null)
+  const [useManualEntry, setUseManualEntry] = useState(false)
+  const [mappingWarnings, setMappingWarnings] = useState<string[]>([])
 
-  const countryDisplayNameToEnglishNameMap = useMemo(() => ({
-    'Estados Unidos': 'United States',
-    'Canadá': 'Canada',
-    'México': 'Mexico',
-    // Add other mappings if necessary
-  } as { [key: string]: string }), []);
-
-  // Configure StatusBar on mount
+  // Configure StatusBar
   useEffect(() => {
-    StatusBar.setBarStyle('dark-content');
+    StatusBar.setBarStyle('dark-content')
     if (Platform.OS === 'android') {
-      StatusBar.setBackgroundColor('#FFFFFF');
-      StatusBar.setTranslucent(false);
+      StatusBar.setBackgroundColor('#FFFFFF')
+      StatusBar.setTranslucent(false)
     }
-  }, []);
+  }, [])
 
+  // Load cities and states
   useEffect(() => {
-    (async () => {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        setError('Location permission was denied. You can manually enter your address or use "Use My Current GPS Location" button.');
-      }
-    })();
-  }, []);
-
-  // Timeout fallback for referral code loading
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      if (referralCodeStatus === 'loading') {
-        console.log('⏰ Referral code loading timeout, proceeding without code');
-        setLoadingReferralCode(false);
-        setReferralCodeStatus('not_found');
-        setReferralCode(null);
-      }
-    }, 3000); // 3 second timeout (shorter than before)
-
-    return () => clearTimeout(timeout);
-  }, [referralCodeStatus]);
-
-  const handleWebViewMessage = (event: any) => {
-    const data: string = event.nativeEvent.data;
-    
-    if (data.startsWith('referralCode:')) {
-      const code = data.split(':')[1];
-      
-      setLoadingReferralCode(false); 
-      console.log("Codigo de referido: "+referralCode);
-      
-      if (code && code !== 'NOT_FOUND') {
-        setReferralCode(code);
-        setReferralCodeStatus('found');
-        console.log('✅ Código de referido recuperado:', code);
-      } else {
-        setReferralCode(null);
-        setReferralCodeStatus('not_found');
-        console.log('❌ No se encontró un código pendiente.');
-      }
-    }
-  };
-
-
-
-  // States for optimized lazy loading
-  const [loadingCountries, setLoadingCountries] = useState(true);
-  const [loadingStates, setLoadingStates] = useState(false);
-  const [loadingCities, setLoadingCities] = useState(false);
-
-  // Load countries in background without blocking UI
-  useEffect(() => {
-    const fetchCountries = async () => {
+    const loadData = async () => {
       try {
-        const countriesResponse = await fetch(`${API_URL}/country/findAll`);
-        if (!countriesResponse.ok) throw new Error('Failed to fetch countries');
-        const rawCountries = await countriesResponse.json();
+        const [citiesData, statesData] = await Promise.all([
+          authService.getAllCities(),
+          authService.getAllStates(),
+        ])
 
-        const countries = rawCountries.map((country: any) => ({
-          label: country.name,
-          value: country.pkCountry,
-        }));
+        const mappedCities = citiesData.map((c) => ({
+          pkCity: c.pkCity,
+          name: c.name,
+          fkState: c.fkState,
+          status: 1,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        }))
 
-        const countryIdMap: { [key: number]: string } = {};
-        rawCountries.forEach((country: any) => {
-          countryIdMap[country.pkCountry] = country.name;
-        });
+        const mappedStates = statesData.map((s) => ({
+          pkState: s.pkState,
+          name: s.name,
+          fkCountry: s.fkCountry,
+          internalCode: '',
+          status: 1,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        }))
 
-        setDynamicCountries(countries);
-        setCountryIdToNameMap(countryIdMap);
+        setCities(mappedCities)
+        setStates(mappedStates)
+        setFilteredCities(mappedCities)
       } catch (error) {
-        console.error('Error fetching countries:', error);
-        setError('Failed to load countries');
+        console.error('Error loading cities and states:', error)
       } finally {
-        setLoadingCountries(false);
+        setLoadingData(false)
       }
-    };
-
-    fetchCountries();
-  }, [API_URL]);
-
-  // Load states when country is selected
-  const loadStatesForCountry = useCallback(async (countryId: number) => {
-    try {
-      const countryName = countryIdToNameMap[countryId];
-      if (!countryName || dynamicStates[countryName]) return; // Already loaded
-
-      setLoadingStates(true);
-      const statesResponse = await fetch(`${API_URL}/state/findAll`);
-      if (statesResponse.ok) {
-        const rawStates = await statesResponse.json();
-        
-        // Filter states for the selected country
-        const countryStates = rawStates.filter((state: any) => state.fkCountry === countryId);
-        console.log(`Loading states for ${countryName}:`, countryStates);
-
-        const states = countryStates.map((state: any) => ({
-          label: state.name,
-          value: state.pkState,
-        }));
-
-        const newStateIdMap = { ...stateIdToNameMap };
-        countryStates.forEach((state: any) => {
-          newStateIdMap[state.pkState] = state.name;
-        });
-
-        setDynamicStates(prev => ({ ...prev, [countryName]: states }));
-        setStateIdToNameMap(newStateIdMap);
-      }
-    } catch (error) {
-      console.error('Error loading states:', error);
-    } finally {
-      setLoadingStates(false);
     }
-  }, [API_URL, countryIdToNameMap, dynamicStates, stateIdToNameMap]);
 
-  // Load cities when state is selected
-  const loadCitiesForState = useCallback(async (stateId: number) => {
-    try {
-      const stateName = stateIdToNameMap[stateId];
-      if (!stateName || dynamicCities[stateName]) return; // Already loaded
+    loadData()
+  }, [])
 
-      setLoadingCities(true);
-      const citiesResponse = await fetch(`${API_URL}/country_city/findAll`);
-      if (citiesResponse.ok) {
-        const rawCities = await citiesResponse.json();
-        
-        // Filter cities for the selected state
-        const stateCities = rawCities.filter((city: any) => city.fkState === stateId);
-        console.log(`Loading cities for ${stateName}:`, stateCities);
-
-        const cities = stateCities.map((city: any) => ({
-          label: city.name,
-          value: city.pkCity,
-        }));
-
-        setDynamicCities(prev => ({ ...prev, [stateName]: cities }));
+  const updateLocalEntities = useCallback(
+    (createdEntities: { state?: State; city?: City }) => {
+      if (createdEntities.state) {
+        setStates((prev) => {
+          const exists = prev.find((s) => s.pkState === createdEntities.state!.pkState)
+          if (!exists) {
+            return [...prev, createdEntities.state!]
+          }
+          return prev
+        })
       }
-    } catch (error) {
-      console.error('Error loading cities:', error);
-    } finally {
-      setLoadingCities(false);
+
+      if (createdEntities.city) {
+        setCities((prev) => {
+          const exists = prev.find((c) => c.pkCity === createdEntities.city!.pkCity)
+          if (!exists) {
+            return [...prev, createdEntities.city!]
+          }
+          return prev
+        })
+      }
+    },
+    []
+  )
+
+  // Handle Mapbox address selection
+  const handleAddressSelect = async (mapboxAddress: ParsedMapboxAddress, selectedText: string) => {
+    if (MAPBOX_CONFIG.enabled && !MAPBOX_CONFIG.useLocalDatabaseMapping) {
+      setFormData({
+        ...formData,
+        address: selectedText,
+        addressLine2: '',
+        city: mapboxAddress.city || '',
+        cityId: null,
+        state: mapboxAddress.stateCode || mapboxAddress.state || '',
+        stateId: null,
+        zipCode: mapboxAddress.zipCode || '',
+        latitude: mapboxAddress.latitude,
+        longitude: mapboxAddress.longitude,
+        isMapboxResult: true,
+      })
+      setMappingWarnings([])
+    } else {
+      try {
+        const mappingResult = await AddressMappingService.mapToFormDataWithAutoCreation(
+          mapboxAddress,
+          cities,
+          states
+        )
+
+        setFormData({
+          ...formData,
+          address: selectedText,
+          addressLine2: '',
+          city: mappingResult.formData.city,
+          cityId: mappingResult.formData.cityId,
+          state: mappingResult.formData.state,
+          stateId: mappingResult.formData.stateId,
+          zipCode: mappingResult.formData.zipCode,
+          latitude: mappingResult.formData.latitude,
+          longitude: mappingResult.formData.longitude,
+          isMapboxResult: true,
+        })
+
+        setMappingWarnings(mappingResult.warnings)
+
+        if (mappingResult.createdEntities) {
+          updateLocalEntities(mappingResult.createdEntities)
+        }
+      } catch (error) {
+        console.error('Auto-creation mapping failed:', error)
+      }
     }
-  }, [API_URL, stateIdToNameMap, dynamicCities]);
+  }
 
+  const handleCitySelect = (city: City) => {
+    const cityState = states.find((s) => s.pkState === city.fkState)
 
+    setFormData({
+      ...formData,
+      city: city.name,
+      cityId: city.pkCity,
+      state: cityState?.name ?? '',
+      stateId: cityState?.pkState ?? null,
+    })
+    setCurrentScreen('form')
+    setCitySearchText('')
 
-  const validationSchema = Yup.object().shape({
-    first_name: Yup.string().required('First Name is required'),
-    last_name: Yup.string().required('Last Name is required'),
-    address: Yup.string().required('Address is required'),
-  });
+    setTimeout(() => {
+      zipCodeRef.current?.focus()
+    }, 300)
+  }
 
-  const getCurrentLocation = async () => {
-    try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        setError('Permission to access location was denied');
-        return;
-      }
+  const handleStateSelect = (state: State) => {
+    const stateCities = cities.filter((c) => c.fkState === state.pkState)
+    setFilteredCities(stateCities)
 
-      const location = await Location.getCurrentPositionAsync({});
-      const { latitude, longitude } = location.coords;
+    setFormData({
+      ...formData,
+      state: state.name,
+      stateId: state.pkState,
+      city: '',
+      cityId: null,
+    })
+    setCurrentScreen('form')
+    setStateSearchText('')
+  }
 
-      const region = {
-        latitude,
-        longitude,
-        latitudeDelta: DEFAULT_LATITUDE_DELTA,
-        longitudeDelta: DEFAULT_LONGITUDE_DELTA,
-      };
-
-      setMapRegion(region);
-      setMarkerCoordinate({ latitude, longitude });
-
-      if (mapRef.current) {
-        mapRef.current.animateToRegion(region, 1000);
-      }
-    } catch (error) {
-      setError('Failed to get current location');
-      console.error(error);
+  const handleCitySearch = (text: string) => {
+    setCitySearchText(text)
+    if (text === '') {
+      setFilteredCities(cities)
+    } else {
+      const filtered = cities.filter((city) =>
+        city.name.toLowerCase().includes(text.toLowerCase())
+      )
+      setFilteredCities(filtered)
     }
-  };
-
-  const handleRegionChange = (region: any) => {
-    setMapRegion(region);
-    setMarkerCoordinate({ latitude: region.latitude, longitude: region.longitude });
-  };
+  }
 
   const handleSubmit = async (values: any) => {
-    setLoading(true);
-    setError('');
-    setMessage('');
-
-    try {
-      // Get email and password from AsyncStorage
-      const email = await AsyncStorage.getItem('emailForSignIn');
-      const storedPassword = propPassword || await AsyncStorage.getItem('passwordForSignUp');
-
-      if (!email) {
-        setLoading(false);
-        setError('User email not found. Please log in again.');
-        return;
-      }
-
-      if (!storedPassword) {
-        setLoading(false);
-        setError('Password not found. Please start the registration process again.');
-        return;
-      }
-
-      // Construct the user object based on the form values
-      const user = {
-        first_name: values.first_name,
-        last_name: values.last_name,
-        email: email,
-        address: values.address,
-        country_id: selectedCountryId,
-        state_id: selectedStateId,
-        city_id: selectedCityId,
-        latitude: markerCoordinate?.latitude || null,
-        longitude: markerCoordinate?.longitude || null,
-        password: storedPassword,
-        referral_code: referralCode || null,
-      };
-
-      console.log('User data being sent:', user);
-
-      const response = await fetch(`${API_URL}/auth/register`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(user),
-      });
-
-      const data = await response.json();
-      console.log('Registration response:', data);
-
-      if (response.ok) {
-        setMessage('Registration successful!');
-        setshowComplete(true);
-        
-        // Store user data for later use
-        await AsyncStorage.setItem('pendingUser', JSON.stringify(user));
-      } else {
-        setError(data.message || 'Registration failed');
-      }
-    } catch (error) {
-      console.error('Registration error:', error);
-      setError('Network error. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const debounceAddressSearch = useCallback((address: string, setFieldValue: any) => {
-    if (searchTimeoutRef.current) {
-      clearTimeout(searchTimeoutRef.current);
+    const registrationData: RegistrationFormData = {
+      firstName: values.firstName,
+      lastName: values.lastName,
+      birthDate: values.birthDate,
+      countryCode: values.countryCode,
+      phoneNumber: values.phoneNumber,
+      address: values.address,
+      addressLine2: values.addressLine2,
+      city: values.city,
+      cityId: values.cityId,
+      state: values.state,
+      stateId: values.stateId,
+      zipCode: values.zipCode,
+      country: 'United States',
+      latitude: values.latitude,
+      longitude: values.longitude,
+      isMapboxResult: values.isMapboxResult,
     }
 
-    searchTimeoutRef.current = setTimeout(async () => {
-      if (address.length > 3) {
-        try {
-          const geocodeResult = await Location.geocodeAsync(address);
-          if (geocodeResult.length > 0) {
-            const { latitude, longitude } = geocodeResult[0];
-            const region = {
-              latitude,
-              longitude,
-              latitudeDelta: DEFAULT_LATITUDE_DELTA,
-              longitudeDelta: DEFAULT_LONGITUDE_DELTA,
-            };
+    const result = await registerUser(registrationData)
 
-            setMapRegion(region);
-            setMarkerCoordinate({ latitude, longitude });
+    if (result.success) {
+      router.replace('/(screens)/registerComplete')
+    }
+  }
 
-            if (mapRef.current) {
-              mapRef.current.animateToRegion(region, 1000);
-            }
-          }
-        } catch (error) {
-          console.error('Geocoding error:', error);
-        }
-      }
-    }, 1000);
-  }, []);
+  if (loadingData) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top', 'left', 'right', 'bottom']}>
+        <Loading variant="overlay" message="Loading..." />
+      </SafeAreaView>
+    )
+  }
 
-  // Don't block UI for referral code loading - let it load in background
+  // Render City Selector Screen
+  if (currentScreen === 'city') {
+    return (
+      <>
+        <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" translucent={false} />
+        <SafeAreaView style={styles.container} edges={['top', 'left', 'right', 'bottom']}>
+          <View style={styles.header}>
+            <TouchableOpacity
+              onPress={() => setCurrentScreen('form')}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              activeOpacity={0.7}
+            >
+              <FontAwesome name="arrow-left" size={20} color={Theme.colors.neutral[900]} />
+            </TouchableOpacity>
+            <Typography variant="h4" color="primary" style={styles.headerTitle}>
+              Select City
+            </Typography>
+            <View style={{ width: 20 }} />
+          </View>
+          <CitySelector
+            cities={filteredCities}
+            states={states}
+            searchText={citySearchText}
+            onSearchTextChange={handleCitySearch}
+            onCitySelect={handleCitySelect}
+            selectedStateId={formData.stateId}
+          />
+        </SafeAreaView>
+      </>
+    )
+  }
 
+  // Render State Selector Screen
+  if (currentScreen === 'state') {
+    return (
+      <>
+        <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" translucent={false} />
+        <SafeAreaView style={styles.container} edges={['top', 'left', 'right', 'bottom']}>
+          <View style={styles.header}>
+            <TouchableOpacity
+              onPress={() => setCurrentScreen('form')}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              activeOpacity={0.7}
+            >
+              <FontAwesome name="arrow-left" size={20} color={Theme.colors.neutral[900]} />
+            </TouchableOpacity>
+            <Typography variant="h4" color="primary" style={styles.headerTitle}>
+              Select State
+            </Typography>
+            <View style={{ width: 20 }} />
+          </View>
+          <StateSelector
+            states={states}
+            searchText={stateSearchText}
+            onSearchTextChange={setStateSearchText}
+            onStateSelect={handleStateSelect}
+          />
+        </SafeAreaView>
+      </>
+    )
+  }
+
+  // Render Main Form Screen
   return (
     <>
-      <StatusBar
-        barStyle="dark-content"
-        backgroundColor="#FFFFFF"
-        translucent={false}
-      />
-      <SafeAreaView style={MigratedStyles.registerContainer} edges={['top', 'left', 'right', 'bottom']}>
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" translucent={false} />
+      <SafeAreaView style={styles.container} edges={['top', 'left', 'right', 'bottom']}>
         <KeyboardAvoidingView
-        style={MigratedStyles.registerKeyboardAvoidingView}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 20}
-      >
-      <WebView
-        source={{ uri: RECOVERY_URL }}
-        style={MigratedStyles.registerHiddenWebView} 
-        onMessage={handleWebViewMessage}
-        onError={(error) => {
-          console.log('❌ WebView error:', error);
-          setLoadingReferralCode(false);
-          setReferralCodeStatus('error');
-          setReferralCode(null);
-        }}
-        onLoadEnd={() => {
-          console.log('📱 WebView loaded successfully');
-        }}
-        onLoadStart={() => {
-          // WebView started loading, begin referral code check
-          setReferralCodeStatus('loading');
-        }}
-        javaScriptEnabled={true}
-        domStorageEnabled={true}
-      />
-      
-      {!showComplete ? (
-        <Formik
-          initialValues={{
-            first_name: '',
-            last_name: '',
-            address: '',
-          }}
-          validationSchema={validationSchema}
-          onSubmit={handleSubmit}
+          style={styles.keyboardAvoidingView}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
         >
-          {({ handleChange, handleBlur, handleSubmit, values, errors, touched, isValid, setFieldValue }) => (
-            <ScrollView contentContainerStyle={MigratedStyles.registerScrollContent}>
-              <Typography 
-                variant="h3" 
-                color="primary" 
-                style={MigratedStyles.registerTitle}
-              >
-                New User Registration
-              </Typography>
+          {/* Header */}
+          <View style={styles.header}>
+            <TouchableOpacity
+              onPress={() => router.back()}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              activeOpacity={0.7}
+            >
+              <FontAwesome name="arrow-left" size={20} color={Theme.colors.neutral[900]} />
+            </TouchableOpacity>
+            <Typography variant="h4" color="primary" style={styles.headerTitle}>
+              Create Your Account
+            </Typography>
+            <View style={{ width: 20 }} />
+          </View>
 
-              {/* Referral Code Status Indicator - Only show positive states */}
-              {referralCodeStatus === 'found' && referralCode && (
-                <View style={MigratedStyles.registerReferralStatusContainer}>
-                  <Typography variant="caption" color="success" style={MigratedStyles.registerReferralStatus}>
-                    ✅ Referral code applied: {referralCode}
-                  </Typography>
-                </View>
-              )}
-              
-              <View style={MigratedStyles.registerFormContainer}>
-                <Input
-                  label="First Name"
-                  value={values.first_name}
-                  onChangeText={handleChange('first_name')}
-                  onBlur={handleBlur('first_name')}
-                  error={touched.first_name && errors.first_name ? errors.first_name : undefined}
-                  required
-                />
+          <Formik
+            initialValues={formData}
+            validationSchema={validationSchema}
+            onSubmit={handleSubmit}
+            enableReinitialize
+          >
+            {({
+              handleChange,
+              handleBlur,
+              handleSubmit,
+              values,
+              errors,
+              touched,
+              setFieldValue,
+            }) => (
+                <ScrollView
+                  contentContainerStyle={styles.scrollContent}
+                  keyboardShouldPersistTaps="handled"
+                  showsVerticalScrollIndicator={false}
+                >
+                  <View style={styles.formContainer}>
+                    {/* Personal Information Section */}
+                    <Text style={styles.sectionTitle}>Personal Information</Text>
 
-                <Input
-                  label="Last Name"
-                  value={values.last_name}
-                  onChangeText={handleChange('last_name')}
-                  onBlur={handleBlur('last_name')}
-                  error={touched.last_name && errors.last_name ? errors.last_name : undefined}
-                  required
-                />
+                    <Input
+                      label="First Name"
+                      value={values.firstName}
+                      onChangeText={handleChange('firstName')}
+                      onBlur={handleBlur('firstName')}
+                      error={
+                        touched.firstName && errors.firstName
+                          ? String(errors.firstName)
+                          : undefined
+                      }
+                      required
+                    />
 
-                <Input
-                  label="Addressss"
-                  value={values.address}
-                  onChangeText={(text) => {
-                    handleChange('address')(text);
-                    debounceAddressSearch(text, setFieldValue);
-                  }}
-                  onBlur={handleBlur('address')}
-                  error={touched.address && errors.address ? errors.address : undefined}
-                  required
-                  multiline
-                />
+                    <Input
+                      label="Last Name"
+                      value={values.lastName}
+                      onChangeText={handleChange('lastName')}
+                      onBlur={handleBlur('lastName')}
+                      error={
+                        touched.lastName && errors.lastName ? String(errors.lastName) : undefined
+                      }
+                      required
+                    />
 
-                <Typography variant="body1" color="primary" style={MigratedStyles.registerSectionLabel}>
-                  Location on Map
-                </Typography>
-                {mapRegion && (
-                  <MapView
-                    ref={mapRef}
-                    style={MigratedStyles.mapStyle}
-                    region={mapRegion}
-                    onRegionChangeComplete={handleRegionChange}
-                  >
-                    {markerCoordinate && (
-                      <Marker
-                        coordinate={markerCoordinate}
-                        title="Your Location"
-                        description="Drag to adjust location"
-                        draggable
-                        onDragEnd={(e) => setMarkerCoordinate(e.nativeEvent.coordinate)}
+                    <DateInput
+                      label="Date of Birth"
+                      value={values.birthDate}
+                      onChange={(date) => setFieldValue('birthDate', date)}
+                      error={
+                        touched.birthDate && errors.birthDate
+                          ? String(errors.birthDate)
+                          : undefined
+                      }
+                      required
+                    />
+
+                    {/* Phone Section */}
+                    <Text style={styles.sectionTitle}>Phone Number</Text>
+
+                    <Text style={styles.sectionLabel}>Phone *</Text>
+                    <View style={styles.phoneContainer}>
+                      <CountryCodeSelector
+                        selectedCode={values.countryCode}
+                        onSelect={(code) => setFieldValue('countryCode', code)}
+                      />
+                      <TextInput
+                        style={[styles.formInput, styles.phoneInput]}
+                        placeholder="Phone number"
+                        value={values.phoneNumber}
+                        onChangeText={handleChange('phoneNumber')}
+                        onBlur={handleBlur('phoneNumber')}
+                        keyboardType="phone-pad"
+                        placeholderTextColor={Theme.colors.neutral[400]}
+                      />
+                    </View>
+                    {errors.phoneNumber && touched.phoneNumber && (
+                      <Text style={styles.errorText}>{String(errors.phoneNumber)}</Text>
+                    )}
+
+                    {/* Address Section */}
+                    <Text style={styles.sectionTitle}>Address Information</Text>
+
+                    <Text style={styles.sectionLabel}>Address *</Text>
+
+                    {isMapboxAvailable() && !useManualEntry ? (
+                      <AddressAutocomplete
+                        value={values.address}
+                        onChangeText={(text) => {
+                          setFieldValue('address', text)
+                          setFieldValue('latitude', undefined)
+                          setFieldValue('longitude', undefined)
+                          setFieldValue('isMapboxResult', false)
+                        }}
+                        onAddressSelect={handleAddressSelect}
+                        onFallbackToManual={() => setUseManualEntry(true)}
+                        placeholder="e.g 108 Jackson St"
+                        style={styles.formInput}
+                        addressLine2Ref={addressLine2Ref}
+                        addressLine2Value={values.addressLine2 || ''}
+                        onScrollEnabledChange={() => {}}
+                      />
+                    ) : (
+                      <TextInput
+                        style={styles.formInput}
+                        placeholder="e.g 108 Jackson St"
+                        value={values.address}
+                        onChangeText={handleChange('address')}
+                        placeholderTextColor={Theme.colors.neutral[400]}
                       />
                     )}
-                  </MapView>
-                )}
+                    {errors.address && touched.address && (
+                      <Text style={styles.errorText}>{String(errors.address)}</Text>
+                    )}
 
-                <Button
-                  variant="outline"
-                  size="md"
-                  onPress={getCurrentLocation}
-                  style={MigratedStyles.registerGpsButton}
-                  icon={<FontAwesome name="location-arrow" size={18} color={Theme.colors.primary[500]} />}
-                  iconPosition="left"
-                  title="Use My Current GPS Location"
-                />
+                    {mappingWarnings.length > 0 && (
+                      <View style={styles.warningContainer}>
+                        <Text style={styles.warningText}>Note: Please verify address details</Text>
+                      </View>
+                    )}
 
-                <Typography variant="body1" color="primary" style={MigratedStyles.registerSectionLabel}>
-                  Country
-                </Typography>
-                <View style={MigratedStyles.registerPickerContainer}>
-                  <Picker
-                    selectedValue={selectedCountryId}
-                    style={MigratedStyles.registerPicker}
-                    onValueChange={(itemValue) => {
-                      setSelectedCountryId(itemValue);
-                      setSelectedStateId(null);
-                      setSelectedCityId(null);
-                      // Load states for selected country
-                      if (itemValue) {
-                        loadStatesForCountry(itemValue);
-                      }
-                    }}
-                  >
-                    <Picker.Item 
-                      label={loadingCountries ? "Loading countries..." : "Select Country"} 
-                      value={null} 
+                    <Text style={styles.sectionLabel}>Address Line 2 (Optional)</Text>
+                    <TextInput
+                      ref={addressLine2Ref}
+                      style={styles.formInput}
+                      placeholder="Apt, suite, unit, building, floor, etc."
+                      value={values.addressLine2}
+                      onChangeText={handleChange('addressLine2')}
+                      placeholderTextColor={Theme.colors.neutral[400]}
                     />
-                    {!loadingCountries && dynamicCountries.map((country) => (
-                      <Picker.Item key={country.value} label={country.label} value={country.value} />
-                    ))}
-                  </Picker>
-                </View>
 
-                <Typography variant="body1" color="primary" style={MigratedStyles.registerSectionLabel}>
-                  State
-                </Typography>
-                <View style={MigratedStyles.registerPickerContainer}>
-                  <Picker
-                    selectedValue={selectedStateId}
-                    style={MigratedStyles.registerPicker}
-                    onValueChange={(itemValue) => {
-                      setSelectedStateId(itemValue);
-                      setSelectedCityId(null);
-                      // Load cities for selected state
-                      if (itemValue) {
-                        loadCitiesForState(itemValue);
-                      }
-                    }}
-                    enabled={!!selectedCountryId && !loadingStates}
-                  >
-                    <Picker.Item 
-                      label={
-                        !selectedCountryId 
-                          ? "Select Country first" 
-                          : loadingStates 
-                            ? "Loading states..." 
-                            : "Select State"
-                      } 
-                      value={null} 
+                    <View style={styles.formRow}>
+                      <View style={styles.formColumn}>
+                        <Text style={styles.sectionLabel}>State *</Text>
+                        <TouchableOpacity
+                          style={styles.formInput}
+                          onPress={() => setCurrentScreen('state')}
+                          activeOpacity={0.7}
+                        >
+                          <Text
+                            style={[styles.formInputText, !values.state && styles.placeholderText]}
+                          >
+                            {values.state || 'e.g FL'}
+                          </Text>
+                        </TouchableOpacity>
+                        {errors.state && touched.state && (
+                          <Text style={styles.errorText}>{String(errors.state)}</Text>
+                        )}
+                      </View>
+
+                      <View style={styles.formColumn}>
+                        <Text style={styles.sectionLabel}>City *</Text>
+                        <TouchableOpacity
+                          style={styles.formInput}
+                          onPress={() => setCurrentScreen('city')}
+                          activeOpacity={0.7}
+                        >
+                          <Text
+                            style={[styles.formInputText, !values.city && styles.placeholderText]}
+                          >
+                            {values.city || 'e.g Jacksonville'}
+                          </Text>
+                        </TouchableOpacity>
+                        {errors.city && touched.city && (
+                          <Text style={styles.errorText}>{String(errors.city)}</Text>
+                        )}
+                      </View>
+                    </View>
+
+                    <Text style={styles.sectionLabel}>Zip Code *</Text>
+                    <TextInput
+                      ref={zipCodeRef}
+                      style={styles.formInput}
+                      placeholder="e.g 12345"
+                      value={values.zipCode}
+                      onChangeText={handleChange('zipCode')}
+                      placeholderTextColor={Theme.colors.neutral[400]}
+                      keyboardType="default"
+                      maxLength={10}
                     />
-                    {selectedCountryId && !loadingStates && dynamicStates[countryIdToNameMap[selectedCountryId]]?.map((state) => (
-                      <Picker.Item key={state.value} label={state.label} value={state.value} />
-                    ))}
-                  </Picker>
-                </View>
+                    {errors.zipCode && touched.zipCode && (
+                      <Text style={styles.errorText}>{String(errors.zipCode)}</Text>
+                    )}
 
-                <Typography variant="body1" color="primary" style={MigratedStyles.registerSectionLabel}>
-                  City
-                </Typography>
-                <View style={MigratedStyles.registerPickerContainer}>
-                  <Picker
-                    selectedValue={selectedCityId}
-                    style={MigratedStyles.registerPicker}
-                    onValueChange={setSelectedCityId}
-                    enabled={!!selectedStateId && !loadingCities}
-                  >
-                    <Picker.Item 
-                      label={
-                        !selectedStateId 
-                          ? "Select State first" 
-                          : loadingCities 
-                            ? "Loading cities..." 
-                            : "Select City"
-                      } 
-                      value={null} 
+                    {loading && (
+                      <Loading variant="inline" message="Creating your account..." />
+                    )}
+
+                    <Button
+                      title="Create Account"
+                      variant="primary"
+                      size="lg"
+                      onPress={() => handleSubmit()}
+                      disabled={loading}
+                      style={styles.submitButton}
+                      fullWidth
                     />
-                    {selectedStateId && !loadingCities && dynamicCities[stateIdToNameMap[selectedStateId]]?.map((city) => (
-                      <Picker.Item key={city.value} label={city.label} value={city.value} />
-                    ))}
-                  </Picker>
-                </View>
-
-                {loading && <Loading variant="inline" message="Creating your account..." />}
-                
-                {message && (
-                  <Typography variant="body2" color="success" style={MigratedStyles.registerSuccessMessage}>
-                    {message}
-                  </Typography>
-                )}
-                
-                {error && (
-                  <Typography variant="body2" color="error" style={MigratedStyles.registerErrorMessage}>
-                    {error}
-                  </Typography>
-                )}
-
-                <Button
-                  title="Register"
-                  variant="primary"
-                  size="lg"
-                  onPress={() => {
-                    if (isValid) {
-                      handleSubmit();
-                    } else {
-                      setError('Please complete all required fields correctly.');
-                    }
-                  }}
-                  disabled={loading}
-                  style={MigratedStyles.registerButton}
-                  fullWidth
-                />
-              </View>
-            </ScrollView>
-          )}
-        </Formik>
-      ) : (
-        <RegisterComplete isVisible={isVisible} onClose={onClose} IsVerify={IsVerify} />
-      )}
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+                  </View>
+                </ScrollView>
+            )}
+          </Formik>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
     </>
-  );
-};
+  )
+}
 
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: Theme.colors.background.primary,
+  },
+  keyboardAvoidingView: {
+    flex: 1,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: Theme.colors.neutral[200],
+    backgroundColor: Theme.colors.background.primary,
+  },
+  headerTitle: {
+    flex: 1,
+    textAlign: 'center',
+  },
+  scrollContent: {
+    paddingBottom: 40,
+  },
+  formContainer: {
+    paddingHorizontal: 20,
+    paddingTop: 24,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: Theme.colors.neutral[900],
+    marginBottom: 16,
+    marginTop: 8,
+  },
+  sectionLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Theme.colors.neutral[700],
+    marginBottom: 8,
+  },
+  formInput: {
+    borderWidth: 1,
+    borderColor: Theme.colors.neutral[300],
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    fontSize: 16,
+    color: Theme.colors.neutral[900],
+    backgroundColor: Theme.colors.background.primary,
+    marginBottom: 16,
+  },
+  formInputText: {
+    fontSize: 16,
+    color: Theme.colors.neutral[900],
+  },
+  placeholderText: {
+    color: Theme.colors.neutral[400],
+  },
+  phoneContainer: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 16,
+  },
+  phoneInput: {
+    flex: 1,
+    marginBottom: 0,
+  },
+  formRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  formColumn: {
+    flex: 1,
+  },
+  errorText: {
+    fontSize: 12,
+    color: Theme.colors.error[500],
+    marginTop: -12,
+    marginBottom: 8,
+  },
+  warningContainer: {
+    backgroundColor: Theme.colors.warning[50],
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 16,
+  },
+  warningText: {
+    fontSize: 14,
+    color: Theme.colors.warning[700],
+  },
+  submitButton: {
+    marginTop: 24,
+  },
+})
 
-
-export default Register;
+export default Register

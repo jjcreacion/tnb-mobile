@@ -1335,7 +1335,7 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
 
 
   if (showRegister) {
-    return <Register isVisible={true} onClose={() => {}} IsVerify={() => {}} password={storedPassword} />;
+    return <Register />;
   }
 
   return (
