@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router'
 import { Formik } from 'formik'
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import {
+  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -309,6 +310,28 @@ const Register: React.FC = () => {
     }, 100)
   }
 
+  // Handle back button with confirmation alert
+  const handleBackPress = () => {
+    Alert.alert(
+      'Discard Changes?',
+      'If you continue, all changes will be lost and you will start over.',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Discard',
+          style: 'destructive',
+          onPress: () => {
+            router.replace('/(screens)/login')
+          },
+        },
+      ],
+      { cancelable: true }
+    )
+  }
+
   if (loadingData) {
     return (
       <SafeAreaView style={styles.container} edges={['top', 'left', 'right', 'bottom']}>
@@ -392,16 +415,17 @@ const Register: React.FC = () => {
           {/* Header */}
           <View style={styles.header}>
             <TouchableOpacity
-              onPress={() => router.back()}
+              onPress={handleBackPress}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               activeOpacity={0.7}
+              style={styles.backButton}
             >
               <FontAwesome name="arrow-left" size={20} color={Theme.colors.neutral[900]} />
             </TouchableOpacity>
             <Typography variant="h4" color="primary" style={styles.headerTitle}>
               Create Your Account
             </Typography>
-            <View style={{ width: 20 }} />
+            <View style={styles.headerRightSpacer} />
           </View>
 
           <Formik
@@ -673,9 +697,18 @@ const styles = StyleSheet.create({
     borderBottomColor: Theme.colors.neutral[200],
     backgroundColor: Theme.colors.background.primary,
   },
+  backButton: {
+    width: 20,
+    height: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   headerTitle: {
     flex: 1,
     textAlign: 'center',
+  },
+  headerRightSpacer: {
+    width: 20,
   },
   scrollContent: {
     paddingBottom: 40,
