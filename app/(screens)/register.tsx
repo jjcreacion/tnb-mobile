@@ -92,9 +92,15 @@ const Register: React.FC = () => {
   })
 
 
-  // Address field refs
-  const zipCodeRef = useRef<TextInput>(null)
+  // Form field refs for keyboard navigation
+  const firstNameRef = useRef<TextInput>(null)
+  const lastNameRef = useRef<TextInput>(null)
+  const phoneNumberRef = useRef<TextInput>(null)
+  const addressRef = useRef<TextInput>(null)
   const addressLine2Ref = useRef<TextInput>(null)
+  const zipCodeRef = useRef<TextInput>(null)
+
+  // Address field state
   const [useManualEntry, setUseManualEntry] = useState(false)
   const [mappingWarnings, setMappingWarnings] = useState<string[]>([])
 
@@ -268,6 +274,7 @@ const Register: React.FC = () => {
     }
   }
 
+  // Form submission handler with validation
   const handleSubmit = async (values: any) => {
     const registrationData: RegistrationFormData = {
       firstName: values.firstName,
@@ -293,6 +300,13 @@ const Register: React.FC = () => {
     if (result.success) {
       router.replace('/(screens)/registerComplete')
     }
+  }
+
+  // Keyboard navigation helper - focus on next field
+  const focusNextField = (nextRef: React.RefObject<TextInput | null>) => {
+    setTimeout(() => {
+      nextRef.current?.focus()
+    }, 100)
   }
 
   if (loadingData) {
@@ -415,6 +429,7 @@ const Register: React.FC = () => {
                     <Text style={styles.sectionTitle}>Personal Information</Text>
 
                     <Input
+                      ref={firstNameRef}
                       label="First Name"
                       value={values.firstName}
                       onChangeText={handleChange('firstName')}
@@ -425,9 +440,16 @@ const Register: React.FC = () => {
                           : undefined
                       }
                       required
+                      returnKeyType="next"
+                      onSubmitEditing={() => focusNextField(lastNameRef)}
+                      blurOnSubmit={false}
+                      autoCapitalize="words"
+                      textContentType="givenName"
+                      autoComplete="name-given"
                     />
 
                     <Input
+                      ref={lastNameRef}
                       label="Last Name"
                       value={values.lastName}
                       onChangeText={handleChange('lastName')}
@@ -436,6 +458,12 @@ const Register: React.FC = () => {
                         touched.lastName && errors.lastName ? String(errors.lastName) : undefined
                       }
                       required
+                      returnKeyType="next"
+                      onSubmitEditing={() => focusNextField(phoneNumberRef)}
+                      blurOnSubmit={false}
+                      autoCapitalize="words"
+                      textContentType="familyName"
+                      autoComplete="name-family"
                     />
 
                     <DateInput
@@ -460,6 +488,7 @@ const Register: React.FC = () => {
                         onSelect={(code) => setFieldValue('countryCode', code)}
                       />
                       <TextInput
+                        ref={phoneNumberRef}
                         style={[styles.formInput, styles.phoneInput]}
                         placeholder="Phone number"
                         value={values.phoneNumber}
@@ -467,6 +496,14 @@ const Register: React.FC = () => {
                         onBlur={handleBlur('phoneNumber')}
                         keyboardType="phone-pad"
                         placeholderTextColor={Theme.colors.neutral[400]}
+                        returnKeyType="next"
+                        onSubmitEditing={() => {
+                          if (isMapboxAvailable() && !useManualEntry) {
+                            addressRef.current?.focus()
+                          }
+                        }}
+                        textContentType="telephoneNumber"
+                        autoComplete="tel"
                       />
                     </View>
                     {errors.phoneNumber && touched.phoneNumber && (
@@ -480,6 +517,7 @@ const Register: React.FC = () => {
 
                     {isMapboxAvailable() && !useManualEntry ? (
                       <AddressAutocomplete
+                        ref={addressRef}
                         value={values.address}
                         onChangeText={(text) => {
                           setFieldValue('address', text)
@@ -494,14 +532,22 @@ const Register: React.FC = () => {
                         addressLine2Ref={addressLine2Ref}
                         addressLine2Value={values.addressLine2 || ''}
                         onScrollEnabledChange={() => {}}
+                        returnKeyType="next"
+                        onSubmitEditing={() => focusNextField(addressLine2Ref)}
                       />
                     ) : (
                       <TextInput
+                        ref={addressRef}
                         style={styles.formInput}
                         placeholder="e.g 108 Jackson St"
                         value={values.address}
                         onChangeText={handleChange('address')}
                         placeholderTextColor={Theme.colors.neutral[400]}
+                        returnKeyType="next"
+                        onSubmitEditing={() => focusNextField(addressLine2Ref)}
+                        autoCapitalize="words"
+                        textContentType="fullStreetAddress"
+                        autoComplete="street-address"
                       />
                     )}
                     {errors.address && touched.address && (
@@ -522,6 +568,11 @@ const Register: React.FC = () => {
                       value={values.addressLine2}
                       onChangeText={handleChange('addressLine2')}
                       placeholderTextColor={Theme.colors.neutral[400]}
+                      returnKeyType="next"
+                      onSubmitEditing={() => focusNextField(zipCodeRef)}
+                      autoCapitalize="words"
+                      textContentType="streetAddressLine2"
+                      autoComplete="address-line2"
                     />
 
                     <View style={styles.formRow}>
@@ -572,6 +623,10 @@ const Register: React.FC = () => {
                       placeholderTextColor={Theme.colors.neutral[400]}
                       keyboardType="default"
                       maxLength={10}
+                      returnKeyType="go"
+                      onSubmitEditing={() => handleSubmit()}
+                      textContentType="postalCode"
+                      autoComplete="postal-code"
                     />
                     {errors.zipCode && touched.zipCode && (
                       <Text style={styles.errorText}>{String(errors.zipCode)}</Text>

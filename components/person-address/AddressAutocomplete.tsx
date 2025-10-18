@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react'
+import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react'
 import {
   ActivityIndicator,
   Keyboard,
@@ -15,7 +15,7 @@ import type { AddressAutocompleteSuggestion, MapboxError, ParsedMapboxAddress } 
 import { MAPBOX_CONFIG, isMapboxAvailable, mapboxSearchService } from './mapbox'
 import { addressStyles } from './styles'
 
-interface AddressAutocompleteProps {
+export interface AddressAutocompleteProps {
   value: string
   onChangeText: (text: string) => void
   onAddressSelect: (address: ParsedMapboxAddress, selectedText: string) => void
@@ -26,9 +26,11 @@ interface AddressAutocompleteProps {
   addressLine2Ref?: React.RefObject<TextInput | null>
   addressLine2Value?: string
   onScrollEnabledChange?: (enabled: boolean) => void
+  returnKeyType?: 'next' | 'done' | 'go'
+  onSubmitEditing?: () => void
 }
 
-export const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
+const AddressAutocompleteComponent = forwardRef<TextInput, AddressAutocompleteProps>(({
   value,
   onChangeText,
   onAddressSelect,
@@ -39,7 +41,9 @@ export const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
   addressLine2Ref,
   addressLine2Value = '',
   onScrollEnabledChange,
-}) => {
+  returnKeyType = 'next',
+  onSubmitEditing,
+}, ref) => {
   const [suggestions, setSuggestions] = useState<AddressAutocompleteSuggestion[]>([])
   const [allSuggestions, setAllSuggestions] = useState<AddressAutocompleteSuggestion[]>([])
   const [displayedCount, setDisplayedCount] = useState(5)
@@ -58,6 +62,9 @@ export const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
   const debounceTimerRef = useRef<number | null>(null)
   const scrollViewRef = useRef<ScrollView>(null)
   const lastQueryRef = useRef<string>('')
+
+  // Expose the TextInput ref to parent components
+  useImperativeHandle(ref, () => textInputRef.current as TextInput)
 
   // Control parent scroll based on input focus and suggestions
   useEffect(() => {
@@ -394,6 +401,9 @@ export const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
         autoCapitalize="words"
         autoCorrect={false}
         autoComplete="street-address"
+        textContentType="fullStreetAddress"
+        returnKeyType={returnKeyType}
+        onSubmitEditing={onSubmitEditing}
       />
     )
   }
@@ -414,6 +424,9 @@ export const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
           autoCapitalize="words"
           autoCorrect={false}
           autoComplete="street-address"
+          textContentType="fullStreetAddress"
+          returnKeyType={returnKeyType}
+          onSubmitEditing={onSubmitEditing}
         />
         
         {/* Loading indicator */}
@@ -500,4 +513,8 @@ export const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
       )}
     </View>
   )
-}
+})
+
+AddressAutocompleteComponent.displayName = 'AddressAutocomplete'
+
+export const AddressAutocomplete = AddressAutocompleteComponent
