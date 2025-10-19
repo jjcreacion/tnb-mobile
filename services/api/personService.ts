@@ -4,21 +4,25 @@ import { apiClient } from './apiClient'
 export interface CreatePersonDTO {
   firstName: string
   lastName: string
-  birthDate: string // YYYY-MM-DD
+  dateOfBirth: string // YYYY-MM-DD - debe ser "dateOfBirth" según endpoint del backend
 }
 
 export interface UpdatePersonDTO {
-  id: number
-  firstName: string
-  lastName: string
-  birthDate: string // YYYY-MM-DD
+  pkPerson: number // Cambié de "id" a "pkPerson" según endpoint del backend
+  firstName?: string
+  lastName?: string
+  dateOfBirth?: string // YYYY-MM-DD
+  status?: number
 }
 
 export interface PersonResponse {
-  id: number
+  pkPerson: number // El backend devuelve "pkPerson" no "id"
   firstName: string
   lastName: string
-  birthDate: string
+  dateOfBirth: string // El backend devuelve "dateOfBirth" no "birthDate"
+  status: number
+  createdAt: string
+  updatedAt: string
 }
 
 export const personService = {

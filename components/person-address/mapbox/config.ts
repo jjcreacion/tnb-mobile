@@ -46,9 +46,6 @@ export const getMapboxToken = (): string | null => {
   const token = Constants.expoConfig?.extra?.GOOGLE_MAP_TOKEN || process.env.GOOGLE_MAP_TOKEN
   cachedToken = token || null
 
-  console.log('[Mapbox Config] Token exists:', !!token)
-  console.log('[Mapbox Config] Token preview:', token ? `${token.substring(0, 20)}...` : 'null')
-
   return cachedToken
 }
 
@@ -69,8 +66,6 @@ export const isMapboxAvailable = (): boolean => {
   const isAvailable = MAPBOX_CONFIG.enabled && hasToken
 
   cachedAvailability = isAvailable
-
-  console.log('[Mapbox Config] isMapboxAvailable:', isAvailable, '(enabled:', MAPBOX_CONFIG.enabled, ', hasToken:', hasToken, ')')
 
   return isAvailable
 }

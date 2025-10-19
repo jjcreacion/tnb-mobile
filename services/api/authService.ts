@@ -3,14 +3,41 @@ import { apiClient } from './apiClient'
 // DTOs
 export interface CreateUserDTO {
   fkPerson: number
+  fkProfile: number // OBLIGATORIO - por ahora siempre usar 1
   email: string
   password: string
+  referred_by_code?: string
+  roles?: string[] // Opcional - ej: ['client']
+  validateEmail?: number
+  validatePhone?: number
+  status?: number
+  img_profile?: string
 }
 
 export interface UserResponse {
-  id: number
-  fkPerson: number
+  pkUser: number
+  person: {
+    pkPerson: number
+    firstName: string
+    middleName?: string | null
+    lastName: string
+    dateOfBirth: string
+    status: number
+    createdAt: Date
+    updatedAt: Date
+  }
   email: string
+  password: string
+  validateEmail: number
+  validatePhone: number
+  status: number
+  roles: string[]
+  createdAt: Date
+  updatedAt: Date
+  referralCode: string | null
+  referred_by_code: string | null
+  balance: string
+  img_profile?: string
 }
 
 export interface CountryResponse {

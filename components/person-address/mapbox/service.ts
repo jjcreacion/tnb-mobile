@@ -41,15 +41,11 @@ export class MapboxSearchService {
    * Search for address suggestions
    */
   public async searchAddresses(query: string, limit?: number): Promise<AddressAutocompleteSuggestion[]> {
-    console.log('[Mapbox Service] searchAddresses called with query:', query, 'limit:', limit)
-
     if (!this.isAvailable()) {
-      console.log('[Mapbox Service] Service is NOT available')
       throw new Error('Mapbox service is not available or configured')
     }
 
     if (query.length < MAPBOX_CONFIG.minChars) {
-      console.log('[Mapbox Service] Query too short:', query.length, '< minChars:', MAPBOX_CONFIG.minChars)
       return []
     }
 
@@ -58,7 +54,6 @@ export class MapboxSearchService {
     try {
       const token = getMapboxToken()
       if (!token) {
-        console.log('[Mapbox Service] ERROR: Token not found')
         throw new Error('Mapbox token not found')
       }
 
@@ -66,14 +61,6 @@ export class MapboxSearchService {
         access_token: token,
         country: MAPBOX_CONFIG.countryFilter.toLowerCase(),
         types: 'address,poi', // Address and Points of Interest
-        limit: (limit || MAPBOX_CONFIG.maxResults).toString(),
-        autocomplete: 'true',
-        language: 'en'
-      })
-
-      console.log('[Mapbox Service] Search params:', {
-        country: MAPBOX_CONFIG.countryFilter.toLowerCase(),
-        types: 'address,poi',
         limit: (limit || MAPBOX_CONFIG.maxResults).toString(),
         autocomplete: 'true',
         language: 'en'
@@ -87,9 +74,6 @@ export class MapboxSearchService {
       }
 
       const url = `${this.baseUrl}/${encodeURIComponent(query)}.json?${params}`
-
-      console.log('[Mapbox Service] Making request to:', url.substring(0, 100) + '...')
-
 
       // Create a timeout promise for React Native compatibility
       const timeoutPromise = new Promise<never>((_, reject) => {
@@ -105,16 +89,12 @@ export class MapboxSearchService {
         }
       })
 
-      console.log('[Mapbox Service] Waiting for response...')
-
       // Race between fetch and timeout
       const response = await Promise.race([fetchPromise, timeoutPromise])
 
-      console.log('[Mapbox Service] Response received. Status:', response.status)
-
       if (!response.ok) {
         const isAuthError = response.status === 401 || response.status === 403
-        console.log('[Mapbox Service] ERROR: Response not OK. Status:', response.status, 'isAuthError:', isAuthError)
+        console.error('[Mapbox Service] API error:', response.status, response.statusText)
         throw new Error(`Mapbox API error: ${response.status} ${response.statusText}`, {
           cause: { statusCode: response.status, isAuthError }
         })
@@ -123,17 +103,11 @@ export class MapboxSearchService {
       const data: MapboxSearchResponse = await response.json()
       const responseTime = Date.now() - startTime
 
-      console.log('[Mapbox Service] Received', data.features?.length || 0, 'features in', responseTime, 'ms')
-
       // Parse results
       const suggestions = this.parseSearchResults(data.features)
 
-      console.log('[Mapbox Service] Parsed', suggestions.length, 'suggestions')
-
       // Sort results by relevance to the query
       const sortedSuggestions = this.prioritizeResults(suggestions, query)
-
-      console.log('[Mapbox Service] Returning', sortedSuggestions.length, 'sorted suggestions')
 
       // Log telemetry
       this.logTelemetry({
@@ -151,14 +125,7 @@ export class MapboxSearchService {
       const responseTime = Date.now() - startTime
       const mapboxError = this.parseError(error)
 
-      console.log('[Mapbox Service] ERROR occurred:', {
-        message: mapboxError.message,
-        isNetworkError: mapboxError.isNetworkError,
-        isTimeoutError: mapboxError.isTimeoutError,
-        isAuthError: mapboxError.isAuthError,
-        statusCode: mapboxError.statusCode,
-        responseTime
-      })
+      console.error('[Mapbox Service] Search error:', mapboxError.message)
 
       // Log error telemetry
       this.logTelemetry({
