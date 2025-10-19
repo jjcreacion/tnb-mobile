@@ -41,13 +41,13 @@ export const useRegistration = () => {
       // Combinar countryCode + phoneNumber en un solo string
       const fullPhone = `${formData.countryCode}${formData.phoneNumber}`
 
-      // Step 3: Create User (SIN campo phone - el phone va solo en person-phone)
-      console.log('Step 3: Creating user...')
+      // Step 3: Create User (el backend hashea la contraseña automáticamente)
+      console.log('Step 3: Creating user with email...')
       await authService.createUser({
         fkPerson: personId,
-        fkProfile: 1, // OBLIGATORIO - siempre usar 1 por ahora
+        // fkProfile: 1, // Ya no es necesario - el backend lo asigna automáticamente
         email,
-        password,
+        password, // Se envía en texto plano - el backend la hashea
       })
       console.log('✅ User created successfully')
 
