@@ -30,19 +30,49 @@ export const MAPBOX_CONFIG: MapboxConfig = {
 }
 
 /**
+ * Cache the token to avoid repeated lookups
+ */
+let cachedToken: string | null | undefined
+
+/**
  * Environment variables and token management
  */
 export const getMapboxToken = (): string | null => {
+  if (cachedToken !== undefined) {
+    return cachedToken
+  }
+
   // Get token from expo config (app.json extra field)
   const token = Constants.expoConfig?.extra?.GOOGLE_MAP_TOKEN || process.env.GOOGLE_MAP_TOKEN
-  return token || null
+  cachedToken = token || null
+
+  console.log('[Mapbox Config] Token exists:', !!token)
+  console.log('[Mapbox Config] Token preview:', token ? `${token.substring(0, 20)}...` : 'null')
+
+  return cachedToken
 }
+
+/**
+ * Cache availability check
+ */
+let cachedAvailability: boolean | undefined
 
 /**
  * Check if Mapbox is available and properly configured
  */
 export const isMapboxAvailable = (): boolean => {
-  return MAPBOX_CONFIG.enabled && getMapboxToken() !== null
+  if (cachedAvailability !== undefined) {
+    return cachedAvailability
+  }
+
+  const hasToken = getMapboxToken() !== null
+  const isAvailable = MAPBOX_CONFIG.enabled && hasToken
+
+  cachedAvailability = isAvailable
+
+  console.log('[Mapbox Config] isMapboxAvailable:', isAvailable, '(enabled:', MAPBOX_CONFIG.enabled, ', hasToken:', hasToken, ')')
+
+  return isAvailable
 }
 
 /**
