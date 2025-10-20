@@ -1,6 +1,7 @@
 import { Button, Card, Screen } from '@/components/common';
 import { Theme } from '@/constants/Theme';
 import { LinearGradient } from 'expo-linear-gradient';
+import { StatusBar } from 'expo-status-bar';
 import React from 'react';
 import { FlatList, Platform, StyleSheet, Text, View } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
@@ -74,6 +75,7 @@ export default function BillingScreen() {
 
   return (
     <Screen safeArea edges={['top', 'bottom']}>
+      <StatusBar style="light" backgroundColor={Theme.colors.primary[500]} />
       <LinearGradient
         colors={[Theme.colors.primary[500], Theme.colors.primary[600]]}
         style={styles.header}

@@ -22,6 +22,7 @@ export default function HomeScreens() {
     // Clean up: restore status bar visibility when component unmounts (Android only)
     return () => {
       if (Platform.OS === 'android') {
+        console.log('entrooooo index splash')
         StatusBar.setHidden(false);
       }
     };

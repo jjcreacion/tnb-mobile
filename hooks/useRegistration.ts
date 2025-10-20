@@ -24,43 +24,65 @@ export const useRegistration = () => {
         throw new Error('Email or password not found. Please restart the registration process.')
       }
 
+      console.log('[useRegistration] Starting registration process')
+      console.log('Step 1: Email and password from storage')
+
       // Step 2: Create Person
+      console.log('Step 2: Creating person...')
       const personResponse = await personService.createPerson({
         firstName: formData.firstName,
         lastName: formData.lastName,
-        birthDate: formData.birthDate,
+        dateOfBirth: formData.birthDate,
       })
 
-      const personId = personResponse.id
+      const personId = personResponse.pkPerson
+      console.log('✅ Person created with ID:', personId)
 
-      // Step 3: Create User
+      // Combinar countryCode + phoneNumber en un solo string
+      const fullPhone = `${formData.countryCode}${formData.phoneNumber}`
+
+      // Step 3: Create User (el backend hashea la contraseña automáticamente)
+      console.log('Step 3: Creating user with email...')
       await authService.createUser({
         fkPerson: personId,
+        // fkProfile: 1, // Ya no es necesario - el backend lo asigna automáticamente
         email,
-        password,
+        password, // Se envía en texto plano - el backend la hashea
       })
+      console.log('✅ User created successfully')
 
       // Step 4: Create Person Phone
+      console.log('Step 4: Creating person phone...')
       await personPhoneService.createPersonPhone({
         fkPerson: personId,
-        countryCode: formData.countryCode,
-        phoneNumber: formData.phoneNumber,
+        phone: fullPhone,
+        isPrimary: 1,
       })
+      console.log('✅ Person phone created:', fullPhone)
 
       // Step 5: Create Person Address
-      await personAddressService.createPersonAddress({
+      console.log('Step 5: Creating person address...')
+      const addressData = {
         fkPerson: personId,
-        addressLine1: formData.address,
+        address: formData.address,
         addressLine2: formData.addressLine2,
-        city: formData.city,
-        state: formData.state,
         zipCode: formData.zipCode,
-        country: formData.country,
-      })
+        isPrimary: 1,
+        latitude: formData.latitude,
+        longitude: formData.longitude,
+        country: 1, // USA siempre es ID 1
+        state: formData.stateId ?? undefined,
+        city: formData.cityId ?? undefined,
+      }
 
-      // Step 6: Clean up AsyncStorage
-      await AsyncStorage.removeItem('emailForSignIn')
-      await AsyncStorage.removeItem('passwordForSignUp')
+      console.log('Address data:', JSON.stringify(addressData, null, 2))
+
+      await personAddressService.createPersonAddress(addressData)
+      console.log('✅ Person address created')
+
+      // Step 6: Registro completado exitosamente
+      // NOTA: NO limpiamos AsyncStorage aquí para evitar redirección prematura
+      // El AsyncStorage se limpiará en registerComplete.tsx cuando el usuario vaya a login
 
       setLoading(false)
       return { success: true, personId }

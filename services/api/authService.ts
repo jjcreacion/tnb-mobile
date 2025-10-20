@@ -3,14 +3,41 @@ import { apiClient } from './apiClient'
 // DTOs
 export interface CreateUserDTO {
   fkPerson: number
+  // fkProfile: number // Ya no es necesario - el backend lo asigna automáticamente
   email: string
-  password: string
+  password: string // El backend se encarga de hashear la contraseña
+  referred_by_code?: string
+  roles?: string[] // Opcional - ej: ['client']
+  validateEmail?: number
+  validatePhone?: number
+  status?: number
+  img_profile?: string
 }
 
 export interface UserResponse {
-  id: number
-  fkPerson: number
+  pkUser: number
+  person: {
+    pkPerson: number
+    firstName: string
+    middleName?: string | null
+    lastName: string
+    dateOfBirth: string
+    status: number
+    createdAt: Date
+    updatedAt: Date
+  }
   email: string
+  password: string
+  validateEmail: number
+  validatePhone: number
+  status: number
+  roles: string[]
+  createdAt: Date
+  updatedAt: Date
+  referralCode: string | null
+  referred_by_code: string | null
+  balance: string
+  img_profile?: string
 }
 
 export interface CountryResponse {
@@ -32,7 +59,7 @@ export interface CityResponse {
 
 export const authService = {
   async createUser(data: CreateUserDTO): Promise<UserResponse> {
-    return apiClient.post<UserResponse>('/user/create', data)
+    return apiClient.post<UserResponse>('/user/createWithEmail', data)
   },
 
   async getAllCountries(): Promise<CountryResponse[]> {

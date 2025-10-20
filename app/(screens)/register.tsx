@@ -29,10 +29,10 @@ import { DateInput } from '../../components/registration/DateInput'
 import { AddressAutocomplete } from '../../components/person-address/AddressAutocomplete'
 import { AddressMappingService } from '../../components/person-address/AddressMappingService'
 import { CitySelector } from '../../components/person-address/CitySelector'
-import { StateSelector } from '../../components/person-address/StateSelector'
-import type { City, State } from '../../components/person-address/types'
 import type { ParsedMapboxAddress } from '../../components/person-address/mapbox'
 import { isMapboxAvailable, MAPBOX_CONFIG } from '../../components/person-address/mapbox'
+import { StateSelector } from '../../components/person-address/StateSelector'
+import type { City, State } from '../../components/person-address/types'
 
 // Services
 import { authService } from '../../services/api/authService'
@@ -104,6 +104,27 @@ const Register: React.FC = () => {
   // Address field state
   const [useManualEntry, setUseManualEntry] = useState(false)
   const [mappingWarnings, setMappingWarnings] = useState<string[]>([])
+
+  // Memoize Mapbox availability check to prevent unnecessary re-renders
+  const mapboxAvailable = React.useMemo(() => isMapboxAvailable(), [])
+
+  // Memoize empty scroll handler to prevent component remounting
+  const handleScrollEnabledChange = useCallback(() => {
+    // Empty handler - we don't need scroll control in this form
+  }, [])
+
+  // Memoize fallback handler to prevent component remounting
+  const handleFallbackToManual = useCallback(() => {
+    setUseManualEntry(true)
+  }, [])
+
+  // Memoize submit editing handler to prevent component remounting
+  const handleAddressSubmitEditing = useCallback(() => {
+    focusNextField(addressLine2Ref)
+  }, [])
+
+  // Store setFieldValue in a ref to avoid recreating callbacks
+  const setFieldValueRef = useRef<any>(null)
 
   // Configure StatusBar
   useEffect(() => {
@@ -181,54 +202,95 @@ const Register: React.FC = () => {
   )
 
   // Handle Mapbox address selection
-  const handleAddressSelect = async (mapboxAddress: ParsedMapboxAddress, selectedText: string) => {
-    if (MAPBOX_CONFIG.enabled && !MAPBOX_CONFIG.useLocalDatabaseMapping) {
-      setFormData({
-        ...formData,
-        address: selectedText,
-        addressLine2: '',
-        city: mapboxAddress.city || '',
-        cityId: null,
-        state: mapboxAddress.stateCode || mapboxAddress.state || '',
-        stateId: null,
-        zipCode: mapboxAddress.zipCode || '',
-        latitude: mapboxAddress.latitude,
-        longitude: mapboxAddress.longitude,
-        isMapboxResult: true,
-      })
-      setMappingWarnings([])
-    } else {
-      try {
-        const mappingResult = await AddressMappingService.mapToFormDataWithAutoCreation(
-          mapboxAddress,
-          cities,
-          states
-        )
+  // This will be called from within Formik context with setFieldValue
+  const handleAddressSelect = useCallback(
+    async (mapboxAddress: ParsedMapboxAddress, selectedText: string, setFieldValue?: any) => {
+      console.log('[Register] handleAddressSelect called')
 
-        setFormData({
-          ...formData,
+      if (MAPBOX_CONFIG.enabled && !MAPBOX_CONFIG.useLocalDatabaseMapping) {
+        const updates = {
           address: selectedText,
           addressLine2: '',
-          city: mappingResult.formData.city,
-          cityId: mappingResult.formData.cityId,
-          state: mappingResult.formData.state,
-          stateId: mappingResult.formData.stateId,
-          zipCode: mappingResult.formData.zipCode,
-          latitude: mappingResult.formData.latitude,
-          longitude: mappingResult.formData.longitude,
+          city: mapboxAddress.city || '',
+          cityId: null,
+          state: mapboxAddress.stateCode || mapboxAddress.state || '',
+          stateId: null,
+          zipCode: mapboxAddress.zipCode || '',
+          latitude: mapboxAddress.latitude,
+          longitude: mapboxAddress.longitude,
           isMapboxResult: true,
-        })
-
-        setMappingWarnings(mappingResult.warnings)
-
-        if (mappingResult.createdEntities) {
-          updateLocalEntities(mappingResult.createdEntities)
         }
-      } catch (error) {
-        console.error('Auto-creation mapping failed:', error)
+
+        // Update Formik if setFieldValue is provided
+        if (setFieldValue) {
+          Object.entries(updates).forEach(([key, value]) => {
+            setFieldValue(key, value)
+          })
+        }
+
+        // Also update local state
+        setFormData((prev: RegistrationFormData) => ({ ...prev, ...updates }))
+        setMappingWarnings([])
+      } else {
+        try {
+          const mappingResult = await AddressMappingService.mapToFormDataWithAutoCreation(
+            mapboxAddress,
+            cities,
+            states
+          )
+
+          const updates = {
+            address: selectedText,
+            addressLine2: '',
+            city: mappingResult.formData.city,
+            cityId: mappingResult.formData.cityId,
+            state: mappingResult.formData.state,
+            stateId: mappingResult.formData.stateId,
+            zipCode: mappingResult.formData.zipCode,
+            latitude: mappingResult.formData.latitude,
+            longitude: mappingResult.formData.longitude,
+            isMapboxResult: true,
+          }
+
+          // Update Formik if setFieldValue is provided
+          if (setFieldValue) {
+            Object.entries(updates).forEach(([key, value]) => {
+              setFieldValue(key, value)
+            })
+          }
+
+          // Also update local state
+          setFormData((prev: RegistrationFormData) => ({ ...prev, ...updates }))
+          setMappingWarnings(mappingResult.warnings)
+
+          if (mappingResult.createdEntities) {
+            updateLocalEntities(mappingResult.createdEntities)
+          }
+        } catch (error) {
+          console.error('Auto-creation mapping failed:', error)
+        }
       }
+    },
+    [cities, states, updateLocalEntities]
+  )
+
+  // Memoize address change handler
+  const handleAddressChange = useCallback((text: string) => {
+    if (setFieldValueRef.current) {
+      setFieldValueRef.current('address', text)
+      setFieldValueRef.current('latitude', undefined)
+      setFieldValueRef.current('longitude', undefined)
+      setFieldValueRef.current('isMapboxResult', false)
     }
-  }
+  }, [])
+
+  // Memoize address select handler
+  const handleAddressSelectMemoized = useCallback(
+    (mapboxAddress: ParsedMapboxAddress, selectedText: string) => {
+      handleAddressSelect(mapboxAddress, selectedText, setFieldValueRef.current)
+    },
+    [handleAddressSelect]
+  )
 
   const handleCitySelect = (city: City) => {
     const cityState = states.find((s) => s.pkState === city.fkState)
@@ -423,7 +485,7 @@ const Register: React.FC = () => {
               <FontAwesome name="arrow-left" size={20} color={Theme.colors.neutral[900]} />
             </TouchableOpacity>
             <Typography variant="h4" color="primary" style={styles.headerTitle}>
-              Create Your Account
+              Tell Us About You
             </Typography>
             <View style={styles.headerRightSpacer} />
           </View>
@@ -432,7 +494,6 @@ const Register: React.FC = () => {
             initialValues={formData}
             validationSchema={validationSchema}
             onSubmit={handleSubmit}
-            enableReinitialize
           >
             {({
               handleChange,
@@ -442,7 +503,11 @@ const Register: React.FC = () => {
               errors,
               touched,
               setFieldValue,
-            }) => (
+            }) => {
+              // Store setFieldValue in ref for memoized callbacks
+              setFieldValueRef.current = setFieldValue
+
+              return (
                 <ScrollView
                   contentContainerStyle={styles.scrollContent}
                   keyboardShouldPersistTaps="handled"
@@ -522,7 +587,7 @@ const Register: React.FC = () => {
                         placeholderTextColor={Theme.colors.neutral[400]}
                         returnKeyType="next"
                         onSubmitEditing={() => {
-                          if (isMapboxAvailable() && !useManualEntry) {
+                          if (mapboxAvailable && !useManualEntry) {
                             addressRef.current?.focus()
                           }
                         }}
@@ -539,25 +604,21 @@ const Register: React.FC = () => {
 
                     <Text style={styles.sectionLabel}>Address *</Text>
 
-                    {isMapboxAvailable() && !useManualEntry ? (
+                    {mapboxAvailable && !useManualEntry ? (
                       <AddressAutocomplete
+                        key="address-autocomplete-register"
                         ref={addressRef}
                         value={values.address}
-                        onChangeText={(text) => {
-                          setFieldValue('address', text)
-                          setFieldValue('latitude', undefined)
-                          setFieldValue('longitude', undefined)
-                          setFieldValue('isMapboxResult', false)
-                        }}
-                        onAddressSelect={handleAddressSelect}
-                        onFallbackToManual={() => setUseManualEntry(true)}
+                        onChangeText={handleAddressChange}
+                        onAddressSelect={handleAddressSelectMemoized}
+                        onFallbackToManual={handleFallbackToManual}
                         placeholder="e.g 108 Jackson St"
                         style={styles.formInput}
                         addressLine2Ref={addressLine2Ref}
                         addressLine2Value={values.addressLine2 || ''}
-                        onScrollEnabledChange={() => {}}
+                        onScrollEnabledChange={handleScrollEnabledChange}
                         returnKeyType="next"
-                        onSubmitEditing={() => focusNextField(addressLine2Ref)}
+                        onSubmitEditing={handleAddressSubmitEditing}
                       />
                     ) : (
                       <TextInput
@@ -671,7 +732,8 @@ const Register: React.FC = () => {
                     />
                   </View>
                 </ScrollView>
-            )}
+              )
+            }}
           </Formik>
         </KeyboardAvoidingView>
       </SafeAreaView>

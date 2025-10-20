@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import Constants from 'expo-constants';
 import { LinearGradient } from 'expo-linear-gradient';
+import { StatusBar } from 'expo-status-bar';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -207,7 +208,7 @@ const HistoryScreen = () => {
 
   return (
     <Screen safeArea edges={['top', 'bottom']}>
-      {/* Header */}
+      <StatusBar style="light" backgroundColor={Theme.colors.primary[500]} />
       <LinearGradient
         colors={[Theme.colors.primary[500], Theme.colors.primary[600]]}
         style={styles.header}

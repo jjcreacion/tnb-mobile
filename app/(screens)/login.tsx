@@ -4,14 +4,15 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect, useRouter } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
+// import { StatusBar } from 'expo-status-bar';
 import { Formik } from 'formik';
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Image,
   ImageBackground,
   KeyboardAvoidingView,
   Platform,
+  StatusBar,
   TextInput,
   View
 } from 'react-native';
@@ -40,6 +41,21 @@ export default function LoginScreenMigrated() {
 
   // Referencias para navegación del teclado
   const passwordInputRef = useRef<TextInput>(null);
+
+    useEffect(() => {
+      // Hide status bar only on Android for splash screen
+      if (Platform.OS === 'android') {
+        StatusBar.setHidden(false);
+      }
+  
+      // Clean up: restore status bar visibility when component unmounts (Android only)
+      return () => {
+        if (Platform.OS === 'android') {
+          console.log('entrooooo login')
+          StatusBar.setHidden(false);
+        }
+      };
+    }, []);
 
   // Configure StatusBar to be transparent only on this screen (Android)
   useFocusEffect(
@@ -88,10 +104,10 @@ export default function LoginScreenMigrated() {
       blurRadius={10}
     >
       {/* StatusBar transparent only for login screen on Android */}
-      <StatusBar 
-        style="light" 
-        backgroundColor="transparent" 
-        translucent={Platform.OS === 'android'} 
+      <StatusBar
+        barStyle="light-content"
+        backgroundColor="transparent"
+        translucent={Platform.OS === 'android'}
       />
       
       <LinearGradient
