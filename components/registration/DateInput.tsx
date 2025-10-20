@@ -11,6 +11,15 @@ interface DateInputProps {
   required?: boolean
 }
 
+/**
+ * Parse a YYYY-MM-DD string to a local Date object
+ * Avoids timezone issues by using Date constructor with separate arguments
+ */
+const parseLocalDate = (dateString: string): Date => {
+  const [year, month, day] = dateString.split('-').map(Number)
+  return new Date(year, month - 1, day) // month is 0-indexed
+}
+
 export const DateInput: React.FC<DateInputProps> = ({
   label,
   value,
@@ -20,13 +29,16 @@ export const DateInput: React.FC<DateInputProps> = ({
 }) => {
   const [showPicker, setShowPicker] = useState(false)
 
-  // Convert string to Date object
-  const dateValue = value ? new Date(value) : new Date()
+  // Convert string to Date object using local date to avoid timezone issues
+  // Default to 25 years ago for birth date if no value is provided
+  const dateValue = value
+    ? parseLocalDate(value)
+    : new Date(new Date().getFullYear() - 25, 0, 15) // January 15, 25 years ago
 
-  // Format date for display
+  // Format date for display using local date to avoid timezone issues
   const formatDate = (dateString: string) => {
     if (!dateString) return 'Select date'
-    const date = new Date(dateString)
+    const date = parseLocalDate(dateString)
     return date.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',

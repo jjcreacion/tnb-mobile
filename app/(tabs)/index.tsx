@@ -20,6 +20,7 @@ import {
 import { loadUserData } from '@/store/slices/userSlice'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import Constants from 'expo-constants'
+import { StatusBar } from 'expo-status-bar'
 import React, { useCallback, useEffect } from 'react'
 import { Alert, StyleSheet, View } from 'react-native'
 
@@ -35,6 +36,7 @@ import RequestModal from '../(screens)/RequestModal'
 import SideMenu from '../(screens)/SideMenu'
 
 import { useReferralReward } from '@/hooks/home/useReferralReward'
+import { Theme } from '@/constants/Theme'
 import type { Address, Campaign, Category } from '@/types'
 
 const API_BASE_URL = Constants.expoConfig?.extra?.API_BASE_URL || ''
@@ -176,6 +178,7 @@ const HomeScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
+      <StatusBar style="light" backgroundColor={Theme.colors.primary[500]} />
       <HomeHeader
         onMenuPress={handleMenuPress}
         referralReward={referralReward}

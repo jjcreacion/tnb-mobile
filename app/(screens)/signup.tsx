@@ -51,9 +51,9 @@ const SignUp: React.FC<ModalProps> = ({ isVisible, onClose }) => {
   // Reset form when modal opens
   useEffect(() => {
     if (isVisible) {
-      setEmail('rudy.rs1+abd1@gmail.com');
-      setPassword('Qwerty.123');
-      setConfirmPassword('Qwerty.123');
+      setEmail('');
+      setPassword('');
+      setConfirmPassword('');
       setEmailError('');
       setPasswordError('');
       setConfirmPasswordError('');

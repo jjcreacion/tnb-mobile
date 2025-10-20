@@ -29,10 +29,10 @@ import { DateInput } from '../../components/registration/DateInput'
 import { AddressAutocomplete } from '../../components/person-address/AddressAutocomplete'
 import { AddressMappingService } from '../../components/person-address/AddressMappingService'
 import { CitySelector } from '../../components/person-address/CitySelector'
-import { StateSelector } from '../../components/person-address/StateSelector'
-import type { City, State } from '../../components/person-address/types'
 import type { ParsedMapboxAddress } from '../../components/person-address/mapbox'
 import { isMapboxAvailable, MAPBOX_CONFIG } from '../../components/person-address/mapbox'
+import { StateSelector } from '../../components/person-address/StateSelector'
+import type { City, State } from '../../components/person-address/types'
 
 // Services
 import { authService } from '../../services/api/authService'
@@ -485,7 +485,7 @@ const Register: React.FC = () => {
               <FontAwesome name="arrow-left" size={20} color={Theme.colors.neutral[900]} />
             </TouchableOpacity>
             <Typography variant="h4" color="primary" style={styles.headerTitle}>
-              Create Your Account
+              Tell Us About You
             </Typography>
             <View style={styles.headerRightSpacer} />
           </View>

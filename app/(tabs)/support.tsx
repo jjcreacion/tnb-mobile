@@ -2,6 +2,7 @@ import { Card, Screen } from '@/components/common';
 import { Theme } from '@/constants/Theme';
 import { FontAwesome } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { StatusBar } from 'expo-status-bar';
 import React from 'react';
 import {
     Linking,
@@ -88,6 +89,7 @@ export default function SupportScreen() {
 
   return (
     <Screen safeArea edges={['top', 'bottom']} scrollable>
+      <StatusBar style="light" backgroundColor={Theme.colors.primary[500]} />
       {/* Header */}
       <LinearGradient
         colors={[Theme.colors.primary[500], Theme.colors.primary[600]]}
