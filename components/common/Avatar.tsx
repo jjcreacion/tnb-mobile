@@ -23,7 +23,7 @@ export const Avatar: React.FC<AvatarProps> = ({
     return (names[0].charAt(0) + names[names.length - 1].charAt(0)).toUpperCase();
   };
 
-  const avatarStyles = [
+  const viewStyles = [
     styles.base,
     styles[size],
     style,
@@ -44,7 +44,7 @@ export const Avatar: React.FC<AvatarProps> = ({
   }
 
   return (
-    <View style={avatarStyles}>
+    <View style={viewStyles}>
       <Text style={textStyles}>{name ? getInitials(name) : '?'}</Text>
     </View>
   );

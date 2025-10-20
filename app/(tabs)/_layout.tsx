@@ -12,8 +12,11 @@ export default function TabsLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Theme.colors.text.inverse,
-        tabBarInactiveTintColor: 'rgba(255, 255, 255, 0.6)',
+        // tabBarActiveTintColor: Theme.colors.primary[800],
+        // tabBarInactiveTintColor: 'rgba(255, 255, 255, 0.8)',
+        
+        tabBarActiveTintColor: Theme.colors.primary[50],
+        tabBarInactiveTintColor: 'rgba(255, 255, 255, 0.4)',
         headerShown: false,
         tabBarButton: HapticTab,
         tabBarStyle: Platform.select({
@@ -21,61 +24,63 @@ export default function TabsLayout() {
             backgroundColor: Theme.colors.primary[500],
             borderTopLeftRadius: Theme.borderRadius.xl,
             borderTopRightRadius: Theme.borderRadius.xl,
+            overflow: 'hidden',
             borderTopWidth: 0,
             height: 85,
             paddingBottom: 0,
-            paddingTop: 8,
-            position: 'absolute',
+            paddingTop: 5,
             ...Theme.shadows.lg,
           },
           android: {
             backgroundColor: Theme.colors.primary[500],
             borderTopLeftRadius: Theme.borderRadius.xl,
             borderTopRightRadius: Theme.borderRadius.xl,
+            overflow: 'hidden',
             borderTopWidth: 0,
-            height: 65 + insets.bottom,
-            paddingBottom: Math.max(insets.bottom - 5, 8),
+            height: 70 + insets.bottom,
+            paddingBottom: Math.max(insets.bottom, 10),
             paddingTop: 8,
             position: 'absolute',
             bottom: 0,
-            ...Theme.shadows.lg,
+            elevation: 12,
           },
         }),
-        tabBarLabelStyle: {
-          fontSize: Theme.typography.fontSize.xs,
-          fontWeight: Theme.typography.fontWeight.medium,
-          marginBottom: Platform.OS === 'ios' ? 2 : 4,
-          marginTop: -2,
-        },
-        tabBarIconStyle: {
-          marginTop: Platform.OS === 'ios' ? 2 : 4,
-        },
+        tabBarLabelStyle: Platform.select({
+          ios: {
+            fontSize: Theme.typography.fontSize.xs,
+            color: Theme.colors.text.inverse,
+            marginBottom: 0,
+            fontWeight: Theme.typography.fontWeight.medium,
+          },
+          android: {
+            fontSize: Theme.typography.fontSize.xs,
+            color: Theme.colors.text.inverse,
+            marginBottom: 5,
+            fontWeight: Theme.typography.fontWeight.medium,
+          },
+        }),
+        tabBarIconStyle: Platform.select({
+          ios: {
+            marginTop: 0,
+          },
+          android: {
+            marginTop: 5,
+          },
+        }),
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
           title: 'Home',
-          tabBarIcon: ({ color, focused }) => (
-            <Icon
-              name={focused ? 'home' : 'home'}
-              size={focused ? 28 : 26}
-              color={color}
-            />
-          ),
+          tabBarIcon: ({ color }) => <Icon name="home" size={30} color={color} />,
         }}
       />
       <Tabs.Screen
         name="activity"
         options={{
           title: 'Activity',
-          tabBarIcon: ({ color, focused }) => (
-            <Icon
-              name={focused ? 'notifications' : 'notifications-none'}
-              size={focused ? 28 : 26}
-              color={color}
-            />
-          ),
+          tabBarIcon: ({ color }) => <Icon name="notifications" size={30} color={color} />,
         }}
       />
 
@@ -83,27 +88,16 @@ export default function TabsLayout() {
         name="history"
         options={{
           title: 'Services',
-          tabBarIcon: ({ color, focused }) => (
-            <Icon
-              name={focused ? 'event-note' : 'event-note'}
-              size={focused ? 28 : 26}
-              color={color}
-            />
-          ),
+          tabBarIcon: ({ color }) => <Icon name="event-note" size={30} color={color} />,
         }}
       />
-
+      
+    
       <Tabs.Screen
         name="billing"
         options={{
           title: 'Billing',
-          tabBarIcon: ({ color, focused }) => (
-            <Icon
-              name={focused ? 'paid' : 'paid'}
-              size={focused ? 28 : 26}
-              color={color}
-            />
-          ),
+          tabBarIcon: ({ color }) => <Icon name="paid" size={30} color={color} />,
         }}
       />
 
@@ -111,15 +105,10 @@ export default function TabsLayout() {
         name="support"
         options={{
           title: 'Support',
-          tabBarIcon: ({ color, focused }) => (
-            <Icon
-              name={focused ? 'support-agent' : 'support-agent'}
-              size={focused ? 28 : 26}
-              color={color}
-            />
-          ),
+          tabBarIcon: ({ color }) => <Icon name="support-agent" size={30} color={color} />,
         }}
       />
+ 
     </Tabs>
   );
 }

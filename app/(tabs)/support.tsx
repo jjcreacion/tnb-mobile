@@ -221,9 +221,9 @@ const styles = StyleSheet.create({
   cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Theme.spacing.md,
+    gap: 12,
     marginBottom: Theme.spacing.lg,
-    paddingBottom: Theme.spacing.md,
+    paddingBottom: 12,
     borderBottomWidth: 1,
     borderBottomColor: Theme.colors.border.light,
   },
@@ -237,8 +237,8 @@ const styles = StyleSheet.create({
   contactItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Theme.spacing.md,
-    paddingVertical: Theme.spacing.md,
+    gap: 12,
+    paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: Theme.colors.border.light,
   },
@@ -267,7 +267,7 @@ const styles = StyleSheet.create({
     fontSize: Theme.typography.fontSize.lg,
     fontWeight: Theme.typography.fontWeight.bold,
     color: Theme.colors.text.primary,
-    marginBottom: Theme.spacing.md,
+    marginBottom: 12,
   },
 
   socialContainer: {
@@ -306,7 +306,7 @@ const styles = StyleSheet.create({
     borderRadius: Theme.borderRadius.xl,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Theme.spacing.md,
+    gap: 12,
     marginBottom: Theme.spacing.xl,
     ...Theme.shadows.md,
   },
@@ -343,7 +343,7 @@ const styles = StyleSheet.create({
 
   helpContent: {
     alignItems: 'center',
-    gap: Theme.spacing.md,
+    gap: 12,
   },
 
   helpTitle: {

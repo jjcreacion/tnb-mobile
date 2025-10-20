@@ -285,7 +285,7 @@ const styles = StyleSheet.create({
   codeContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
-    gap: Theme.spacing.md,
+    gap: 12,
     marginBottom: Theme.spacing.xl,
   },
 
@@ -317,7 +317,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Theme.spacing.sm,
     backgroundColor: Theme.colors.error[50],
-    padding: Theme.spacing.md,
+    padding: 12,
     borderRadius: Theme.borderRadius.lg,
     marginBottom: Theme.spacing.lg,
   },
@@ -333,7 +333,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Theme.spacing.sm,
     backgroundColor: Theme.colors.success[50],
-    padding: Theme.spacing.md,
+    padding: 12,
     borderRadius: Theme.borderRadius.lg,
     marginBottom: Theme.spacing.lg,
   },
@@ -364,7 +364,7 @@ const styles = StyleSheet.create({
 
   buttonContainer: {
     flexDirection: 'row',
-    gap: Theme.spacing.md,
+    gap: 12,
     marginTop: Theme.spacing.lg,
   },
 

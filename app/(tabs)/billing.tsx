@@ -1,10 +1,10 @@
+import { Button, Card, Screen } from '@/components/common';
+import { Theme } from '@/constants/Theme';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import React from 'react';
 import { FlatList, Platform, StyleSheet, Text, View } from 'react-native';
-import Icon from 'react-native-vector-icons/MaterialIcons';
-import { Button, Card, Screen } from '@/components/common';
-import { Theme } from '@/constants/Theme';
+import Icon from 'react-native-vector-icons/Ionicons';
 
 interface Transaction {
   id: string;
@@ -80,8 +80,15 @@ export default function BillingScreen() {
         colors={[Theme.colors.primary[500], Theme.colors.primary[600]]}
         style={styles.header}
       >
-        <Text style={styles.headerTitle}>Billing</Text>
-        <Text style={styles.headerSubtitle}>Manage your payments</Text>
+        <View style={styles.headerContent}>
+          <View style={styles.headerIcon}>
+            <Icon name="wallet" size={28} color={Theme.colors.text.inverse} />
+          </View>
+          <View style={styles.headerTextContainer}>
+            <Text style={styles.headerTitle}>Billing</Text>
+            <Text style={styles.headerSubtitle}>Manage your payments</Text>
+          </View>
+        </View>
       </LinearGradient>
 
       {/* Balance Card */}
@@ -135,24 +142,43 @@ export default function BillingScreen() {
 
 const styles = StyleSheet.create({
   header: {
+    paddingTop: Theme.spacing.lg,
+    paddingBottom: Theme.spacing.xl,
     paddingHorizontal: Theme.spacing.base,
-    paddingVertical: Theme.spacing.xl,
     marginBottom: Theme.spacing.lg,
-    marginHorizontal: -Theme.spacing.base,
-    marginTop: Platform.OS === 'ios' ? -Theme.spacing.base : 0,
+    ...Theme.shadows.md,
+  },
+
+  headerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+
+  headerIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: Theme.borderRadius.full,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  headerTextContainer: {
+    flex: 1,
   },
 
   headerTitle: {
-    fontSize: Theme.typography.fontSize['3xl'],
+    fontSize: Theme.typography.fontSize['2xl'],
     fontWeight: Theme.typography.fontWeight.bold,
     color: Theme.colors.text.inverse,
-    marginBottom: Theme.spacing.xs,
+    marginBottom: 2,
   },
 
   headerSubtitle: {
-    fontSize: Theme.typography.fontSize.base,
-    color: Theme.colors.text.inverse,
-    opacity: 0.9,
+    fontSize: Theme.typography.fontSize.sm,
+    color: 'rgba(255, 255, 255, 0.9)',
+    fontWeight: Theme.typography.fontWeight.medium,
   },
 
   balanceCard: {
@@ -204,7 +230,7 @@ const styles = StyleSheet.create({
   },
 
   transactionCard: {
-    marginBottom: Theme.spacing.md,
+    marginBottom: 12,
   },
 
   transactionContent: {
@@ -222,7 +248,7 @@ const styles = StyleSheet.create({
 
   transactionDetails: {
     flex: 1,
-    marginLeft: Theme.spacing.md,
+    marginLeft: 12,
   },
 
   serviceName: {
@@ -256,7 +282,7 @@ const styles = StyleSheet.create({
   paymentHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Theme.spacing.md,
+    gap: 12,
     marginBottom: Theme.spacing.sm,
   },
 
@@ -281,7 +307,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: Theme.spacing['3xl'],
-    paddingTop: Theme.spacing['6xl'],
+    paddingTop: Theme.spacing['5xl'],
   },
 
   emptyTitle: {

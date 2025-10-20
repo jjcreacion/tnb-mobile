@@ -78,7 +78,7 @@ export const Input = forwardRef((
     }
   };
 
-  const handleBlur = (e: NativeSyntheticEvent<TextInputFocusEventData>) => {
+  const handleBlur: TextInputProps['onBlur'] = (e) => {
     setIsFocused(false);
     if (onBlur) {
       onBlur(e as any);

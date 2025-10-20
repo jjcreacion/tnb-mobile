@@ -5,9 +5,9 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, Platform, RefreshControl, StyleSheet, Text, View } from 'react-native';
-import Icon from 'react-native-vector-icons/MaterialIcons';
-import { Card, Screen, StatusBadge } from '@/components/common';
+import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import Icon from 'react-native-vector-icons/Ionicons';
+import { Screen, Card } from '@/components/common';
 import { Theme } from '@/constants/Theme';
 
 interface ServiceRequest {
@@ -46,6 +46,7 @@ const HistoryScreen = () => {
   const [services, setServices] = useState<ServiceRequest[]>([]);
   const [statusList, setStatusList] = useState<Status[]>([]);
   const [loading, setLoading] = useState(true);
+  const [userId, setUserId] = useState<string | null>(null);
   const API_URL = Constants.expoConfig?.extra?.API_BASE_URL;
   const [isRefreshing, setIsRefreshing] = useState(false);
   const router = useRouter();
@@ -69,10 +70,19 @@ const HistoryScreen = () => {
 
       if (response.status === 200) {
         setServices(response.data);
+        console.log('Datos del usuario cargados:', response.data);
       } else if (response.status === 404) {
-        setServices([]);
+        if (response.data && (response.data as any).message && (response.data as any).message.includes('No requests found')) {
+          setServices([]);
+          console.log('No se encontraron solicitudes para este usuario.');
+        } else {
+          console.error('Error inesperado al obtener servicios:', response);
+        }
+      } else {
+        console.error('Error al obtener servicios:', response);
       }
     } catch (error) {
+      console.error('Network or other error fetching services:', error);
       setServices([]);
     } finally {
       setLoading(false);
@@ -85,6 +95,7 @@ const HistoryScreen = () => {
       await fetchStatusList();
       const storedUserId = await AsyncStorage.getItem('userId');
       if (storedUserId) {
+        setUserId(storedUserId);
         fetchServices(storedUserId);
       } else {
         setLoading(false);
@@ -115,69 +126,83 @@ const HistoryScreen = () => {
   const getStatusTextAndColor = (fkRequestStatus: number | null) => {
     const statusId = fkRequestStatus === null ? 1 : fkRequestStatus;
     const statusObject = statusList.find(status => status.statusId === statusId);
-    const statusColor = statusObject ? statusObject.color : 'gray';
+    const statusColor = statusObject ? statusObject.color : Theme.colors.text.tertiary;
     const statusName = statusObject ? statusObject.name : 'Unknown';
     return { text: statusName, color: statusColor };
   };
 
-  const getStatusVariant = (statusName: string) => {
+  const getStatusIcon = (statusName: string) => {
     const name = statusName.toLowerCase();
-    if (name.includes('approved') || name.includes('completed')) return 'success' as const;
-    if (name.includes('progress')) return 'info' as const;
-    if (name.includes('pending')) return 'warning' as const;
-    if (name.includes('closed') || name.includes('cancelled')) return 'neutral' as const;
-    return 'neutral' as const;
+    if (name.includes('approved')) return 'checkmark-done-circle';
+    if (name.includes('progress')) return 'hourglass-outline';
+    if (name.includes('closed')) return 'close-circle-outline';
+    if (name.includes('finish')) return 'checkmark-circle-outline';
+    return 'time-outline';
   };
 
-  const renderServiceCard = ({ item }: { item: ServiceRequest }) => {
-    const statusInfo = getStatusTextAndColor(item.fkRequestStatus);
-    const date = new Date(item.createdAt);
-    const formattedDate = date.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    });
+  const renderServiceCard = ({ item: service }: { item: ServiceRequest }) => {
+    const statusInfo = getStatusTextAndColor(service.fkRequestStatus);
+    const statusIcon = getStatusIcon(statusInfo.text);
 
     return (
-      <Card variant="elevated" padding="md" style={styles.card} onPress={() => handleCardPress(item)}>
-        <View style={styles.cardHeader}>
-          <StatusBadge
-            label={statusInfo.text}
-            variant={getStatusVariant(statusInfo.text)}
-            size="sm"
-          />
-          <View style={styles.dateContainer}>
-            <Icon name="schedule" size={14} color={Theme.colors.text.tertiary} />
-            <Text style={styles.date}>{formattedDate}</Text>
+      <TouchableOpacity onPress={() => handleCardPress(service)}>
+        <Card variant="elevated" padding="base" style={styles.card}>
+          <View style={styles.cardHeader}>
+            <View style={styles.cardHeaderLeft}>
+              <Text style={styles.cardTitle} numberOfLines={2}>
+                {service.serviceDescription || 'No Description'}
+              </Text>
+            </View>
+            <Icon name="chevron-forward" size={20} color={Theme.colors.text.tertiary} />
           </View>
-        </View>
 
-        <Text style={styles.description} numberOfLines={2}>
-          {item.serviceDescription || 'No Description'}
-        </Text>
+          <View style={styles.addressContainer}>
+            <Icon name="location" size={16} color={Theme.colors.text.tertiary} />
+            <Text style={styles.addressText} numberOfLines={2}>
+              {service.address || 'No Address'}
+            </Text>
+          </View>
 
-        <View style={styles.addressContainer}>
-          <Icon name="location-on" size={16} color={Theme.colors.text.tertiary} />
-          <Text style={styles.address} numberOfLines={1}>
-            {item.address || 'No Address'}
-          </Text>
-        </View>
+          <View style={styles.cardFooter}>
+            <View style={styles.statusContainer}>
+              <View style={[styles.statusBadge, { backgroundColor: statusInfo.color }]}>
+                <Icon name={statusIcon} size={14} color="#FFFFFF" />
+                <Text style={styles.statusBadgeText}>{statusInfo.text}</Text>
+              </View>
+            </View>
+            <View style={styles.dateContainer}>
+              <Icon name="calendar-outline" size={14} color={Theme.colors.text.tertiary} />
+              <Text style={styles.dateText}>
+                {new Date(service.createdAt).toLocaleDateString()}
+              </Text>
+            </View>
+          </View>
 
-        <View style={styles.cardFooter}>
-          <Text style={styles.requestId}>Request #{item.requestId}</Text>
-          <Icon name="chevron-right" size={20} color={Theme.colors.text.tertiary} />
-        </View>
-      </Card>
+          <View style={styles.requestIdContainer}>
+            <Text style={styles.requestIdText}>Request #{service.requestId}</Text>
+          </View>
+        </Card>
+      </TouchableOpacity>
     );
   };
 
   const renderEmptyState = () => (
-    <View style={styles.emptyState}>
-      <Icon name="history" size={80} color={Theme.colors.neutral[300]} />
+    <View style={styles.emptyContainer}>
+      <View style={styles.emptyIconContainer}>
+        <Icon name="file-tray-outline" size={64} color={Theme.colors.text.tertiary} />
+      </View>
       <Text style={styles.emptyTitle}>No Service History</Text>
-      <Text style={styles.emptyText}>
-        Your completed and past service requests will appear here.
-      </Text>
+      <Text style={styles.emptySubtitle}>Your completed services will appear here</Text>
+    </View>
+  );
+
+  const renderErrorState = () => (
+    <View style={styles.emptyContainer}>
+      <View style={styles.emptyIconContainer}>
+        <Icon name="alert-circle-outline" size={64} color={Theme.colors.error[500]} />
+      </View>
+      <Text style={styles.emptyTitle}>Unable to Load</Text>
+      <Text style={styles.emptySubtitle}>Could not load user information</Text>
     </View>
   );
 
@@ -188,22 +213,43 @@ const HistoryScreen = () => {
         colors={[Theme.colors.primary[500], Theme.colors.primary[600]]}
         style={styles.header}
       >
-        <Text style={styles.headerTitle}>Services</Text>
-        <Text style={styles.headerSubtitle}>View your service history</Text>
+        <View style={styles.headerContent}>
+          <View style={styles.headerIcon}>
+            <Icon name="document-text" size={28} color={Theme.colors.text.inverse} />
+          </View>
+          <View style={styles.headerTextContainer}>
+            <Text style={styles.headerTitle}>Services</Text>
+            <Text style={styles.headerSubtitle}>View your service history</Text>
+          </View>
+        </View>
+        {services.length > 0 && (
+          <View style={styles.statsContainer}>
+            <View style={styles.statItem}>
+              <Text style={styles.statNumber}>{services.length}</Text>
+              <Text style={styles.statLabel}>Total Services</Text>
+            </View>
+          </View>
+        )}
       </LinearGradient>
 
-      {loading && !isRefreshing ? (
+      {/* Content */}
+      {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={Theme.colors.primary[500]} />
-          <Text style={styles.loadingText}>Loading services...</Text>
+          <Text style={styles.loadingText}>Loading your services...</Text>
         </View>
+      ) : !userId ? (
+        renderErrorState()
       ) : (
         <FlatList
           data={services}
           renderItem={renderServiceCard}
           keyExtractor={(item) => item.requestId.toString()}
-          contentContainerStyle={styles.listContent}
-          showsVerticalScrollIndicator={false}
+          contentContainerStyle={[
+            styles.listContent,
+            services.length === 0 && styles.listContentEmpty
+          ]}
+          ListEmptyComponent={renderEmptyState}
           refreshControl={
             <RefreshControl
               refreshing={isRefreshing}
@@ -212,62 +258,159 @@ const HistoryScreen = () => {
               colors={[Theme.colors.primary[500]]}
             />
           }
-          ListEmptyComponent={renderEmptyState}
+          showsVerticalScrollIndicator={false}
         />
       )}
     </Screen>
   );
 };
 
-export default HistoryScreen;
-
 const styles = StyleSheet.create({
   header: {
+    paddingTop: Theme.spacing.lg,
+    paddingBottom: Theme.spacing.xl,
     paddingHorizontal: Theme.spacing.base,
-    paddingVertical: Theme.spacing.xl,
-    marginBottom: Theme.spacing.lg,
-    marginHorizontal: -Theme.spacing.base,
-    marginTop: Platform.OS === 'ios' ? -Theme.spacing.base : 0,
+    marginBottom: Theme.spacing.base,
+    ...Theme.shadows.md,
+  },
+
+  headerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Theme.spacing.md,
+    marginBottom: Theme.spacing.md,
+  },
+
+  headerIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: Theme.borderRadius.full,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  headerTextContainer: {
+    flex: 1,
   },
 
   headerTitle: {
-    fontSize: Theme.typography.fontSize['3xl'],
+    fontSize: Theme.typography.fontSize['2xl'],
     fontWeight: Theme.typography.fontWeight.bold,
     color: Theme.colors.text.inverse,
-    marginBottom: Theme.spacing.xs,
+    marginBottom: 2,
   },
 
   headerSubtitle: {
-    fontSize: Theme.typography.fontSize.base,
+    fontSize: Theme.typography.fontSize.sm,
+    color: 'rgba(255, 255, 255, 0.9)',
+    fontWeight: Theme.typography.fontWeight.medium,
+  },
+
+  statsContainer: {
+    flexDirection: 'row',
+    gap: Theme.spacing.md,
+    marginTop: Theme.spacing.sm,
+  },
+
+  statItem: {
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    paddingVertical: Theme.spacing.sm,
+    paddingHorizontal: Theme.spacing.base,
+    borderRadius: Theme.borderRadius.lg,
+    minWidth: 100,
+  },
+
+  statNumber: {
+    fontSize: Theme.typography.fontSize.xl,
+    fontWeight: Theme.typography.fontWeight.bold,
     color: Theme.colors.text.inverse,
-    opacity: 0.9,
+    marginBottom: 2,
   },
 
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-
-  loadingText: {
-    marginTop: Theme.spacing.base,
-    fontSize: Theme.typography.fontSize.base,
-    color: Theme.colors.text.secondary,
+  statLabel: {
+    fontSize: Theme.typography.fontSize.xs,
+    color: 'rgba(255, 255, 255, 0.8)',
   },
 
   listContent: {
-    paddingBottom: Platform.OS === 'ios' ? 100 : 80,
+    paddingHorizontal: Theme.spacing.base,
+    paddingBottom: Theme.spacing.xl,
+  },
+
+  listContentEmpty: {
+    flexGrow: 1,
   },
 
   card: {
-    marginBottom: Theme.spacing.base,
+    marginBottom: Theme.spacing.md,
   },
 
   cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     marginBottom: Theme.spacing.md,
+    gap: Theme.spacing.sm,
+  },
+
+  cardHeaderLeft: {
+    flex: 1,
+  },
+
+  cardTitle: {
+    fontSize: Theme.typography.fontSize.lg,
+    fontWeight: Theme.typography.fontWeight.bold,
+    color: Theme.colors.text.primary,
+    lineHeight: Theme.typography.lineHeight.md,
+  },
+
+  addressContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: Theme.spacing.xs,
+    marginBottom: Theme.spacing.md,
+    paddingVertical: Theme.spacing.sm,
+    paddingHorizontal: Theme.spacing.md,
+    backgroundColor: Theme.colors.background.secondary,
+    borderRadius: Theme.borderRadius.md,
+  },
+
+  addressText: {
+    flex: 1,
+    fontSize: Theme.typography.fontSize.sm,
+    color: Theme.colors.text.secondary,
+    lineHeight: Theme.typography.lineHeight.md,
+  },
+
+  cardFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: Theme.spacing.sm,
+    paddingTop: Theme.spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: Theme.colors.border.light,
+  },
+
+  statusContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+
+  statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Theme.spacing.xs,
+    paddingVertical: Theme.spacing.xs,
+    paddingHorizontal: Theme.spacing.sm,
+    borderRadius: Theme.borderRadius.full,
+  },
+
+  statusBadgeText: {
+    color: '#FFFFFF',
+    fontSize: Theme.typography.fontSize.xs,
+    fontWeight: Theme.typography.fontWeight.bold,
   },
 
   dateContainer: {
@@ -276,67 +419,63 @@ const styles = StyleSheet.create({
     gap: Theme.spacing.xs,
   },
 
-  date: {
+  dateText: {
     fontSize: Theme.typography.fontSize.xs,
     color: Theme.colors.text.tertiary,
   },
 
-  description: {
-    fontSize: Theme.typography.fontSize.base,
-    fontWeight: Theme.typography.fontWeight.medium,
-    color: Theme.colors.text.primary,
-    marginBottom: Theme.spacing.md,
-    lineHeight: Theme.typography.lineHeight.lg,
+  requestIdContainer: {
+    marginTop: Theme.spacing.sm,
   },
 
-  addressContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Theme.spacing.xs,
-    marginBottom: Theme.spacing.md,
-  },
-
-  address: {
-    flex: 1,
-    fontSize: Theme.typography.fontSize.sm,
-    color: Theme.colors.text.secondary,
-  },
-
-  cardFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingTop: Theme.spacing.md,
-    borderTopWidth: 1,
-    borderTopColor: Theme.colors.border.light,
-  },
-
-  requestId: {
+  requestIdText: {
     fontSize: Theme.typography.fontSize.xs,
     color: Theme.colors.text.tertiary,
     fontWeight: Theme.typography.fontWeight.medium,
   },
 
-  emptyState: {
+  loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: Theme.spacing['3xl'],
-    paddingTop: Theme.spacing['6xl'],
+    gap: Theme.spacing.md,
+  },
+
+  loadingText: {
+    fontSize: Theme.typography.fontSize.base,
+    color: Theme.colors.text.secondary,
+  },
+
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: Theme.spacing.xl,
+    paddingVertical: Theme.spacing['5xl'],
+  },
+
+  emptyIconContainer: {
+    width: 120,
+    height: 120,
+    borderRadius: Theme.borderRadius.full,
+    backgroundColor: Theme.colors.background.secondary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: Theme.spacing.xl,
   },
 
   emptyTitle: {
-    fontSize: Theme.typography.fontSize['2xl'],
+    fontSize: Theme.typography.fontSize.xl,
     fontWeight: Theme.typography.fontWeight.bold,
     color: Theme.colors.text.primary,
-    marginTop: Theme.spacing.xl,
     marginBottom: Theme.spacing.sm,
   },
 
-  emptyText: {
+  emptySubtitle: {
     fontSize: Theme.typography.fontSize.base,
     color: Theme.colors.text.secondary,
     textAlign: 'center',
-    lineHeight: Theme.typography.lineHeight.lg,
   },
 });
+
+export default HistoryScreen;

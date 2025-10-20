@@ -125,6 +125,8 @@ const Register: React.FC = () => {
 
   // Store setFieldValue in a ref to avoid recreating callbacks
   const setFieldValueRef = useRef<any>(null)
+  // Store current form values in a ref to preserve them during screen navigation
+  const currentFormValuesRef = useRef<any>(null)
 
   // Configure StatusBar
   useEffect(() => {
@@ -295,13 +297,16 @@ const Register: React.FC = () => {
   const handleCitySelect = (city: City) => {
     const cityState = states.find((s) => s.pkState === city.fkState)
 
-    setFormData({
-      ...formData,
+    // Preserve current form values and update city/state
+    const updatedFormData = {
+      ...currentFormValuesRef.current,
       city: city.name,
       cityId: city.pkCity,
       state: cityState?.name ?? '',
       stateId: cityState?.pkState ?? null,
-    })
+    }
+
+    setFormData(updatedFormData)
     setCurrentScreen('form')
     setCitySearchText('')
 
@@ -314,13 +319,16 @@ const Register: React.FC = () => {
     const stateCities = cities.filter((c) => c.fkState === state.pkState)
     setFilteredCities(stateCities)
 
-    setFormData({
-      ...formData,
+    // Preserve current form values and update state (clear city since state changed)
+    const updatedFormData = {
+      ...currentFormValuesRef.current,
       state: state.name,
       stateId: state.pkState,
       city: '',
       cityId: null,
-    })
+    }
+
+    setFormData(updatedFormData)
     setCurrentScreen('form')
     setStateSearchText('')
   }
@@ -506,6 +514,8 @@ const Register: React.FC = () => {
             }) => {
               // Store setFieldValue in ref for memoized callbacks
               setFieldValueRef.current = setFieldValue
+              // Store current form values to preserve them during screen navigation
+              currentFormValuesRef.current = values
 
               return (
                 <ScrollView
@@ -649,7 +659,7 @@ const Register: React.FC = () => {
                     <TextInput
                       ref={addressLine2Ref}
                       style={styles.formInput}
-                      placeholder="Apt, suite, unit, building, floor, etc."
+                      placeholder="Apt, suite, unit, building, floor, PO BOX, etc."
                       value={values.addressLine2}
                       onChangeText={handleChange('addressLine2')}
                       placeholderTextColor={Theme.colors.neutral[400]}
@@ -665,7 +675,11 @@ const Register: React.FC = () => {
                         <Text style={styles.sectionLabel}>State *</Text>
                         <TouchableOpacity
                           style={styles.formInput}
-                          onPress={() => setCurrentScreen('state')}
+                          onPress={() => {
+                            // Save current form values before navigating
+                            setFormData(values)
+                            setCurrentScreen('state')
+                          }}
                           activeOpacity={0.7}
                         >
                           <Text
@@ -683,7 +697,11 @@ const Register: React.FC = () => {
                         <Text style={styles.sectionLabel}>City *</Text>
                         <TouchableOpacity
                           style={styles.formInput}
-                          onPress={() => setCurrentScreen('city')}
+                          onPress={() => {
+                            // Save current form values before navigating
+                            setFormData(values)
+                            setCurrentScreen('city')
+                          }}
                           activeOpacity={0.7}
                         >
                           <Text

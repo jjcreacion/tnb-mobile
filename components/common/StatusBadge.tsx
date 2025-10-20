@@ -42,7 +42,7 @@ const styles = StyleSheet.create({
   base: {
     alignSelf: 'flex-start',
     borderRadius: Theme.borderRadius.full,
-    paddingHorizontal: Theme.spacing.md,
+    paddingHorizontal: 12,
     paddingVertical: Theme.spacing.xs,
   },
 
@@ -78,7 +78,7 @@ const styles = StyleSheet.create({
   },
 
   md: {
-    paddingHorizontal: Theme.spacing.md,
+    paddingHorizontal: 12,
     paddingVertical: Theme.spacing.xs,
   },
 
