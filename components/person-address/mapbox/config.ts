@@ -32,13 +32,13 @@ export const MAPBOX_CONFIG: MapboxConfig = {
 /**
  * Cache the token to avoid repeated lookups
  */
-let cachedToken: string | null | undefined
+let cachedToken: string | null
 
 /**
  * Environment variables and token management
  */
 export const getMapboxToken = (): string | null => {
-  if (cachedToken !== undefined) {
+  if (cachedToken !== null && cachedToken !== undefined) {
     return cachedToken
   }
 

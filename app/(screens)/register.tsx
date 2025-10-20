@@ -229,7 +229,7 @@ const Register: React.FC = () => {
         }
 
         // Also update local state
-        setFormData((prev) => ({ ...prev, ...updates }))
+        setFormData((prev: RegistrationFormData) => ({ ...prev, ...updates }))
         setMappingWarnings([])
       } else {
         try {
@@ -260,7 +260,7 @@ const Register: React.FC = () => {
           }
 
           // Also update local state
-          setFormData((prev) => ({ ...prev, ...updates }))
+          setFormData((prev: RegistrationFormData) => ({ ...prev, ...updates }))
           setMappingWarnings(mappingResult.warnings)
 
           if (mappingResult.createdEntities) {

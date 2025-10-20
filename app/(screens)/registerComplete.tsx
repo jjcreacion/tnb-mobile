@@ -1,5 +1,6 @@
 import { Theme } from '@/constants/Theme';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useRef } from 'react';
@@ -61,9 +62,19 @@ const RegisterComplete: React.FC = () => {
     ]).start();
   }, [pulseAnimation, fadeInAnimation, slideUpAnimation]);
 
-  const goToMainLayout = () => {
-    console.log('Going to login...');
-    router.push('/login');
+  const goToMainLayout = async () => {
+    try {
+      console.log('Cleaning up AsyncStorage...');
+      // Limpiar AsyncStorage antes de ir a login
+      await AsyncStorage.removeItem('emailForSignIn');
+      await AsyncStorage.removeItem('passwordForSignUp');
+      console.log('Going to login...');
+      router.push('/login');
+    } catch (error) {
+      console.error('Error cleaning up AsyncStorage:', error);
+      // Aún así navegar a login aunque falle la limpieza
+      router.push('/login');
+    }
   };
 
   return (
@@ -105,7 +116,7 @@ const RegisterComplete: React.FC = () => {
             ]}
           >
             <Typography variant="h1" style={styles.title} color="primary">
-              Welcome to TNB!
+              Welcome to the {'\n'} TNB family!
             </Typography>
 
             <Typography variant="h3" style={styles.subtitle} color="secondary">
@@ -114,7 +125,7 @@ const RegisterComplete: React.FC = () => {
 
             <View style={styles.divider} />
 
-            <Typography variant="body" style={styles.description} color="secondary">
+            <Typography variant="body1" style={styles.description} color="secondary">
               You're all set! Sign in to start exploring and enjoying all the features we have for
               you.
             </Typography>

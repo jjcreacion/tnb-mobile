@@ -71,8 +71,8 @@ export const useRegistration = () => {
         latitude: formData.latitude,
         longitude: formData.longitude,
         country: 1, // USA siempre es ID 1
-        state: formData.stateId,
-        city: formData.cityId,
+        state: formData.stateId ?? undefined,
+        city: formData.cityId ?? undefined,
       }
 
       console.log('Address data:', JSON.stringify(addressData, null, 2))
@@ -80,9 +80,9 @@ export const useRegistration = () => {
       await personAddressService.createPersonAddress(addressData)
       console.log('✅ Person address created')
 
-      // Step 6: Clean up AsyncStorage
-      await AsyncStorage.removeItem('emailForSignIn')
-      await AsyncStorage.removeItem('passwordForSignUp')
+      // Step 6: Registro completado exitosamente
+      // NOTA: NO limpiamos AsyncStorage aquí para evitar redirección prematura
+      // El AsyncStorage se limpiará en registerComplete.tsx cuando el usuario vaya a login
 
       setLoading(false)
       return { success: true, personId }
