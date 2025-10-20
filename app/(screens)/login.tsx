@@ -104,10 +104,10 @@ export default function LoginScreenMigrated() {
       blurRadius={10}
     >
       {/* StatusBar transparent only for login screen on Android */}
-      <StatusBar 
-        style="light" 
-        backgroundColor="transparent" 
-        translucent={Platform.OS === 'android'} 
+      <StatusBar
+        barStyle="light-content"
+        backgroundColor="transparent"
+        translucent={Platform.OS === 'android'}
       />
       
       <LinearGradient
