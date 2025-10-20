@@ -29,20 +29,9 @@ export const Avatar: React.FC<AvatarProps> = ({
     style,
   ];
 
-  // Para Image, necesitamos crear estilos compatibles con ImageStyle
   const imageStyles: StyleProp<ImageStyle> = [
-    {
-      width: styles[size].width,
-      height: styles[size].height,
-      borderRadius: styles[size].borderRadius,
-    },
-    // Solo extraer propiedades compatibles con ImageStyle del style prop
-    style && {
-      width: (style as any)?.width,
-      height: (style as any)?.height,
-      borderRadius: (style as any)?.borderRadius,
-      opacity: (style as any)?.opacity,
-    },
+    styles[size],
+    style as StyleProp<ImageStyle>,
   ];
 
   const textStyles = [

@@ -1,11 +1,11 @@
+import { Button, Input, KeyboardDismissWrapper } from '@/components/common';
+import { Theme } from '@/constants/Theme';
+import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 import React, { useEffect, useState } from 'react';
-import { Modal, Text, View, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
-import Icon from 'react-native-vector-icons/Ionicons';
+import { KeyboardAvoidingView, Modal, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { validateEmail } from '../../scripts/validator';
-import { Button, Input } from '@/components/common';
-import { Theme } from '@/constants/Theme';
 import VerifyCode from './verificodeReset';
 
 interface ModalProps {
@@ -111,7 +111,7 @@ const ResetPassword: React.FC<ModalProps> = ({ isVisible, onClose }) => {
       animationType="slide"
       onRequestClose={onClose}
     >
-      <View style={styles.modalOverlay}>
+      <KeyboardDismissWrapper style={styles.modalOverlay}>
         {!showVerifyCode ? (
           <KeyboardAvoidingView
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -121,7 +121,7 @@ const ResetPassword: React.FC<ModalProps> = ({ isVisible, onClose }) => {
               {/* Header */}
               <View style={styles.header}>
                 <View style={styles.iconContainer}>
-                  <Icon name="lock-closed" size={48} color={Theme.colors.primary[500]} />
+                  <Ionicons name="lock-closed" size={48} color={Theme.colors.primary[500]} />
                 </View>
                 <Text style={styles.title}>Reset Password</Text>
                 <Text style={styles.subtitle}>
@@ -130,12 +130,13 @@ const ResetPassword: React.FC<ModalProps> = ({ isVisible, onClose }) => {
               </View>
 
               {/* Close Button */}
-              <Button
-                icon={<Icon name="close" size={24} color={Theme.colors.text.secondary} />}
-                variant="ghost"
+              <TouchableOpacity
                 onPress={onClose}
                 style={styles.closeButton}
-              />
+                activeOpacity={0.7}
+              >
+                <Ionicons name="close" size={24} color={Theme.colors.neutral[500]} />
+              </TouchableOpacity>
 
               {/* Form */}
               <View style={styles.form}>
@@ -178,7 +179,7 @@ const ResetPassword: React.FC<ModalProps> = ({ isVisible, onClose }) => {
             verificationCode={verificationCode}
           />
         )}
-      </View>
+      </KeyboardDismissWrapper>
     </Modal>
   );
 };
@@ -239,6 +240,10 @@ const styles = StyleSheet.create({
     right: Theme.spacing.base,
     width: 40,
     height: 40,
+    backgroundColor: Theme.colors.neutral[100],
+    borderRadius: Theme.borderRadius.full,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 
   form: {

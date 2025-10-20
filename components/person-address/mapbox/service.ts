@@ -40,7 +40,7 @@ export class MapboxSearchService {
   /**
    * Search for address suggestions
    */
-  public async searchAddresses(query: string): Promise<AddressAutocompleteSuggestion[]> {
+  public async searchAddresses(query: string, limit?: number): Promise<AddressAutocompleteSuggestion[]> {
     if (!this.isAvailable()) {
       throw new Error('Mapbox service is not available or configured')
     }
@@ -61,7 +61,7 @@ export class MapboxSearchService {
         access_token: token,
         country: MAPBOX_CONFIG.countryFilter.toLowerCase(),
         types: 'address,poi', // Address and Points of Interest
-        limit: MAPBOX_CONFIG.maxResults.toString(),
+        limit: (limit || MAPBOX_CONFIG.maxResults).toString(),
         autocomplete: 'true',
         language: 'en'
       })

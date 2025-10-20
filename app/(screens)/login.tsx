@@ -1,34 +1,56 @@
-import { Button, Input, Screen } from '@/components/common';
-import { Theme } from '@/constants/Theme';
+import { Button, Input, Loading, Screen, Typography } from '@/components/common';
+import { MigratedStyles } from '@/constants/MigratedStyles';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import { Formik } from 'formik';
-import React, { useState } from 'react';
-import { Image, ImageBackground, KeyboardAvoidingView, Platform, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useRef, useState } from 'react';
+import {
+  Image,
+  ImageBackground,
+  KeyboardAvoidingView,
+  Platform,
+  TextInput,
+  View
+} from 'react-native';
 import * as Animatable from 'react-native-animatable';
 import * as Yup from 'yup';
 import ResetModal from './resetPassword';
-import SignUpModal from './singup';
+import SignUpModal from './signup';
 
 const API_URL = Constants.expoConfig?.extra?.API_BASE_URL;
 
 const validationSchema = Yup.object().shape({
   email: Yup.string()
     .email('Please enter a valid email address')
-    .required('Email is required'),
+    .required('Please enter your email'),
   password: Yup.string()
-    .required('Password is required')
-    .min(6, 'Password must be at least 6 characters'),
+    .required('Please enter your password')
+    // .min(6, 'Password must be at least 6 characters'),
 });
 
-export default function LoginScreen() {
+export default function LoginScreenMigrated() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [isSignUpModalVisible, setSignUpModalVisible] = useState(false);
   const [resetModalVisible, setResetModalVisible] = useState(false);
+
+  // Referencias para navegación del teclado
+  const passwordInputRef = useRef<TextInput>(null);
+
+  // Configure StatusBar to be transparent only on this screen (Android)
+  useFocusEffect(
+    useCallback(() => {
+      // This will apply when the screen comes into focus
+      return () => {
+        // This cleanup function runs when the screen loses focus
+        // The StatusBar will automatically reset to app default when navigating away
+      };
+    }, [])
+  );
 
   const handleLogin = async (values: { email: string; password: string }) => {
     setLoading(true);
@@ -49,11 +71,11 @@ export default function LoginScreen() {
         AsyncStorage.setItem('userId', String(data.pkUser));
         router.push('/(tabs)');
       } else {
-        setErrorMessage(data.message || 'Invalid credentials. Please try again.');
+        setErrorMessage(`Email or password incorrect.\nPlease try again.`);
       }
     } catch (error) {
-      setErrorMessage('Unable to connect to the server. Please try again.');
-      console.error('Login error:', error);
+      setErrorMessage('Connection failed. Please check your internet and try again.');
+      console.log('SERVER OFFLINE? Login error:', error);
     } finally {
       setLoading(false);
     }
@@ -62,26 +84,36 @@ export default function LoginScreen() {
   return (
     <ImageBackground
       source={require('@/assets/images/ingenieros.jpeg')}
-      style={styles.backgroundImage}
+      style={MigratedStyles.loginBackgroundImage}
       blurRadius={10}
     >
+      {/* StatusBar transparent only for login screen on Android */}
+      <StatusBar 
+        style="light" 
+        backgroundColor="transparent" 
+        translucent={Platform.OS === 'android'} 
+      />
+      
       <LinearGradient
-        // colors={['rgba(230, 57, 70, 0.3)', 'rgba(230, 57, 70, 0.6)', 'rgba(230, 57, 70, 0.8)']}
-        colors={['rgba(230, 57, 70, 0.2)', 'rgba(230, 57, 70, 0.3)', 'rgba(230, 57, 70, 0.5)']}
-        style={styles.overlay}
+       colors={['rgba(230, 57, 70, 0.2)', 'rgba(230, 57, 70, 0.3)', 'rgba(230, 57, 70, 0.6)']}
+        style={MigratedStyles.loginOverlay}
       />
 
-      <Screen safeArea={true} edges={['top', 'bottom']} style={styles.screen}>
+      <Screen 
+        safeArea={true} 
+        edges={Platform.OS === 'android' ? ['bottom'] : ['top', 'bottom']} 
+        style={MigratedStyles.loginScreen}
+      >
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={styles.keyboardView}
+          style={MigratedStyles.loginKeyboardView}
         >
-          <View style={styles.container}>
+          <View style={MigratedStyles.loginContainer}>
             {/* Logo Section */}
             <Animatable.View
               animation="fadeInDown"
               duration={1000}
-              style={styles.logoContainer}
+              style={MigratedStyles.loginLogoContainer}
             >
               <Animatable.View
                 animation="pulse"
@@ -90,11 +122,17 @@ export default function LoginScreen() {
               >
                 <Image
                   source={require('../../assets/images/icon-tnb.png')}
-                  style={styles.logo}
+                  style={MigratedStyles.loginLogo}
                 />
               </Animatable.View>
-              <Text style={styles.welcomeText}>Welcome Back</Text>
-              <Text style={styles.subtitle}>Sign in to continue</Text>
+              
+              <Typography variant="h2" color="inverse" style={MigratedStyles.loginWelcomeText}>
+                Welcome Back!
+              </Typography>
+              
+              <Typography variant="body1" color="inverse" style={MigratedStyles.loginSubtitle}>
+                Sign in to get started
+              </Typography>
             </Animatable.View>
 
             {/* Form Section */}
@@ -102,9 +140,9 @@ export default function LoginScreen() {
               animation="fadeInUp"
               duration={1000}
               delay={300}
-              style={styles.formContainer}
+              style={MigratedStyles.loginFormContainer}
             >
-              <View style={styles.card}>
+              <View style={MigratedStyles.loginCard}>
                 <Formik
                   initialValues={{ email: '', password: '' }}
                   validationSchema={validationSchema}
@@ -122,23 +160,31 @@ export default function LoginScreen() {
                         keyboardType="email-address"
                         autoCapitalize="none"
                         autoComplete="email"
+                        returnKeyType='next'
+                        onSubmitEditing={() => passwordInputRef.current?.focus()}
+                        blurOnSubmit={false}
                       />
 
                       <Input
+                        ref={passwordInputRef}
                         placeholder="Password"
                         leftIcon="lock-closed-outline"
                         value={values.password}
                         onChangeText={handleChange('password')}
                         onBlur={handleBlur('password')}
                         error={touched.password && errors.password ? errors.password : undefined}
-                        secureTextEntry
+                        secureTextEntry={true}
                         autoCapitalize="none"
                         autoComplete="password"
+                        returnKeyType='go'
+                        onSubmitEditing={() => handleSubmit() }
                       />
 
                       {errorMessage ? (
-                        <View style={styles.errorContainer}>
-                          <Text style={styles.errorText}>{errorMessage}</Text>
+                        <View style={MigratedStyles.loginErrorContainer}>
+                          <Typography variant="body2" color="error" style={MigratedStyles.loginErrorText}>
+                            {errorMessage}
+                          </Typography>
                         </View>
                       ) : null}
 
@@ -149,161 +195,61 @@ export default function LoginScreen() {
                         fullWidth
                         size="lg"
                         variant="primary"
-                        style={styles.loginButton}
+                        style={MigratedStyles.loginButton}
                       />
 
                       <Button
-                        title="Forgot Password?"
+                        title="Forgot your password?"
                         onPress={() => setResetModalVisible(true)}
                         variant="ghost"
                         size="sm"
-                        style={styles.forgotButton}
+                        style={MigratedStyles.loginForgotButton}
                       />
                     </>
                   )}
                 </Formik>
 
-                <View style={styles.divider}>
-                  <View style={styles.dividerLine} />
-                  <Text style={styles.dividerText}>OR</Text>
-                  <View style={styles.dividerLine} />
+                <View style={MigratedStyles.loginDivider}>
+                  <View style={MigratedStyles.loginDividerLine} />
+                  <Typography variant="body2" color="tertiary" style={MigratedStyles.loginDividerText}>
+                    OR
+                  </Typography>
+                  <View style={MigratedStyles.loginDividerLine} />
                 </View>
 
                 <Button
-                  title="Create New Account"
+                  title="Create Account"
                   onPress={() => setSignUpModalVisible(true)}
                   variant="outline"
                   fullWidth
                   size="lg"
-                  style={styles.signupButton}
+                  style={MigratedStyles.loginSignupButton}
                 />
               </View>
             </Animatable.View>
           </View>
         </KeyboardAvoidingView>
-      </Screen>
 
-      <SignUpModal
-        isVisible={isSignUpModalVisible}
-        onClose={() => setSignUpModalVisible(false)}
-      />
-      <ResetModal
-        isVisible={resetModalVisible}
-        onClose={() => setResetModalVisible(false)}
-      />
+        {/* Loading Overlay */}
+        <Loading
+          visible={loading}
+          variant="overlay"
+          message="Signing you in..."
+          size="lg"
+        />
+
+        {/* Modals */}
+        <SignUpModal 
+          isVisible={isSignUpModalVisible} 
+          onClose={() => setSignUpModalVisible(false)} 
+        />
+        
+        <ResetModal 
+          isVisible={resetModalVisible} 
+          onClose={() => setResetModalVisible(false)} 
+        />
+      </Screen>
     </ImageBackground>
   );
 }
 
-const styles = StyleSheet.create({
-  backgroundImage: {
-    flex: 1,
-    width: '100%',
-    height: '100%',
-  },
-
-  overlay: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    top: 0,
-    bottom: 0,
-  },
-
-  screen: {
-    backgroundColor: 'transparent',
-  },
-
-  keyboardView: {
-    flex: 1,
-  },
-
-  container: {
-    flex: 1,
-    justifyContent: 'space-between',
-    paddingVertical: Theme.spacing['2xl'],
-  },
-
-  logoContainer: {
-    alignItems: 'center',
-    marginTop: Theme.spacing['4xl'],
-  },
-
-  logo: {
-    width: 120,
-    height: 120,
-    marginBottom: Theme.spacing.lg,
-  },
-
-  welcomeText: {
-    fontSize: Theme.typography.fontSize['3xl'],
-    fontWeight: Theme.typography.fontWeight.bold,
-    color: Theme.colors.text.inverse,
-    marginBottom: Theme.spacing.xs,
-    textAlign: 'center',
-  },
-
-  subtitle: {
-    fontSize: Theme.typography.fontSize.base,
-    color: Theme.colors.text.inverse,
-    opacity: 0.9,
-    textAlign: 'center',
-  },
-
-  formContainer: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    marginBottom: Theme.spacing.xl,
-  },
-
-  card: {
-    backgroundColor: Theme.colors.surface.primary,
-    borderRadius: Theme.borderRadius['3xl'],
-    padding: Theme.spacing.xl,
-    ...Theme.shadows.xl,
-  },
-
-  loginButton: {
-    marginTop: 12,
-  },
-
-  forgotButton: {
-    marginTop: Theme.spacing.sm,
-  },
-
-  errorContainer: {
-    backgroundColor: Theme.colors.error[50],
-    padding: 12,
-    borderRadius: Theme.borderRadius.base,
-    marginBottom: 12,
-  },
-
-  errorText: {
-    color: Theme.colors.error[600],
-    fontSize: Theme.typography.fontSize.sm,
-    textAlign: 'center',
-  },
-
-  divider: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: Theme.spacing.xl,
-  },
-
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: Theme.colors.border.default,
-  },
-
-  dividerText: {
-    marginHorizontal: 12,
-    color: Theme.colors.text.tertiary,
-    fontSize: Theme.typography.fontSize.sm,
-    fontWeight: Theme.typography.fontWeight.medium,
-  },
-
-  signupButton: {
-    borderWidth: 1.5,
-  },
-});

@@ -1,8 +1,13 @@
-import React, { useRef, useEffect } from 'react';
-import { View, StyleSheet, Text, Animated, Easing, TouchableOpacity } from 'react-native';
-import ConfettiCannon from 'react-native-confetti-cannon';
-import { Ionicons } from '@expo/vector-icons'; 
+import { Theme } from '@/constants/Theme';
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
+import React, { useEffect, useRef } from 'react';
+import { Animated, Easing, Text, TouchableOpacity, View } from 'react-native';
+import ConfettiCannon from 'react-native-confetti-cannon';
+
+// Theme System Components
+import { MigratedStyles } from '../../constants/MigratedStyles';
 
 
 interface RegisterCompleteProps {
@@ -10,7 +15,7 @@ interface RegisterCompleteProps {
   onClose: () => void;
   IsVerify: () => void;
 }
-const registerComplete: React.FC<RegisterCompleteProps> = ({ isVisible, onClose, IsVerify}) => {
+const RegisterComplete: React.FC<RegisterCompleteProps> = ({ isVisible, onClose, IsVerify}) => {
 
   const confettiRef = useRef<ConfettiCannon>(null);
   const pulseAnimation = useRef(new Animated.Value(1)).current;
@@ -29,7 +34,7 @@ const registerComplete: React.FC<RegisterCompleteProps> = ({ isVisible, onClose,
           useNativeDriver: true,
         })
       ).start();
-    }, []);
+    }, [pulseAnimation]);
 
   const goToMainLayout = () => {
     console.log('Ir a principal'); 
@@ -39,7 +44,12 @@ const registerComplete: React.FC<RegisterCompleteProps> = ({ isVisible, onClose,
   };
   
   return (
-    <View style={styles.container}>
+    <>
+      <StatusBar 
+        style="light" 
+        backgroundColor={Theme.colors.primary[500]}
+      />
+      <View style={MigratedStyles.registerCompleteContainer}>
       <ConfettiCannon
         count={100}
         origin={{ x: 0, y: 0 }}
@@ -51,51 +61,19 @@ const registerComplete: React.FC<RegisterCompleteProps> = ({ isVisible, onClose,
         <Ionicons name="checkmark-circle-outline" size={80} color="green" />
       </Animated.View>
 
-      <Text style={styles.message1}>
+      <Text style={MigratedStyles.registerCompleteMessage1}>
         Welcome to the Family TNB
       </Text>
-      <Text style={styles.message2}>
+      <Text style={MigratedStyles.registerCompleteMessage2}>
         Sign Up Successful!
       </Text>
 
-       <TouchableOpacity style={styles.button} onPress={goToMainLayout}> 
-        <Text style={styles.buttonText}>Go to Login</Text>
+       <TouchableOpacity style={MigratedStyles.registerCompleteButton} onPress={goToMainLayout}> 
+        <Text style={MigratedStyles.registerCompleteButtonText}>Go to Login</Text>
       </TouchableOpacity>
     </View>
+    </>
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  message1: {
-    marginTop: 20,
-    fontSize: 30, 
-    fontWeight: 'bold',
-    color: 'black',
-    textAlign: 'center',
-  },
-  message2: {
-    marginTop: 8,
-    fontSize: 18,
-    color: 'black',
-    textAlign: 'center',
-  },
-  button: { 
-    marginTop: 20,
-    backgroundColor: '#ff0000',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 5,
-  },
-  buttonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-});
-
-export default registerComplete;
+export default RegisterComplete;

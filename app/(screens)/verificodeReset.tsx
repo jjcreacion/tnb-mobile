@@ -1,8 +1,9 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { Modal, StyleSheet, Text, TextInput, View } from 'react-native';
-import Icon from 'react-native-vector-icons/Ionicons';
 import { Button } from '@/components/common';
 import { Theme } from '@/constants/Theme';
+import { Ionicons } from '@expo/vector-icons';
+import { StatusBar } from 'expo-status-bar';
+import React, { useEffect, useRef, useState } from 'react';
+import { Modal, StyleSheet, Text, TextInput, View } from 'react-native';
 import SetNewPassword from './SetNewPassword';
 
 interface VerifyPasswordResetCodeProps {
@@ -106,7 +107,12 @@ const VerifyPasswordResetCode: React.FC<VerifyPasswordResetCodeProps> = ({
   };
 
   return (
-    <Modal
+    <>
+      <StatusBar 
+        style="light" 
+        backgroundColor={Theme.colors.primary[500]}
+      />
+      <Modal
       visible={isVisible}
       transparent={true}
       animationType="slide"
@@ -119,7 +125,7 @@ const VerifyPasswordResetCode: React.FC<VerifyPasswordResetCodeProps> = ({
               {/* Header with Icon */}
               <View style={styles.header}>
                 <View style={styles.iconContainer}>
-                  <Icon name="shield-checkmark" size={48} color={Theme.colors.primary[500]} />
+                  <Ionicons name="shield-checkmark" size={48} color={Theme.colors.primary[500]} />
                 </View>
                 <Text style={styles.title}>Enter Verification Code</Text>
                 <Text style={styles.subtitle}>
@@ -152,7 +158,7 @@ const VerifyPasswordResetCode: React.FC<VerifyPasswordResetCodeProps> = ({
               {/* Status Messages */}
               {!codeValid && !isCodeCorrect && (
                 <View style={styles.errorContainer}>
-                  <Icon name="alert-circle" size={20} color={Theme.colors.error[500]} />
+                  <Ionicons name="alert-circle" size={20} color={Theme.colors.error[500]} />
                   <Text style={styles.errorText}>
                     Invalid code or code expired
                   </Text>
@@ -161,7 +167,7 @@ const VerifyPasswordResetCode: React.FC<VerifyPasswordResetCodeProps> = ({
 
               {isCodeCorrect && (
                 <View style={styles.successContainer}>
-                  <Icon name="checkmark-circle" size={20} color={Theme.colors.success[500]} />
+                  <Ionicons name="checkmark-circle" size={20} color={Theme.colors.success[500]} />
                   <Text style={styles.successText}>
                     Code verified successfully!
                   </Text>
@@ -171,7 +177,7 @@ const VerifyPasswordResetCode: React.FC<VerifyPasswordResetCodeProps> = ({
               {/* Timer */}
               {!isCodeCorrect && timer > 0 && (
                 <View style={styles.timerContainer}>
-                  <Icon name="time-outline" size={16} color={Theme.colors.text.tertiary} />
+                  <Ionicons name="time-outline" size={16} color={Theme.colors.text.tertiary} />
                   <Text style={styles.timerText}>
                     Code expires in {formatTime()}
                   </Text>
@@ -184,7 +190,7 @@ const VerifyPasswordResetCode: React.FC<VerifyPasswordResetCodeProps> = ({
                   title="Resend Code"
                   variant="ghost"
                   onPress={handleResendCode}
-                  icon={<Icon name="reload" size={20} color={Theme.colors.primary[500]} />}
+                  icon={<Ionicons name="reload" size={20} color={Theme.colors.primary[500]} />}
                   iconPosition="left"
                   style={styles.resendButton}
                 />
@@ -196,7 +202,7 @@ const VerifyPasswordResetCode: React.FC<VerifyPasswordResetCodeProps> = ({
                   title="Back"
                   variant="outline"
                   onPress={onBack}
-                  icon={<Icon name="arrow-back" size={20} color={Theme.colors.primary[500]} />}
+                  icon={<Ionicons name="arrow-back" size={20} color={Theme.colors.primary[500]} />}
                   iconPosition="left"
                   style={styles.backButton}
                 />
@@ -206,7 +212,7 @@ const VerifyPasswordResetCode: React.FC<VerifyPasswordResetCodeProps> = ({
                   variant="primary"
                   onPress={handleNext}
                   disabled={!isCodeCorrect}
-                  icon={<Icon name="arrow-forward" size={20} color={Theme.colors.text.inverse} />}
+                  icon={<Ionicons name="arrow-forward" size={20} color={Theme.colors.text.inverse} />}
                   iconPosition="right"
                   style={styles.continueButton}
                 />
@@ -221,6 +227,7 @@ const VerifyPasswordResetCode: React.FC<VerifyPasswordResetCodeProps> = ({
         />
       )}
     </Modal>
+    </>
   );
 };
 

@@ -477,6 +477,20 @@ export const addressStyles = StyleSheet.create({
     fontWeight: '500',
   },
 
+  // Loading More Indicator
+  loadingMoreContainer: {
+    padding: 12,
+    alignItems: 'center',
+    backgroundColor: '#f9f9f9',
+    borderTopWidth: 1,
+    borderTopColor: '#e0e0e0',
+  },
+  loadingMoreText: {
+    fontSize: 12,
+    color: '#666',
+    fontStyle: 'italic',
+  },
+
   // Warning Messages
   warningContainer: {
     backgroundColor: '#FFF9E6',

@@ -1,7 +1,10 @@
+import { MigratedStyles } from '@/constants/MigratedStyles';
+import { Theme } from '@/constants/Theme';
 import { FontAwesome, MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import React from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 
 const TermsAndPoliciesScreen = () => {
   const router = useRouter();
@@ -19,73 +22,31 @@ const TermsAndPoliciesScreen = () => {
   };
 
   return (
-    <View style={styles.container}>
-      <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-        <FontAwesome name="arrow-left" size={24} color="#333" />
-        <Text style={styles.backButtonText}>Back</Text>
+    <>
+      <StatusBar 
+        style="light" 
+        backgroundColor={Theme.colors.primary[500]}
+      />
+      <View style={MigratedStyles.termsAndPoliciesContainer}>
+        <TouchableOpacity style={MigratedStyles.termsAndPoliciesBackButton} onPress={() => router.back()}>
+        <FontAwesome name="arrow-left" size={24} color={Theme.colors.text.primary} />
+        <Text style={MigratedStyles.termsAndPoliciesBackButtonText}>Back</Text>
       </TouchableOpacity>
 
-      <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.title}>Terms and Policies</Text>
+      <ScrollView contentContainerStyle={MigratedStyles.termsAndPoliciesContent}>
+        <Text style={MigratedStyles.termsAndPoliciesTitle}>Terms and Policies</Text>
         {policies.map((policy, index) => (
-          <TouchableOpacity key={index} style={styles.policyItem} onPress={() => navigateToPolicy(policy.screen)}>
-            <MaterialIcons name={policy.icon as any} size={24} color="#007AFF" />
-            <Text style={styles.policyText}>{policy.name}</Text>
-            <MaterialIcons name="chevron-right" size={24} color="#ccc" />
+          <TouchableOpacity key={index} style={MigratedStyles.termsAndPoliciesPolicyItem} onPress={() => navigateToPolicy(policy.screen)}>
+            <MaterialIcons name={policy.icon as any} size={24} color={Theme.colors.primary[500]} />
+            <Text style={MigratedStyles.termsAndPoliciesPolicyText}>{policy.name}</Text>
+            <MaterialIcons name="chevron-right" size={24} color={Theme.colors.text.tertiary} />
           </TouchableOpacity>
         ))}
       </ScrollView>
     </View>
+    </>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f5f5f5',
-    paddingTop: 60,
-    paddingHorizontal: 20,
-  },
-  backButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  backButtonText: {
-    fontSize: 18,
-    marginLeft: 10,
-    color: '#333',
-  },
-  content: {
-    paddingBottom: 40,
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    marginBottom: 30,
-    color: '#333',
-  },
-  policyItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    paddingVertical: 20,
-    paddingHorizontal: 15,
-    borderRadius: 10,
-    marginBottom: 15,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
-  },
-  policyText: {
-    flex: 1,
-    fontSize: 18,
-    marginLeft: 15,
-    color: '#333',
-  },
-});
 
 export default TermsAndPoliciesScreen;
 

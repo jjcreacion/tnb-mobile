@@ -32,8 +32,10 @@ export const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(({
 }, ref) => {
   const zipCodeRef = useRef<TextInput>(null)
   const addressLine2Ref = useRef<TextInput>(null)
+  const scrollViewRef = useRef<ScrollView>(null)
   const [useManualEntry, setUseManualEntry] = useState(false)
   const [mappingWarnings, setMappingWarnings] = useState<string[]>([])
+  const [scrollEnabled, setScrollEnabled] = useState(true)
 
   useImperativeHandle(ref, () => ({
     focusZipCode: () => {
@@ -153,10 +155,12 @@ export const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(({
   return (
     <View style={addressStyles.newAddressFormContainer}>
       <ScrollView
+        ref={scrollViewRef}
         style={addressStyles.newAddressForm}
         contentContainerStyle={{ paddingBottom: 40 }}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
+        scrollEnabled={scrollEnabled}
       >
       <Text style={addressStyles.formLabel}>Address</Text>
       
@@ -171,6 +175,7 @@ export const AddressForm = forwardRef<AddressFormRef, AddressFormProps>(({
           style={addressStyles.formInput}
           addressLine2Ref={addressLine2Ref}
           addressLine2Value={formData.addressLine2}
+          onScrollEnabledChange={setScrollEnabled}
         />
       ) : (
         <TextInput
