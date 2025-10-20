@@ -11,13 +11,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '@/components/common/Button';
 import { Typography } from '@/components/common/Typography';
 
-interface RegisterCompleteProps {
-  isVisible: boolean;
-  onClose: () => void;
-  IsVerify: () => void;
-}
-
-const RegisterComplete: React.FC<RegisterCompleteProps> = ({ isVisible, onClose, IsVerify }) => {
+const RegisterComplete: React.FC = () => {
   const confettiRef = useRef<ConfettiCannon>(null);
   const pulseAnimation = useRef(new Animated.Value(1)).current;
   const fadeInAnimation = useRef(new Animated.Value(0)).current;
@@ -70,8 +64,6 @@ const RegisterComplete: React.FC<RegisterCompleteProps> = ({ isVisible, onClose,
   const goToMainLayout = () => {
     console.log('Going to login...');
     router.push('/login');
-    onClose();
-    IsVerify();
   };
 
   return (
