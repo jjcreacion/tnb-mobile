@@ -1,11 +1,12 @@
-import { Card, Screen } from '@/components/common';
+import { Card } from '@/components/common';
+import { SupportHeader } from '@/components/home';
 import { Theme } from '@/constants/Theme';
 import { FontAwesome } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
-import React from 'react';
+import React, { useState, useCallback } from 'react';
 import {
     Linking,
+    ScrollView,
     StyleSheet,
     Text,
     TouchableOpacity,
@@ -13,6 +14,7 @@ import {
 } from 'react-native';
 import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
 import Icon from 'react-native-vector-icons/Ionicons';
+import SideMenu from '../(screens)/SideMenu';
 
 interface SocialLink {
   icon: string;
@@ -28,6 +30,12 @@ interface ContactInfo {
 }
 
 export default function SupportScreen() {
+  const [isMenuVisible, setMenuVisible] = useState(false);
+
+  const handleMenuPress = useCallback(() => {
+    setMenuVisible(true);
+  }, []);
+
   const socialLinks: SocialLink[] = [
     {
       icon: 'tiktok',
@@ -88,19 +96,14 @@ export default function SupportScreen() {
   };
 
   return (
-    <Screen safeArea edges={['top', 'bottom']} scrollable>
+    <View style={styles.container}>
       <StatusBar style="light" backgroundColor={Theme.colors.primary[500]} />
-      {/* Header */}
-      <LinearGradient
-        colors={[Theme.colors.primary[500], Theme.colors.primary[600]]}
-        style={styles.header}
+      <SupportHeader onMenuPress={handleMenuPress} />
+
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
       >
-        <View style={styles.iconContainer}>
-          <Icon name="headset" size={56} color={Theme.colors.text.inverse} />
-        </View>
-        <Text style={styles.headerTitle}>Support</Text>
-        <Text style={styles.headerSubtitle}>We're here to help you</Text>
-      </LinearGradient>
 
       <View style={styles.content}>
         {/* Head Office Card */}
@@ -172,41 +175,25 @@ export default function SupportScreen() {
           </View>
         </Card>
       </View>
-    </Screen>
+      </ScrollView>
+
+      <SideMenu
+        isVisible={isMenuVisible}
+        onClose={() => setMenuVisible(false)}
+      />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  header: {
-    paddingTop: Theme.spacing.xl,
+  container: {
+    flex: 1,
+    backgroundColor: Theme.colors.background.secondary,
+  },
+
+  scrollContent: {
+    flexGrow: 1,
     paddingBottom: Theme.spacing['2xl'],
-    paddingHorizontal: Theme.spacing.base,
-    alignItems: 'center',
-    marginBottom: Theme.spacing.xl,
-    ...Theme.shadows.md,
-  },
-
-  iconContainer: {
-    width: 100,
-    height: 100,
-    borderRadius: Theme.borderRadius.full,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: Theme.spacing.lg,
-  },
-
-  headerTitle: {
-    fontSize: Theme.typography.fontSize['3xl'],
-    fontWeight: Theme.typography.fontWeight.bold,
-    color: Theme.colors.text.inverse,
-    marginBottom: Theme.spacing.xs,
-  },
-
-  headerSubtitle: {
-    fontSize: Theme.typography.fontSize.base,
-    color: 'rgba(255, 255, 255, 0.9)',
-    fontWeight: Theme.typography.fontWeight.medium,
   },
 
   content: {
