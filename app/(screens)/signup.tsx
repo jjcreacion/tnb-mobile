@@ -184,9 +184,12 @@ const SignUp: React.FC<ModalProps> = ({ isVisible, onClose }) => {
       statusBarTranslucent
     >
       <View style={styles.modalOverlay}>
-        <TouchableWithoutFeedback onPress={handleBackdropPress}>
-          <View style={styles.backdropArea} />
-        </TouchableWithoutFeedback>
+        {/* Backdrop only shown when NOT in VerifyCode screen */}
+        {!showVerifyCode && (
+          <TouchableWithoutFeedback onPress={handleBackdropPress}>
+            <View style={styles.backdropArea} />
+          </TouchableWithoutFeedback>
+        )}
 
         <View style={styles.keyboardAvoidingView}>
           {!showVerifyCode ? (
@@ -353,8 +356,8 @@ const styles = StyleSheet.create({
   },
 
   keyboardAvoidingView: {
+    flex: 1,
     justifyContent: 'flex-end',
-    maxHeight: '90%',
   },
 
   innerContainer: {
