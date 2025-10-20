@@ -1,14 +1,32 @@
-import { Redirect } from 'expo-router'
-import React, { useEffect } from 'react';
-import { View, Text, Image, useWindowDimensions } from 'react-native';
-import styles from '../styles';
 import { useRouter } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
+import { useEffect } from 'react';
+import { Image, Platform, StatusBar, Text, View } from 'react-native';
 
+// Theme System Components
+import { MigratedStyles } from '../../constants/MigratedStyles';
+import { Theme } from '../../constants/Theme';
+import { useNavigationBar } from '../../hooks/useNavigationBar';
 
 export default function HomeScreens() {
   const router = useRouter();
-  const { width, height } = useWindowDimensions();
+  
+  // Configure white navigation bar for splash screen
+  useNavigationBar(Theme.colors.navigation.barSplash);
+
+  useEffect(() => {
+    // Hide status bar only on Android for splash screen
+    if (Platform.OS === 'android') {
+      StatusBar.setHidden(true);
+    }
+
+    // Clean up: restore status bar visibility when component unmounts (Android only)
+    return () => {
+      if (Platform.OS === 'android') {
+        console.log('entrooooo index splash')
+        StatusBar.setHidden(false);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -16,19 +34,26 @@ export default function HomeScreens() {
     }, 4000);
 
     return () => clearTimeout(timer);
-  }, []);
+  }, [router]);
 
   return (
-    <View style={styles.containerSplash}>
-      <View >
-        <Text style={styles.textIndex}>TNB</Text>
-        <Text style={styles.symbolR}> ®</Text>
+    <View style={MigratedStyles.containerSplash}>
+      <View>
+        <Text style={MigratedStyles.textIndex}>
+          TNB
+        </Text>
+        <Text style={MigratedStyles.symbolR}>
+          {' ®'}
+        </Text>
       </View>
-      <Text style={styles.textWelcome}>Welcome</Text>
+      
+      <Text style={MigratedStyles.textWelcome}>
+        Welcome
+      </Text>
 
       <Image
         source={require('../../assets/images/icon-index.png')}
-        style={styles.imageIndex}
+        style={MigratedStyles.imageIndex}
       />
     </View>
   );

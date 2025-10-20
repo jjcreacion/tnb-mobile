@@ -1,4 +1,4 @@
-import { FontAwesome, MaterialIcons } from '@expo/vector-icons';
+import { MaterialIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 import * as ImagePicker from 'expo-image-picker';
@@ -6,20 +6,29 @@ import * as Location from 'expo-location';
 import { Formik } from 'formik';
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
-  Animated,
-  Image,
-  Modal,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View
+    Animated,
+    Image,
+    ScrollView,
+    StyleSheet,
+    TextInput,
+    TouchableOpacity,
+    View
 } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 import * as Yup from 'yup';
+
+// Import migrated components
+import {
+    ActionSheet,
+    BottomSheet,
+    Button,
+    Card,
+    Input,
+    Loading,
+    Modal,
+    Typography
+} from '@/components/common';
+import { Theme } from '@/constants/Theme';
 
 interface Category {
   pkCategory: number;
@@ -68,7 +77,7 @@ interface State {
   internalCode: string;
   status: number;
   createdAt: string;
-  updatedAt: string;
+  updatedAt: string;  
 }
 
 interface ModalProps {
@@ -81,7 +90,7 @@ interface ModalProps {
   states?: State[];
 }
 
-const Request: React.FC<ModalProps> = ({ 
+const RequestMigrated: React.FC<ModalProps> = ({ 
   isVisible, 
   onClose, 
   selectedCategory, 
@@ -90,6 +99,7 @@ const Request: React.FC<ModalProps> = ({
   cities = [],
   states = []
 }) => {
+  // Estados utilizados en el componente
   const [images, setImages] = useState<string[]>([]);
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
@@ -100,37 +110,41 @@ const Request: React.FC<ModalProps> = ({
     latitudeDelta: 0.005,
     longitudeDelta: 0.005,
   });
-  const [uploadSuccess, setUploadSuccess] = useState(false);
-  const [uploadFailed, setUploadFailed] = useState(false);
-  const [loading, setLoading] = useState(false);
+  
+  // Estados para subcategorías y carga
   const [subCategories, setSubCategories] = useState<SubCategory[]>([]);
   const [selectedSubCategory, setSelectedSubCategory] = useState<number | null>(null);
-  const [showSubCategoryPicker, setShowSubCategoryPicker] = useState(false);
+  const [loadingSubCategories, setLoadingSubCategories] = useState(false);
+  const [loadingRequest, setLoadingRequest] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  
+  // Estados para modales/bottomsheets
+  const [showSubCategorySheet, setShowSubCategorySheet] = useState(false);
+  const [showImageActionSheet, setShowImageActionSheet] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  
+  // Estados para mapa interactivo
   const [isMapExpanded, setIsMapExpanded] = useState(false);
   const [isMapInteracting, setIsMapInteracting] = useState(false);
   const [shouldPreventNextPress, setShouldPreventNextPress] = useState(false);
   const [initialScrollPosition, setInitialScrollPosition] = useState(0);
   const mapHeight = useRef(new Animated.Value(200)).current;
   const scrollViewRef = useRef<ScrollView>(null);
-  const mapContainerRef = useRef<View>(null);
-  const saveButtonRef = useRef<View>(null);
 
   const API_URL = Constants.expoConfig?.extra?.API_BASE_URL;
-  
-  // Función para expandir el mapa CADA VEZ que se toca en tamaño original
+
+  // Función para expandir el mapa
   const expandMap = () => {
-    if (isMapExpanded) return; // Ya está expandido
+    if (isMapExpanded) return;
     
     setIsMapExpanded(true);
     
-    // Expandir el mapa con animación
     Animated.timing(mapHeight, {
       toValue: 450,
       duration: 400,
       useNativeDriver: false,
     }).start(() => {
-      // SIEMPRE hacer auto-scroll cuando se expande
       setTimeout(() => {
         if (scrollViewRef.current) {
           scrollViewRef.current.scrollToEnd({ animated: true });
@@ -139,21 +153,19 @@ const Request: React.FC<ModalProps> = ({
     });
   };
 
-  // Función para contraer el mapa y volver al estado inicial
+  // Función para contraer el mapa
   const collapseMap = () => {
-    if (!isMapExpanded) return; // Ya está colapsado
+    if (!isMapExpanded) return;
     
     setIsMapExpanded(false);
     setIsMapInteracting(false);
-    setShouldPreventNextPress(false); // Resetear la bandera para el próximo ciclo
+    setShouldPreventNextPress(false);
     
-    // Contraer el mapa con animación
     Animated.timing(mapHeight, {
       toValue: 200,
       duration: 400,
       useNativeDriver: false,
     }).start(() => {
-      // Después de colapsar, restaurar scroll a posición inicial
       setTimeout(() => {
         if (scrollViewRef.current) {
           scrollViewRef.current.scrollTo({
@@ -164,22 +176,19 @@ const Request: React.FC<ModalProps> = ({
       }, 100);
     });
   };
-  
-  // Función para construir la descripción completa de la dirección (igual que en AddressList)
+
+  // Función para construir la descripción completa de la dirección
   const buildFullAddressDescription = (address: Address): string => {
     const parts: string[] = []
     
-    // 1. address
     if (address.address) {
       parts.push(address.address.trim())
     }
     
-    // 2. addressLine2
     if (address.addressLine2) {
       parts.push(address.addressLine2.trim())
     }
     
-    // 3. City (buscar el nombre por ID)
     if (address.city && cities.length > 0) {
       const city = cities.find(c => c.pkCity === address.city)
       if (city) {
@@ -187,7 +196,6 @@ const Request: React.FC<ModalProps> = ({
       }
     }
     
-    // 4. State (buscar el nombre por ID)
     if (address.state && states.length > 0) {
       const state = states.find(s => s.pkState === address.state)
       if (state) {
@@ -195,7 +203,6 @@ const Request: React.FC<ModalProps> = ({
       }
     }
     
-    // 5. zipCode
     if (address.zipCode) {
       parts.push(address.zipCode.trim())
     }
@@ -210,7 +217,7 @@ const Request: React.FC<ModalProps> = ({
     }
     return 'No primary address selected'
   }
-  
+
   // Función para obtener el nombre de la subcategoría seleccionada
   const getSelectedSubCategoryName = () => {
     if (!selectedSubCategory || selectedSubCategory === -1) {
@@ -230,48 +237,7 @@ const Request: React.FC<ModalProps> = ({
     );
   };
 
-  useEffect(() => {
-    const fetchSubCategories = async () => {
-      if (!selectedCategory) return;
-      setLoading(true);
-
-      try {
-        console.log('-------API_URL', API_URL);
-        console.log(`Fetching subcategories for category: ${selectedCategory.pkCategory}`);
-        const response = await fetch(`${API_URL}/sub_category/by-category/${selectedCategory.pkCategory}`);
-        const data = await response.json();
-        console.log('Subcategories received:', data);
-        setSubCategories(data);
-        // Don't auto-select first subcategory - let user choose
-        setSelectedSubCategory(null);
-      } catch (error) {
-        console.error('Error al obtener subcategorías:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchSubCategories();
-  }, [selectedCategory, API_URL]);
-
-  useEffect(() => {
-    const fetchPkUser = async () => {
-      try {
-        const storedPkUser = await AsyncStorage.getItem('userId');
-        if (storedPkUser) {
-          setPkUser(storedPkUser);
-          console.log('pkUser obtenido de AsyncStorage:', storedPkUser);
-        } else {
-          console.log('No se encontró userId en AsyncStorage en el componente Request.');
-        }
-      } catch (error) {
-        console.error('Error al obtener userId de AsyncStorage:', error);
-      }
-    };
-
-    fetchPkUser();
-    getLocation();
-  }, []);
-
+  // Manejar selección de imágenes
   const handleImagePicker = async () => {
     let result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
@@ -284,10 +250,24 @@ const Request: React.FC<ModalProps> = ({
     }
   };
 
+  // Manejar tomar foto con cámara
+  const handleCameraCapture = async () => {
+    let result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      quality: 1,
+    });
+
+    if (!result.canceled && result.assets) {
+      setImages((prevImages) => [...prevImages, ...result.assets.map((asset) => asset.uri)]);
+    }
+  };
+
+  // Remover imagen
   const handleRemoveImage = (uriToRemove: string) => {
     setImages((prevImages) => prevImages.filter((uri) => uri !== uriToRemove));
   };
 
+  // Obtener ubicación
   const getLocation = async () => {
     let { status } = await Location.requestForegroundPermissionsAsync();
     if (status !== 'granted') {
@@ -306,42 +286,11 @@ const Request: React.FC<ModalProps> = ({
     });
   };
 
-  useEffect(() => {
-    getLocation();
-  }, []);
-
-  useEffect(() => {
-    if (!isVisible) {
-      setUploadFailed(false);
-      setUploadSuccess(false);
-      setLoading(false);
-      setImages([]);
-      setSubCategories([]); 
-      setSelectedSubCategory(null);
-      setShowSubCategoryPicker(false);
-      // Resetear el estado del mapa
-      setIsMapExpanded(false);
-      setIsMapInteracting(false);
-      setShouldPreventNextPress(false);
-      setInitialScrollPosition(0);
-      mapHeight.setValue(200);
-    }
-  }, [isVisible, mapHeight]);
-
-  const validationSchema = Yup.object().shape({
-    description: Yup.string().required('Description is required'),
-    address: Yup.string().required('Address is required'),
-  });
-
+  // Subir imágenes
   const uploadImages = async (serviceRequestId: number) => {
     if (images.length === 0) {
-      console.log('No hay imágenes para subir.');
       return true;
     }
-
-    setLoading(true);
-    setUploadFailed(false);
-    setUploadSuccess(false);
 
     const formData = new FormData();
     formData.append('serviceRequestId', serviceRequestId.toString());
@@ -368,28 +317,27 @@ const Request: React.FC<ModalProps> = ({
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        console.error('Error al subir las imágenes:', errorData);
-        setUploadFailed(true);
-        return false;
+        throw new Error('Failed to upload images');
       }
 
-      console.log('Imágenes subidas con éxito:', await response.json());
       return true;
     } catch (error) {
-      console.error('Error de conexión o al procesar la respuesta al subir imágenes:', error);
-      setUploadFailed(true);
+      console.error('Error uploading images:', error);
+      setError('Failed to upload images');
       return false;
-    } finally {
-      setLoading(false);
     }
   };
 
-
+  // Manejar envío del formulario
   const handleSave = async (values: { description: string; address: string }) => {
     if (!pkUser) {
-      console.error('pkUser no está disponible. Asegúrate de que se haya cargado desde AsyncStorage.');
-      setUploadFailed(true);
+      setError('User information not available');
+      return;
+    }
+
+    // Validación de subcategoría (crítica para funcionamiento)
+    if (!selectedSubCategory) {
+      setError('Please select a service type');
       return;
     }
 
@@ -402,21 +350,11 @@ const Request: React.FC<ModalProps> = ({
       latitude: latitude !== null ? latitude : 0,
       longitude: longitude !== null ? longitude : 0,
     };
-    console.log('Datos de la solicitud de servicio:', serviceRequestData);
 
-    if (!API_URL) {
-      console.error('La URL de la API no está configurada.');
-      setUploadFailed(true);
-      return;
-    }
+    setLoadingRequest(true);
+    setError(null);
+    setSuccess(false);
 
-    setLoading(true);
-    setUploadFailed(false);
-    setUploadSuccess(false);
-
-    let serviceRequestId = null;
-
-    
     try {
       const response = await fetch(`${API_URL}/service_request`, {
         method: 'POST',
@@ -427,32 +365,22 @@ const Request: React.FC<ModalProps> = ({
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        console.error('Error al guardar los datos:', errorData);
-        setLoading(false);
-        setUploadFailed(true);
-        return;
+        throw new Error('Failed to create service request');
       }
 
       const data = await response.json();
-      console.log('Éxito al guardar los datos:', data);
-      serviceRequestId = data.requestId;
-      console.log("data.requestId " + data.requestId);
-      console.log("serviceRequestId " + serviceRequestId);
+      const serviceRequestId = data.requestId;
 
       if (serviceRequestId && images.length > 0) {
         const imagesUploaded = await uploadImages(serviceRequestId);
         if (!imagesUploaded) {
-          setUploadFailed(true);
-          setLoading(false);
           return;
         }
       }
 
-      setLoading(false);
-      setUploadSuccess(true);
+      setSuccess(true);
       setTimeout(() => {
-        setUploadSuccess(false);
+        setSuccess(false);
         onClose();
         if (onServiceCreated) {
           onServiceCreated();
@@ -460,1062 +388,909 @@ const Request: React.FC<ModalProps> = ({
       }, 3000);
 
     } catch (error) {
-      console.error('Error de conexión o al procesar la respuesta:', error);
-      setLoading(false);
-      setUploadFailed(true);
+      console.error('Error creating service request:', error);
+      setError('Failed to create service request. Please try again.');
+    } finally {
+      setLoadingRequest(false);
     }
   };
 
-  const fullImagePath = `${API_URL}${selectedCategory?.imagePath}`;
+  // useEffect para cargar subcategorías
+  useEffect(() => {
+    const fetchSubCategories = async () => {
+      if (!selectedCategory) return;
+      setLoadingSubCategories(true);
+
+      try {
+        const response = await fetch(`${API_URL}/sub_category/by-category/${selectedCategory.pkCategory}`);
+        const data = await response.json();
+        setSubCategories(data);
+        setSelectedSubCategory(null);
+      } catch (error) {
+        console.error('Error fetching subcategories:', error);
+        setError('Failed to load service types');
+      } finally {
+        setLoadingSubCategories(false);
+      }
+    };
+    fetchSubCategories();
+  }, [selectedCategory, API_URL]);
+
+  // useEffect para cargar datos del usuario y ubicación
+  useEffect(() => {
+    const fetchPkUser = async () => {
+      try {
+        const storedPkUser = await AsyncStorage.getItem('userId');
+        if (storedPkUser) {
+          setPkUser(storedPkUser);
+        }
+      } catch (error) {
+        console.error('Error getting userId from AsyncStorage:', error);
+      }
+    };
+
+    fetchPkUser();
+    getLocation();
+  }, []);
+
+  // useEffect para resetear estado cuando se cierra el modal
+  useEffect(() => {
+    if (!isVisible) {
+      setError(null);
+      setSuccess(false);
+      setLoadingRequest(false);
+      setImages([]);
+      setSubCategories([]); 
+      setSelectedSubCategory(null);
+      setShowSubCategorySheet(false);
+      setShowImageActionSheet(false);
+      setIsMapExpanded(false);
+      setIsMapInteracting(false);
+      setShouldPreventNextPress(false);
+      setInitialScrollPosition(0);
+      setSearchQuery('');
+      mapHeight.setValue(200);
+    }
+  }, [isVisible, mapHeight]);
+
+  const validationSchema = Yup.object().shape({
+    description: Yup.string().required('Description is required'),
+    address: Yup.string().required('Address is required'),
+  });
+
+  // Mantener toda la lógica existente de useEffect, funciones, etc.
+  // ... (copiada desde el archivo original)
 
   return (
     <Modal
       visible={isVisible}
-      transparent={true}
-      animationType="slide"
-      onRequestClose={onClose}
+      onClose={onClose}
+      size="full"
+      position="center"
+      showCloseButton={false}
+      dismissOnBackdrop={false}
     >
-      <View style={styles.modalContainer}>
-        <ScrollView 
-          ref={scrollViewRef}
-          style={styles.modalContent}
-          scrollEventThrottle={16}
-          onScroll={(event) => {
-            // Capturar la posición actual del scroll cuando NO está expandido
-            if (!isMapExpanded) {
-              const currentY = event.nativeEvent.contentOffset.y;
-              setInitialScrollPosition(currentY);
-            }
-          }}
-          onScrollBeginDrag={() => {
-            // Colapsar el mapa si el usuario hace scroll mientras está expandido
-            if (isMapExpanded && !isMapInteracting) {
-              collapseMap();
-            }
-          }}
-        >
-          <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-            <FontAwesome name="close" size={24} color="black" />
-          </TouchableOpacity>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+          <MaterialIcons name="close" size={24} color={Theme.colors.text.secondary} />
+        </TouchableOpacity>
+        <Typography variant="h3" color="primary" style={styles.headerTitle}>
+          Request Service
+        </Typography>
+      </View>
 
-          {selectedCategory && (
-            <View style={styles.iconContainer}>
-              <Image source={{ uri: fullImagePath }} style={styles.recommendedCardImage} />
-              <Text style={styles.titleText}>{selectedCategory.name}</Text>
-            </View>
-          )}
+      <ScrollView 
+        ref={scrollViewRef}
+        style={styles.scrollView} 
+        showsVerticalScrollIndicator={false}
+        scrollEventThrottle={16}
+        onScroll={(event) => {
+          if (!isMapExpanded) {
+            const currentY = event.nativeEvent.contentOffset.y;
+            setInitialScrollPosition(currentY);
+          }
+        }}
+        onScrollBeginDrag={() => {
+          if (isMapExpanded && !isMapInteracting) {
+            collapseMap();
+          }
+        }}
+      >
+        {/* Success Message */}
+        {success && (
+          <View style={styles.successContainer}>
+            <Typography variant="body1" color="success" style={styles.successText}>
+              Service requested successfully!
+            </Typography>
+          </View>
+        )}
 
-          {uploadSuccess && (
-            <View style={styles.successMessage}>
-              <Text style={styles.successText}>Service requested successfully</Text>
-            </View>
-          )}
+        {/* Error Message */}
+        {error && (
+          <View style={styles.errorContainer}>
+            <Typography variant="body2" color="error">
+              {error}
+            </Typography>
+          </View>
+        )}
 
-          {uploadFailed && (
-            <View style={styles.errorMessage}>
-              <Text style={styles.errorText}>Error loading data and/or images. Please try again.</Text>
-            </View>
-          )}
+        {/* Main Form - Only show when conditions are met */}
+        {!success && !loadingRequest && !error && pkUser && (
+          <Formik
+            initialValues={{
+              description: '',
+              address: getFormattedPrimaryAddress(),
+            }}
+            validationSchema={validationSchema}
+            onSubmit={handleSave}
+            enableReinitialize
+          >
+          {({ handleChange, handleBlur, handleSubmit, values, errors, touched, setFieldValue }) => (
+            <View style={styles.formContainer}>
+              {/* Service Category Card */}
+              <Card variant="elevated" style={styles.categoryCard}>
+                <View style={styles.categoryContent}>
+                  <Image
+                    source={{ uri: `${API_URL}${selectedCategory?.imagePath}` }}
+                    style={styles.categoryImage}
+                  />
+                  <Typography variant="h4" color="primary" style={styles.categoryTitle}>
+                    {selectedCategory?.name}
+                  </Typography>
+                  <Typography variant="body2" color="secondary" style={styles.categoryDescription}>
+                    {selectedCategory?.description}
+                  </Typography>
+                </View>
+              </Card>
 
-          {loading && (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color="#007bff" />
-              <Text style={styles.loadingText}>Cargando...</Text>
-            </View>
-          )}
-
-          {!uploadSuccess && !loading && !uploadFailed && pkUser && (
-            <Formik
-              initialValues={{
-                service: selectedCategory ? selectedCategory.name : '',
-                requirement: '',
-                description: '',
-                address: getFormattedPrimaryAddress(),
-              }}
-              validationSchema={validationSchema}
-              onSubmit={handleSave}
-              enableReinitialize
-            >
-              {({ handleChange, handleBlur, handleSubmit, values, errors, touched }) => (
-                <View>
-                  {subCategories.length > 0 && (
-                    <View style={styles.subCategoryContainer}>
-                      <Text style={styles.fieldLabel}>Select a subcategory:</Text>
-                      
-                      {/* Touch area to show picker */}
-                      <TouchableOpacity
-                        style={styles.pickerButton}
-                        onPress={() => {
-                          console.log('🔍 [DEBUG] Opening subcategory picker');
-                          console.log('🔍 [DEBUG] Platform:', Platform.OS);
-                          console.log('🔍 [DEBUG] SubCategories count:', subCategories.length);
-                          console.log('🔍 [DEBUG] SubCategories data:', JSON.stringify(subCategories, null, 2));
-                          console.log('🔍 [DEBUG] Selected subcategory:', selectedSubCategory);
-                          setShowSubCategoryPicker(true);
-                        }}
-                      >
-                        <Text style={[
-                          styles.pickerButtonText,
-                          selectedSubCategory ? {} : styles.placeholderText
-                        ]}>
-                          {getSelectedSubCategoryName()}
-                        </Text>
-                        <MaterialIcons
-                          name={Platform.OS === 'android' ? 'arrow-drop-down' : 'arrow-drop-down'}
-                          size={24}
-                          color={Platform.OS === 'android' ? '#757575' : '#666'}
-                        />
-                      </TouchableOpacity>
-
-                      {/* Native Picker Modal */}
-                      {Platform.OS === 'ios' ? (
-                        <Modal
-                          visible={showSubCategoryPicker}
-                          transparent={true}
-                          animationType="slide"
-                          onRequestClose={() => {
-                            setShowSubCategoryPicker(false);
-                            setSearchQuery('');
-                          }}
-                        >
-                          <View style={styles.pickerModalContainer}>
-                            <View style={styles.pickerModalContent}>
-                              <View style={styles.pickerHeader}>
-                                <TouchableOpacity
-                                  onPress={() => {
-                                    setShowSubCategoryPicker(false);
-                                    setSearchQuery('');
-                                  }}
-                                  style={styles.pickerHeaderButton}
-                                >
-                                  <Text style={styles.pickerHeaderButtonText}>Cancel</Text>
-                                </TouchableOpacity>
-                                <Text style={styles.pickerHeaderTitle}>Select Subcategory</Text>
-                                <TouchableOpacity
-                                  onPress={() => {
-                                    setShowSubCategoryPicker(false);
-                                    setSearchQuery('');
-                                  }}
-                                  style={styles.pickerHeaderButton}
-                                >
-                                  <Text style={[styles.pickerHeaderButtonText, styles.pickerDoneButton]}>Done</Text>
-                                </TouchableOpacity>
-                              </View>
-
-                              {/* Search Input */}
-                              <View style={styles.searchContainer}>
-                                <MaterialIcons name="search" size={20} color="#999" style={styles.searchIcon} />
-                                <TextInput
-                                  style={styles.searchInput}
-                                  placeholder="Search subcategories..."
-                                  placeholderTextColor="#999"
-                                  value={searchQuery}
-                                  onChangeText={setSearchQuery}
-                                  autoCapitalize="none"
-                                  autoCorrect={false}
-                                />
-                                {searchQuery.length > 0 && (
-                                  <TouchableOpacity onPress={() => setSearchQuery('')}>
-                                    <MaterialIcons name="clear" size={20} color="#999" />
-                                  </TouchableOpacity>
-                                )}
-                              </View>
-
-                              {/* Items Count */}
-                              <Text style={styles.itemsCount}>
-                                {getFilteredSubCategories().length} {getFilteredSubCategories().length === 1 ? 'option' : 'options'}
-                              </Text>
-
-                              <ScrollView
-                                style={styles.iosPickerScrollView}
-                                showsVerticalScrollIndicator={true}
-                                indicatorStyle="black"
-                              >
-                                {getFilteredSubCategories().length > 0 ? (
-                                  getFilteredSubCategories().map((sub, index) => {
-                                    const isSelected = (sub.pkSubCategory === selectedSubCategory);
-                                    const isLast = index === getFilteredSubCategories().length - 1;
-
-                                    return (
-                                      <TouchableOpacity
-                                        key={sub.pkSubCategory}
-                                        style={[
-                                          styles.iosPickerItemButton,
-                                          isSelected && styles.iosPickerItemSelected,
-                                          isLast && styles.iosPickerItemLast,
-                                        ]}
-                                        onPress={() => {
-                                          setSelectedSubCategory(sub.pkSubCategory);
-                                          setShowSubCategoryPicker(false);
-                                          setSearchQuery('');
-                                        }}
-                                        activeOpacity={0.7}
-                                      >
-                                        <View style={styles.iosPickerItemContent}>
-                                          <Text style={[
-                                            styles.iosPickerItemText,
-                                            isSelected && styles.iosPickerItemSelectedText,
-                                          ]}>
-                                            {sub.name}
-                                          </Text>
-                                        </View>
-                                        {isSelected && (
-                                          <MaterialIcons name="check" size={24} color="#007AFF" />
-                                        )}
-                                      </TouchableOpacity>
-                                    );
-                                  })
-                                ) : (
-                                  <View style={styles.emptyStateContainer}>
-                                    <MaterialIcons name="search-off" size={48} color="#ccc" />
-                                    <Text style={styles.emptyStateText}>No results found</Text>
-                                    <Text style={styles.emptyStateSubtext}>Try a different search term</Text>
-                                  </View>
-                                )}
-                              </ScrollView>
-                            </View>
-                          </View>
-                        </Modal>
-                      ) : (
-                        showSubCategoryPicker && (
-                          <Modal
-                            visible={showSubCategoryPicker}
-                            transparent={true}
-                            animationType="fade"
-                            onRequestClose={() => {
-                              setShowSubCategoryPicker(false);
-                              setSearchQuery('');
-                            }}
-                          >
-                            <TouchableOpacity
-                              style={styles.androidPickerOverlay}
-                              activeOpacity={1}
-                              onPress={() => {
-                                setShowSubCategoryPicker(false);
-                                setSearchQuery('');
-                              }}
-                            >
-                              <View style={styles.androidSpinnerContainer}>
-                                <View style={styles.androidSpinnerHeader}>
-                                  <Text style={styles.androidSpinnerTitle}>Select Subcategory</Text>
-                                  <TouchableOpacity
-                                    onPress={() => {
-                                      setShowSubCategoryPicker(false);
-                                      setSearchQuery('');
-                                    }}
-                                    style={styles.androidCloseButton}
-                                  >
-                                    <MaterialIcons name="close" size={24} color="#666" />
-                                  </TouchableOpacity>
-                                </View>
-
-                                {/* Search Input */}
-                                <View style={styles.searchContainer}>
-                                  <MaterialIcons name="search" size={20} color="#999" style={styles.searchIcon} />
-                                  <TextInput
-                                    style={styles.searchInput}
-                                    placeholder="Search subcategories..."
-                                    placeholderTextColor="#999"
-                                    value={searchQuery}
-                                    onChangeText={setSearchQuery}
-                                    autoCapitalize="none"
-                                    autoCorrect={false}
-                                  />
-                                  {searchQuery.length > 0 && (
-                                    <TouchableOpacity onPress={() => setSearchQuery('')}>
-                                      <MaterialIcons name="clear" size={20} color="#999" />
-                                    </TouchableOpacity>
-                                  )}
-                                </View>
-
-                                {/* Items Count */}
-                                <Text style={styles.itemsCount}>
-                                  {getFilteredSubCategories().length} {getFilteredSubCategories().length === 1 ? 'option' : 'options'}
-                                </Text>
-
-                                <ScrollView
-                                  style={styles.androidSpinnerScrollView}
-                                  showsVerticalScrollIndicator={true}
-                                >
-                                  {getFilteredSubCategories().length > 0 ? (
-                                    getFilteredSubCategories().map((sub, index) => {
-                                      const isSelected = selectedSubCategory === sub.pkSubCategory;
-                                      const isLast = index === getFilteredSubCategories().length - 1;
-
-                                      return (
-                                        <TouchableOpacity
-                                          key={sub.pkSubCategory}
-                                          style={[
-                                            styles.androidSpinnerItem,
-                                            isSelected && styles.androidSpinnerSelectedItem,
-                                            isLast && styles.androidSpinnerLastItem
-                                          ]}
-                                          onPress={() => {
-                                            setSelectedSubCategory(sub.pkSubCategory);
-                                            setShowSubCategoryPicker(false);
-                                            setSearchQuery('');
-                                          }}
-                                          activeOpacity={0.7}
-                                        >
-                                          <View style={styles.androidSpinnerItemContent}>
-                                            <Text style={[
-                                              styles.androidSpinnerItemText,
-                                              isSelected && styles.androidSpinnerSelectedText
-                                            ]}>
-                                              {sub.name}
-                                            </Text>
-                                            {isSelected ? (
-                                              <MaterialIcons name="radio-button-checked" size={22} color="#2196F3" />
-                                            ) : (
-                                              <MaterialIcons name="radio-button-unchecked" size={22} color="#BDBDBD" />
-                                            )}
-                                          </View>
-                                        </TouchableOpacity>
-                                      );
-                                    })
-                                  ) : (
-                                    <View style={styles.emptyStateContainer}>
-                                      <MaterialIcons name="search-off" size={48} color="#ccc" />
-                                      <Text style={styles.emptyStateText}>No results found</Text>
-                                      <Text style={styles.emptyStateSubtext}>Try a different search term</Text>
-                                    </View>
-                                  )}
-                                </ScrollView>
-                              </View>
-                            </TouchableOpacity>
-                          </Modal>
-                        )
-                      )}
-                    </View>
-                  )}
-
-                  {/* Description Field */}
-                  <View style={styles.fieldContainer}>
-                    <Text style={styles.fieldLabel}>Description</Text>
-                    <TextInput
-                      style={styles.descriptionInput}
-                      placeholder="Describe the service you need (e.g., repair details, specific requirements...)"
-                      placeholderTextColor="#999"
-                      onChangeText={handleChange('description')}
-                      onBlur={handleBlur('description')}
-                      value={values.description}
-                      multiline
-                    />
-                    {touched.description && errors.description && (
-                      <Text style={styles.errorText}>{errors.description}</Text>
-                    )}
-                  </View>
-
-                  {/* Service Address Field */}
-                  <View style={styles.fieldContainer}>
-                    <Text style={styles.fieldLabel}>Service Address</Text>
-                    <TextInput
-                      style={[styles.input, styles.readOnlyInput]}
-                      placeholder="Address"
-                      onChangeText={handleChange('address')}
-                      onBlur={handleBlur('address')}
-                      value={values.address}
-                      editable={false}
-                      selectTextOnFocus={false}
-                    />
-                    {touched.address && errors.address && (
-                      <Text style={styles.errorText}>{errors.address}</Text>
-                    )}
-                  </View>
-
-                  {/* Location on Map */}
-                  <View style={styles.fieldContainer}>
-                    <Text style={styles.fieldLabel}>Location on Map</Text>
-                    <Text style={styles.fieldHint}>
-                      {isMapExpanded 
-                        ? 'Tap on the map to select your service location. The map will minimize after selection.' 
-                        : 'Tap the map to expand and select your service location.'}
-                    </Text>
-                  </View>
-
-                  <Animated.View 
-                    ref={mapContainerRef}
-                    style={[styles.mapContainer, { height: mapHeight }]}
+              {/* Service Type Selection */}
+              {subCategories.length > 0 && (
+                <View style={styles.fieldContainer}>
+                  <Typography variant="body1" color="primary" style={styles.fieldLabel}>
+                    Service Type *
+                  </Typography>
+                  <TouchableOpacity
+                    style={styles.selectorButton}
+                    onPress={() => setShowSubCategorySheet(true)}
                   >
-                    <MapView
-                      style={styles.map}
-                      region={region}
-                      onRegionChangeComplete={newRegion => setRegion(newRegion)}
-                      scrollEnabled={isMapExpanded}
-                      zoomEnabled={isMapExpanded}
-                      pitchEnabled={isMapExpanded}
-                      rotateEnabled={isMapExpanded}
-                      onTouchStart={() => {
-                        // Si el mapa NO está expandido, marcarlo para expandir
-                        if (!isMapExpanded) {
-                          // Prevenir que el siguiente onPress seleccione ubicación
-                          setShouldPreventNextPress(true);
-                          expandMap();
-                        } else {
-                          // Si ya está expandido, marcar que el usuario está interactuando
-                          setIsMapInteracting(true);
-                        }
-                      }}
-                      onTouchEnd={() => {
-                        // Usuario terminó de tocar/mover el mapa
-                        if (isMapExpanded) {
-                          setIsMapInteracting(false);
-                        }
-                      }}
-                      onPress={(event) => {
-                        // Si debemos prevenir este press (fue el tap de expansión), ignorarlo
-                        if (shouldPreventNextPress) {
-                          setShouldPreventNextPress(false);
-                          return;
-                        }
-                        
-                        // Solo procesar selección de ubicación cuando el mapa está expandido
-                        if (isMapExpanded) {
-                          const { latitude: lat, longitude: lng } = event.nativeEvent.coordinate;
-                          setLatitude(lat);
-                          setLongitude(lng);
-                          // Colapsar el mapa después de seleccionar ubicación
-                          setTimeout(() => {
-                            collapseMap();
-                          }, 300);
-                        }
-                      }}
+                    <Typography 
+                      variant="body1" 
+                      color={selectedSubCategory ? "primary" : "tertiary"}
                     >
-                      {latitude && longitude && (
-                        <Marker
-                          coordinate={{ latitude, longitude }}
-                          title="Selected Location"
-                          description="Your service location"
-                        />
-                      )}
-                    </MapView>
-                    
-                    <TouchableOpacity 
-                      style={styles.gpsButton} 
-                      onPress={() => {
-                        getLocation();
-                        // Si el mapa está expandido, colapsarlo después de obtener ubicación
-                        if (isMapExpanded) {
-                          setTimeout(() => {
-                            collapseMap();
-                          }, 300);
-                        }
-                      }}
-                      accessible={true}
-                      accessibilityLabel="Use my current location"
-                      accessibilityHint="Gets your current GPS location"
-                    >
-                      <MaterialIcons name="my-location" size={24} color="white" />
-                    </TouchableOpacity>
-                  </Animated.View>
-
-                  {/* Área para detectar taps fuera del mapa (solo cuando está expandido) */}
-                  {isMapExpanded && (
-                    <TouchableOpacity
-                      activeOpacity={1}
-                      onPress={() => {
-                        collapseMap();
-                      }}
-                      style={styles.outsideMapTouchArea}
-                      accessible={true}
-                      accessibilityLabel="Minimize map"
-                      accessibilityHint="Tap to minimize the map to its original size"
-                    >
-                      <Text style={styles.outsideMapText}>Tap here to minimize the map</Text>
-                    </TouchableOpacity>
+                      {getSelectedSubCategoryName()}
+                    </Typography>
+                    <MaterialIcons 
+                      name="keyboard-arrow-down" 
+                      size={24} 
+                      color={Theme.colors.text.tertiary} 
+                    />
+                  </TouchableOpacity>
+                  {!selectedSubCategory && (
+                    <Typography variant="caption" color="error" style={styles.errorText}>
+                      Please select a service type
+                    </Typography>
                   )}
+                </View>
+              )}
 
+              {/* Description Input */}
+              <View style={styles.fieldContainer}>
+                <Typography variant="body1" color="primary" style={styles.fieldLabel}>
+                  Description
+                </Typography>
+                <View style={[
+                  styles.textAreaContainer,
+                  touched.description && errors.description && styles.textAreaError
+                ]}>
+                  <TextInput
+                    style={styles.textAreaInput}
+                    placeholder="Describe the service you need (e.g., repair details, specific requirements...)"
+                    placeholderTextColor={Theme.colors.text.tertiary}
+                    value={values.description}
+                    onChangeText={handleChange('description')}
+                    onBlur={handleBlur('description')}
+                    multiline
+                    numberOfLines={4}
+                    textAlignVertical="top"
+                  />
+                </View>
+                {touched.description && errors.description && (
+                  <Typography variant="caption" color="error" style={styles.errorText}>
+                    {errors.description}
+                  </Typography>
+                )}
+              </View>
+
+              {/* Location Section */}
+              <Card variant="outlined" style={styles.locationCard}>
+                <Typography variant="h4" color="primary" style={styles.sectionTitle}>
+                  Service Location
+                </Typography>
+
+                {/* Service Address Field */}
+                <View style={styles.fieldContainer}>
+                  <Typography variant="body1" color="primary" style={styles.fieldLabel}>
+                    Service Address
+                  </Typography>
+                  <Input
+                    placeholder="Address"
+                    value={values.address}
+                    onChangeText={handleChange('address')}
+                    onBlur={handleBlur('address')}
+                    error={touched.address && errors.address ? errors.address : undefined}
+                    leftIcon="location-outline"
+                    editable={false}
+                    style={styles.readOnlyInput}
+                  />
+                </View>
+
+                {/* Location on Map */}
+                <View style={styles.fieldContainer}>
+                  <Typography variant="body1" color="primary" style={styles.fieldLabel}>
+                    Location on Map
+                  </Typography>
+                  <Typography variant="caption" color="secondary" style={styles.fieldHint}>
+                    {isMapExpanded 
+                      ? 'Tap on the map to select your service location. The map will minimize after selection.' 
+                      : 'Tap the map to expand and select your service location.'}
+                  </Typography>
+                </View>
+
+                {/* Map View */}
+                <Animated.View style={[styles.mapContainer, { height: mapHeight }]}>
+                  <MapView
+                    style={styles.map}
+                    region={region}
+                    onRegionChangeComplete={setRegion}
+                    scrollEnabled={isMapExpanded}
+                    zoomEnabled={isMapExpanded}
+                    pitchEnabled={isMapExpanded}
+                    rotateEnabled={isMapExpanded}
+                    onTouchStart={() => {
+                      if (!isMapExpanded) {
+                        setShouldPreventNextPress(true);
+                        expandMap();
+                      } else {
+                        setIsMapInteracting(true);
+                      }
+                    }}
+                    onTouchEnd={() => {
+                      if (isMapExpanded) {
+                        setIsMapInteracting(false);
+                      }
+                    }}
+                    onPress={(event) => {
+                      if (shouldPreventNextPress) {
+                        setShouldPreventNextPress(false);
+                        return;
+                      }
+                      
+                      if (isMapExpanded) {
+                        const { latitude: lat, longitude: lng } = event.nativeEvent.coordinate;
+                        setLatitude(lat);
+                        setLongitude(lng);
+                        setTimeout(() => {
+                          collapseMap();
+                        }, 300);
+                      }
+                    }}
+                  >
+                    {latitude && longitude && (
+                      <Marker
+                        coordinate={{ latitude, longitude }}
+                        title="Selected Location"
+                        description="Your service location"
+                      />
+                    )}
+                  </MapView>
+                  
+                  <TouchableOpacity 
+                    style={styles.gpsButton}
+                    onPress={() => {
+                      getLocation();
+                      if (isMapExpanded) {
+                        setTimeout(() => {
+                          collapseMap();
+                        }, 300);
+                      }
+                    }}
+                  >
+                    <MaterialIcons 
+                      name="my-location" 
+                      size={20} 
+                      color={Theme.colors.text.inverse} 
+                    />
+                  </TouchableOpacity>
+                </Animated.View>
+
+                {/* Area para tap fuera del mapa */}
+                {isMapExpanded && (
+                  <TouchableOpacity
+                    activeOpacity={1}
+                    onPress={collapseMap}
+                    style={styles.outsideMapTouchArea}
+                  >
+                    <Typography variant="body2" color="primary">
+                      Tap here to minimize the map
+                    </Typography>
+                  </TouchableOpacity>
+                )}
+              </Card>
+
+              {/* Images Section */}
+              <View style={styles.fieldContainer}>
+                <Typography variant="body1" color="primary" style={styles.fieldLabel}>
+                  Photos (Optional)
+                </Typography>
+                <TouchableOpacity
+                  style={styles.imageUploadButton}
+                  onPress={() => setShowImageActionSheet(true)}
+                >
+                  <MaterialIcons 
+                    name="add-photo-alternate" 
+                    size={24} 
+                    color={Theme.colors.primary[500]} 
+                  />
+                  <Typography variant="body2" color="primary">
+                    Add Photos
+                  </Typography>
+                </TouchableOpacity>
+
+                {/* Image Preview */}
+                {images.length > 0 && (
                   <View style={styles.imagePreviewContainer}>
-                    {images.map((uri) => (
-                      <View key={uri} style={styles.imageItem}>
+                    {images.map((uri, index) => (
+                      <View key={index} style={styles.imageItem}>
                         <Image source={{ uri }} style={styles.previewImage} />
                         <TouchableOpacity
+                          style={styles.removeImageButton}
                           onPress={() => handleRemoveImage(uri)}
-                          style={styles.removeButton}
                         >
-                          <FontAwesome name="trash" size={20} color="red" />
+                          <MaterialIcons 
+                            name="close" 
+                            size={16} 
+                            color={Theme.colors.text.secondary} 
+                          />
                         </TouchableOpacity>
                       </View>
                     ))}
                   </View>
+                )}
+              </View>
 
-                  <View style={styles.buttonContainer}>
-                    <TouchableOpacity 
-                      style={[styles.customButton, styles.uploadButton]} 
-                      onPress={handleImagePicker}
-                      activeOpacity={0.8}
-                    >
-                      <Text style={[styles.buttonText, styles.uploadButtonText]} numberOfLines={1}>Upload Images</Text>
-                    </TouchableOpacity>
-                    
-                    <TouchableOpacity 
-                      ref={saveButtonRef}
-                      style={[styles.customButton, styles.saveButton]} 
-                      onPress={() => handleSubmit()}
-                      activeOpacity={0.8}
-                      accessible={true}
-                      accessibilityLabel="Save service request"
-                      accessibilityHint="Saves your service request with the selected location"
-                    >
-                      <Text style={[styles.buttonText, styles.saveButtonText]}>Save</Text>
-                    </TouchableOpacity>
-                  </View>
+              {/* Submit Buttons */}
+              <View style={styles.buttonContainer}>
+                <Button
+                  title="Cancel"
+                  variant="outline"
+                  onPress={onClose}
+                  style={styles.cancelButton}
+                />
+                <Button
+                  title="Submit Request"
+                  variant="primary"
+                  onPress={() => handleSubmit()}
+                  loading={loadingRequest}
+                  disabled={!selectedSubCategory || loadingRequest}
+                  style={styles.submitButton}
+                />
+              </View>
+            </View>
+          )}
+          </Formik>
+        )}
 
-                </View>
-              )}
-            </Formik>
-          )}
-          {!pkUser && !loading && (
-            <Text>No se ha podido cargar la información del usuario.</Text>
-          )}
-        </ScrollView>
-      </View>
+        {/* Message when user info is not available */}
+        {!pkUser && !loadingRequest && (
+          <View style={styles.formContainer}>
+            <Typography variant="body1" color="secondary">
+              No se ha podido cargar la información del usuario.
+            </Typography>
+          </View>
+        )}
+      </ScrollView>
+
+      {/* Loading Overlay */}
+      <Loading
+        visible={loadingRequest || loadingSubCategories}
+        variant="overlay"
+        message={loadingRequest ? "Submitting request..." : "Loading services..."}
+      />
+
+      {/* Success/Error Messages */}
+      {success && (
+        <View style={styles.successContainer}>
+          <Typography variant="body1" color="success">
+            Service request submitted successfully!
+          </Typography>
+        </View>
+      )}
+
+      {error && (
+        <View style={styles.errorContainer}>
+          <Typography variant="body2" color="error">
+            {error}
+          </Typography>
+        </View>
+      )}
+
+      {/* SubCategory Selection Bottom Sheet */}
+      <BottomSheet
+        visible={showSubCategorySheet}
+        onClose={() => {
+          setShowSubCategorySheet(false);
+          setSearchQuery('');
+        }}
+        title="Select Service Type"
+        size="lg"
+      >
+        <View style={styles.bottomSheetContent}>
+          {/* Search Input */}
+          <View style={styles.searchContainer}>
+            <MaterialIcons name="search" size={20} color={Theme.colors.text.tertiary} style={styles.searchIcon} />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search subcategories..."
+              placeholderTextColor={Theme.colors.text.tertiary}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity onPress={() => setSearchQuery('')}>
+                <MaterialIcons name="clear" size={20} color={Theme.colors.text.tertiary} />
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {/* Items Count */}
+          <Typography variant="caption" color="secondary" style={styles.itemsCount}>
+            {getFilteredSubCategories().length} {getFilteredSubCategories().length === 1 ? 'option' : 'options'}
+          </Typography>
+
+          {/* SubCategories List */}
+          <ScrollView style={styles.subCategoryList} showsVerticalScrollIndicator={true}>
+            {getFilteredSubCategories().length > 0 ? (
+              getFilteredSubCategories().map((sub, index) => {
+                const isSelected = selectedSubCategory === sub.pkSubCategory;
+                const isLast = index === getFilteredSubCategories().length - 1;
+
+                return (
+                  <TouchableOpacity
+                    key={sub.pkSubCategory}
+                    style={[
+                      styles.subCategoryItem,
+                      isSelected && styles.subCategorySelectedItem,
+                      isLast && styles.subCategoryLastItem
+                    ]}
+                    onPress={() => {
+                      setSelectedSubCategory(sub.pkSubCategory);
+                      setShowSubCategorySheet(false);
+                      setSearchQuery('');
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <View style={styles.subCategoryItemContent}>
+                      <View style={styles.subCategoryInfo}>
+                        <Typography 
+                          variant="body1" 
+                          color={isSelected ? "primary" : "primary"}
+                          style={isSelected && styles.subCategorySelectedText}
+                        >
+                          {sub.name}
+                        </Typography>
+                        <Typography variant="caption" color="secondary">
+                          ${sub.priceFrom} - ${sub.priceTo}
+                        </Typography>
+                      </View>
+                      {isSelected ? (
+                        <MaterialIcons name="radio-button-checked" size={22} color={Theme.colors.primary[500]} />
+                      ) : (
+                        <MaterialIcons name="radio-button-unchecked" size={22} color={Theme.colors.text.tertiary} />
+                      )}
+                    </View>
+                  </TouchableOpacity>
+                );
+              })
+            ) : (
+              <View style={styles.emptyStateContainer}>
+                <MaterialIcons name="search-off" size={48} color={Theme.colors.text.disabled} />
+                <Typography variant="body1" color="secondary" style={styles.emptyStateText}>
+                  No results found
+                </Typography>
+                <Typography variant="caption" color="tertiary" style={styles.emptyStateSubtext}>
+                  Try a different search term
+                </Typography>
+              </View>
+            )}
+          </ScrollView>
+        </View>
+      </BottomSheet>
+
+      {/* Action Sheet for Images */}
+      <ActionSheet
+        visible={showImageActionSheet}
+        onClose={() => setShowImageActionSheet(false)}
+        title="Add Photo"
+        options={[
+          {
+            id: 'camera',
+            title: 'Take Photo',
+            icon: 'camera-outline',
+            onPress: () => {
+              setShowImageActionSheet(false);
+              handleCameraCapture();
+            },
+          },
+          {
+            id: 'gallery',
+            title: 'Choose from Gallery',
+            icon: 'images-outline',
+            onPress: () => {
+              setShowImageActionSheet(false);
+              handleImagePicker();
+            },
+          },
+        ]}
+      />
     </Modal>
   );
 };
 
 const styles = StyleSheet.create({
-  modalContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  },
-  modalContent: {
-    backgroundColor: 'white',
-    padding: 20,
-    borderRadius: 10,
-    width: '90%',
-    maxHeight: '90%',
-  },
-  closeButton: {
-    alignSelf: 'flex-end',
-  },
-  iconContainer: {
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  recommendedCardImage: {
-    width: 100,
-    height: 100,
-    borderRadius: 30,
-    resizeMode: 'cover',
-  },
-  titleText: {
-    marginTop: 10,
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#ccc',
-    padding: 12,
-    borderRadius: 8,
-    fontSize: 16,
-    minHeight: 48,
-  },
-  readOnlyInput: {
-    backgroundColor: '#f5f5f5',
-    color: '#666',
-  },
-  descriptionInput: {
-    borderWidth: 1,
-    borderColor: '#ccc',
-    padding: 12,
-    borderRadius: 8,
-    minHeight: 100,
-    textAlignVertical: 'top',
-    fontSize: 16,
-  },
-  errorText: {
-    color: 'red',
-    marginBottom: 10,
-  },
-  buttonContainer: {
-    marginTop: 24,
-    marginBottom: 40,
+  header: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 0,
-    gap: 16,
+    paddingHorizontal: Theme.spacing.lg,
+    paddingVertical: Theme.spacing.base,
+    borderBottomWidth: 1,
+    borderBottomColor: Theme.colors.border.light,
+    backgroundColor: Theme.colors.background.primary,
   },
-  // Custom Button Styles
-  customButton: {
-    flex: 1,
+
+  closeButton: {
+    width: 40,
+    height: 40,
+    borderRadius: Theme.borderRadius.md,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    minHeight: 44,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 3,
-      },
-    }),
+    backgroundColor: Theme.colors.background.secondary,
   },
-  uploadButton: {
-    backgroundColor: '#f54021',
-  },
-  saveButton: {
-    backgroundColor: '#007AFF',
-  },
-  buttonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    textAlign: 'center',
-    color: '#FFFFFF',
-    letterSpacing: 0.2,
-  },
-  uploadButtonText: {
-    color: '#FFFFFF',
-  },
-  saveButtonText: {
-    color: '#FFFFFF',
-  },
-  button: {
+
+  headerTitle: {
     flex: 1,
-    marginTop: 10,
-    marginHorizontal: 5,
+    textAlign: 'center',
+    marginHorizontal: Theme.spacing.base,
   },
+
+  scrollView: {
+    flex: 1,
+    backgroundColor: Theme.colors.background.secondary,
+  },
+
+  formContainer: {
+    padding: Theme.spacing.lg,
+  },
+
+  categoryCard: {
+    marginBottom: Theme.spacing.xl,
+  },
+
+  categoryContent: {
+    alignItems: 'center',
+    padding: Theme.spacing.lg,
+  },
+
+  categoryImage: {
+    width: 80,
+    height: 80,
+    borderRadius: Theme.borderRadius.xl,
+    marginBottom: Theme.spacing.md,
+  },
+
+  categoryTitle: {
+    marginBottom: Theme.spacing.xs,
+    textAlign: 'center',
+  },
+
+  categoryDescription: {
+    textAlign: 'center',
+    lineHeight: Theme.typography.lineHeight.lg,
+  },
+
+  fieldContainer: {
+    marginBottom: Theme.spacing.xl,
+  },
+
+  fieldLabel: {
+    marginBottom: Theme.spacing.sm,
+    fontWeight: Theme.typography.fontWeight.medium,
+  },
+
+  selectorButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: Theme.spacing.base,
+    paddingVertical: Theme.spacing.md,
+    backgroundColor: Theme.colors.background.primary,
+    borderWidth: 1,
+    borderColor: Theme.colors.border.default,
+    borderRadius: Theme.borderRadius.md,
+    marginBottom: Theme.spacing.sm,
+  },
+
+  locationCard: {
+    padding: Theme.spacing.lg,
+    marginBottom: Theme.spacing.xl,
+  },
+
+  sectionTitle: {
+    marginBottom: Theme.spacing.lg,
+  },
+
   mapContainer: {
-    width: '100%',
-    borderRadius: 8,
+    height: 200,
+    borderRadius: Theme.borderRadius.md,
     overflow: 'hidden',
-    marginBottom: 10,
+    marginTop: Theme.spacing.lg,
     position: 'relative',
-    backgroundColor: '#e0e0e0',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.2,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 4,
-      },
-    }),
+    ...Theme.shadows.md,
   },
+
   map: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 8,
+    flex: 1,
   },
+
   gpsButton: {
     position: 'absolute',
-    bottom: 10,
-    right: 10,
-    backgroundColor: '#007bff',
-    borderRadius: 20,
-    padding: 10,
+    bottom: Theme.spacing.md,
+    right: Theme.spacing.md,
+    backgroundColor: Theme.colors.primary[500],
+    borderRadius: Theme.borderRadius.full,
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...Theme.shadows.md,
   },
+
+  imageUploadButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: Theme.spacing.lg,
+    paddingHorizontal: Theme.spacing.xl,
+    backgroundColor: Theme.colors.background.primary,
+    borderWidth: 2,
+    borderColor: Theme.colors.primary[500],
+    borderStyle: 'dashed',
+    borderRadius: Theme.borderRadius.md,
+    gap: Theme.spacing.sm,
+  },
+
   imagePreviewContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginTop: 10,
+    marginTop: Theme.spacing.md,
+    gap: Theme.spacing.sm,
   },
+
   imageItem: {
-    width: 100,
-    height: 100,
-    marginRight: 10,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 5,
+    width: 80,
+    height: 80,
+    borderRadius: Theme.borderRadius.md,
     position: 'relative',
+    overflow: 'hidden',
   },
+
   previewImage: {
     width: '100%',
     height: '100%',
-    borderRadius: 5,
   },
-  removeButton: {
+
+  removeImageButton: {
     position: 'absolute',
-    top: -10,
-    right: -10,
-    backgroundColor: 'white',
-    borderRadius: 15,
-    width: 30,
-    height: 30,
+    top: -8,
+    right: -8,
+    backgroundColor: Theme.colors.background.primary,
+    borderRadius: Theme.borderRadius.full,
+    width: 24,
+    height: 24,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#ccc',
+    borderColor: Theme.colors.border.default,
+    ...Theme.shadows.sm,
   },
-  successMessage: {
-    backgroundColor: 'green',
-    padding: 15,
-    borderRadius: 5,
-    marginBottom: 20,
-    alignItems: 'center',
-  },
-  successText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  loadingContainer: {
+
+  buttonContainer: {
     flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 20,
+    gap: Theme.spacing.md,
+    marginTop: Theme.spacing['2xl'],
+    marginBottom: Theme.spacing.lg,
   },
-  loadingText: {
-    marginLeft: 10,
-    fontSize: 16,
+
+  cancelButton: {
+    flex: 1,
   },
-  errorMessage: {
-    backgroundColor: 'red',
-    padding: 15,
-    borderRadius: 5,
-    marginBottom: 20,
-    alignItems: 'center',
+
+  submitButton: {
+    flex: 2,
   },
-  // Subcategory picker styles
-  subCategoryContainer: {
-    marginBottom: 15,
+
+  errorText: {
+    marginTop: Theme.spacing.xs,
   },
-  fieldContainer: {
-    marginBottom: 20,
+
+  successContainer: {
+    position: 'absolute',
+    top: Theme.spacing['4xl'],
+    left: Theme.spacing.lg,
+    right: Theme.spacing.lg,
+    backgroundColor: Theme.colors.success[50],
+    padding: Theme.spacing.base,
+    borderRadius: Theme.borderRadius.md,
+    borderLeftWidth: 4,
+    borderLeftColor: Theme.colors.success[500],
   },
-  fieldLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 8,
-    color: '#333',
+
+  errorContainer: {
+    position: 'absolute',
+    top: Theme.spacing['4xl'],
+    left: Theme.spacing.lg,
+    right: Theme.spacing.lg,
+    backgroundColor: Theme.colors.error[50],
+    padding: Theme.spacing.base,
+    borderRadius: Theme.borderRadius.md,
+    borderLeftWidth: 4,
+    borderLeftColor: Theme.colors.error[500],
   },
+
+  // Estilos adicionales necesarios
+  readOnlyInput: {
+    backgroundColor: Theme.colors.background.secondary,
+    color: Theme.colors.text.secondary,
+  },
+
   fieldHint: {
-    fontSize: 13,
-    color: '#666',
-    marginBottom: 8,
-    lineHeight: 18,
+    marginTop: Theme.spacing.xs,
+    lineHeight: Theme.typography.lineHeight.sm,
     fontStyle: 'italic',
   },
-  pickerButton: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 8,
-    paddingHorizontal: 15,
-    paddingVertical: 12,
-    backgroundColor: '#fff',
-    minHeight: 48,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.1,
-        shadowRadius: 2,
-      },
-      android: {
-        elevation: 1,
-        borderRadius: 4,
-        borderColor: '#BDBDBD',
-        backgroundColor: '#FAFAFA',
-      },
-    }),
-  },
-  pickerButtonText: {
-    fontSize: 16,
-    color: '#333',
-    flex: 1,
-  },
-  placeholderText: {
-    color: '#999',
-  },
-  // iOS Picker Modal Styles
-  pickerModalContainer: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
-  },
-  pickerModalContent: {
-    backgroundColor: '#fff',
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    maxHeight: '75%',
-    paddingBottom: 20,
-  },
-  // Search Container
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F5F5F5',
-    borderRadius: 10,
-    marginHorizontal: 16,
-    marginVertical: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-  },
-  searchIcon: {
-    marginRight: 8,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 16,
-    color: '#333',
-    paddingVertical: 6,
-  },
-  // Items Count
-  itemsCount: {
-    fontSize: 13,
-    color: '#666',
-    marginHorizontal: 20,
-    marginBottom: 8,
-    fontWeight: '500',
-  },
-  // Empty State
-  emptyStateContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 60,
-    paddingHorizontal: 40,
-  },
-  emptyStateText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#666',
-    marginTop: 16,
-    marginBottom: 4,
-  },
-  emptyStateSubtext: {
-    fontSize: 14,
-    color: '#999',
-    textAlign: 'center',
-  },
-  pickerHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
-  },
-  pickerHeaderButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-  },
-  pickerHeaderButtonText: {
-    fontSize: 16,
-    color: '#007bff',
-  },
-  pickerDoneButton: {
-    fontWeight: '600',
-  },
-  pickerHeaderTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#333',
-  },
-  iosPicker: {
-    backgroundColor: '#fff',
-    width: '100%',
-  },
-  iosPickerScrollView: {
-    flexGrow: 0,
-  },
-  iosPickerItemButton: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 18,
-    paddingHorizontal: 20,
-    minHeight: 56,
-    borderBottomWidth: 0.5,
-    borderBottomColor: '#E5E5E7',
-    backgroundColor: '#fff',
-  },
-  iosPickerItemSelected: {
-    backgroundColor: '#E8F4FD',
-  },
-  iosPickerItemLast: {
-    borderBottomWidth: 0,
-  },
-  iosPickerItemContent: {
-    flex: 1,
-  },
-  iosPickerItemText: {
-    fontSize: 17,
-    color: '#000',
-    flex: 1,
-    lineHeight: 22,
-  },
-  iosPickerItemSelectedText: {
-    color: '#007AFF',
-    fontWeight: '600',
-  },
-  iosPickerItemPlaceholderText: {
-    color: '#999',
-  },
-  iosPickerItem: {
-    fontSize: 20,
-    height: 44,
-    color: '#000',
-  },
-  // Android Picker Modal Styles
-  androidPickerOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-  },
-  // Android Native Spinner Styles
-  androidSpinnerContainer: {
-    backgroundColor: '#fff',
-    borderRadius: 4,
-    width: '100%',
-    maxHeight: '70%',
-    maxWidth: 400,
-    ...Platform.select({
-      android: {
-        elevation: 8,
-      },
-    }),
-  },
-  androidSpinnerHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
-    backgroundColor: '#FAFAFA',
-  },
-  androidSpinnerTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#212121',
-    flex: 1,
-  },
-  androidCloseButton: {
-    padding: 4,
-    marginLeft: 16,
-  },
-  androidSpinnerScrollView: {
-    maxHeight: 320,
-  },
-  androidSpinnerItem: {
-    paddingHorizontal: 20,
-    paddingVertical: 18,
-    minHeight: 56,
-    borderBottomWidth: 0.5,
-    borderBottomColor: '#E8E8E8',
-    backgroundColor: '#fff',
-  },
-  androidSpinnerSelectedItem: {
-    backgroundColor: '#E8F5E9',
-  },
-  androidSpinnerLastItem: {
-    borderBottomWidth: 0,
-  },
-  androidSpinnerItemContent: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  androidSpinnerItemText: {
-    fontSize: 16,
-    color: '#424242',
-    flex: 1,
-    lineHeight: 24,
-  },
-  androidSpinnerSelectedText: {
-    color: '#2E7D32',
-    fontWeight: '600',
-  },
-  // Legacy Android Picker Styles (kept for compatibility)
-  androidPickerContainer: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    width: '100%',
-    maxHeight: '70%',
-    ...Platform.select({
-      android: {
-        elevation: 8,
-      },
-    }),
-  },
-  androidPickerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#333',
-    textAlign: 'center',
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
-  },
-  androidPickerScrollView: {
-    maxHeight: 300,
-  },
-  androidPickerItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-  },
-  androidPickerSelectedItem: {
-    backgroundColor: '#f0f8ff',
-  },
-  androidPickerItemText: {
-    fontSize: 16,
-    color: '#333',
-    flex: 1,
-  },
-  androidPickerSelectedText: {
-    color: '#007bff',
-    fontWeight: '600',
-  },
-  // Keep existing picker styles for backward compatibility
-  pickerContainer: {
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 5,
-    marginBottom: 10,
-  },
-  pickerLabel: {
-    fontSize: 16,
-    paddingLeft: 10,
-    paddingTop: 5,
-    color: '#333',
-  },
-  picker: {
-    height: 50,
-    width: '100%',
-  },
-  // Estilos para el área de tap fuera del mapa
+
   outsideMapTouchArea: {
-    marginTop: 10,
-    marginBottom: 10,
-    padding: 15,
-    backgroundColor: '#f0f8ff',
-    borderRadius: 8,
+    marginTop: Theme.spacing.md,
+    padding: Theme.spacing.md,
+    backgroundColor: Theme.colors.primary[50],
+    borderRadius: Theme.borderRadius.md,
     borderWidth: 1,
-    borderColor: '#007bff',
+    borderColor: Theme.colors.primary[500],
     borderStyle: 'dashed',
     alignItems: 'center',
   },
-  outsideMapText: {
-    color: '#007bff',
-    fontSize: 14,
-    fontWeight: '600',
+
+  // Estilos para BottomSheet de subcategorías
+  bottomSheetContent: {
+    padding: Theme.spacing.lg,
+  },
+
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Theme.colors.background.secondary,
+    borderRadius: Theme.borderRadius.md,
+    marginBottom: Theme.spacing.md,
+    paddingHorizontal: Theme.spacing.md,
+    paddingVertical: Theme.spacing.sm,
+    borderWidth: 1,
+    borderColor: Theme.colors.border.light,
+  },
+
+  searchIcon: {
+    marginRight: Theme.spacing.sm,
+  },
+
+  searchInput: {
+    flex: 1,
+    fontSize: Theme.typography.fontSize.base,
+    color: Theme.colors.text.primary,
+    paddingVertical: Theme.spacing.xs,
+  },
+
+  itemsCount: {
+    marginBottom: Theme.spacing.sm,
+    fontWeight: Theme.typography.fontWeight.medium,
+  },
+
+  subCategoryList: {
+    maxHeight: 320,
+  },
+
+  subCategoryItem: {
+    paddingHorizontal: Theme.spacing.lg,
+    paddingVertical: Theme.spacing.lg,
+    minHeight: 72,
+    borderBottomWidth: 0.5,
+    borderBottomColor: Theme.colors.border.light,
+    backgroundColor: Theme.colors.background.primary,
+  },
+
+  subCategorySelectedItem: {
+    backgroundColor: Theme.colors.primary[50],
+  },
+
+  subCategoryLastItem: {
+    borderBottomWidth: 0,
+  },
+
+  subCategoryItemContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+
+  subCategoryInfo: {
+    flex: 1,
+    marginRight: Theme.spacing.md,
+  },
+
+  subCategorySelectedText: {
+    color: Theme.colors.primary[600],
+    fontWeight: Theme.typography.fontWeight.semiBold,
+  },
+
+  emptyStateContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: Theme.spacing['4xl'],
+    paddingHorizontal: Theme.spacing.xl,
+  },
+
+  emptyStateText: {
+    marginTop: Theme.spacing.lg,
+    marginBottom: Theme.spacing.xs,
+    fontWeight: Theme.typography.fontWeight.semiBold,
+  },
+
+  emptyStateSubtext: {
+    textAlign: 'center',
+  },
+
+  // Estilos para mensajes de éxito
+  successText: {
+    fontWeight: Theme.typography.fontWeight.semiBold,
+    textAlign: 'center',
+  },
+
+  // Estilos específicos para TextArea (Description field) usando Theme System
+  textAreaContainer: {
+    backgroundColor: Theme.colors.background.primary,
+    borderWidth: 1,
+    borderColor: Theme.colors.border.default,
+    borderRadius: Theme.borderRadius.lg,
+    minHeight: 100,
+    maxHeight: 150,
+    paddingHorizontal: Theme.spacing.md,
+    paddingVertical: Theme.spacing.md,
+    ...Theme.shadows.sm,
+  },
+
+  textAreaInput: {
+    flex: 1,
+    fontSize: Theme.typography.fontSize.base,
+    color: Theme.colors.text.primary,
+    lineHeight: Theme.typography.lineHeight.lg,
+    textAlignVertical: 'top',
+    padding: 0, // Remover padding interno para que el container maneje el spacing
+  },
+
+  textAreaError: {
+    borderColor: Theme.colors.error[500],
+    borderWidth: 1.5,
   },
 });
 
-export default Request;
+export default RequestMigrated;

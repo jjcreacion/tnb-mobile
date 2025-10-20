@@ -40,7 +40,7 @@ export class MapboxSearchService {
   /**
    * Search for address suggestions
    */
-  public async searchAddresses(query: string): Promise<AddressAutocompleteSuggestion[]> {
+  public async searchAddresses(query: string, limit?: number): Promise<AddressAutocompleteSuggestion[]> {
     if (!this.isAvailable()) {
       throw new Error('Mapbox service is not available or configured')
     }
@@ -61,7 +61,7 @@ export class MapboxSearchService {
         access_token: token,
         country: MAPBOX_CONFIG.countryFilter.toLowerCase(),
         types: 'address,poi', // Address and Points of Interest
-        limit: MAPBOX_CONFIG.maxResults.toString(),
+        limit: (limit || MAPBOX_CONFIG.maxResults).toString(),
         autocomplete: 'true',
         language: 'en'
       })
@@ -74,16 +74,14 @@ export class MapboxSearchService {
       }
 
       const url = `${this.baseUrl}/${encodeURIComponent(query)}.json?${params}`
-      
 
-      
       // Create a timeout promise for React Native compatibility
       const timeoutPromise = new Promise<never>((_, reject) => {
         setTimeout(() => {
           reject(new Error('Request timed out'))
         }, MAPBOX_CONFIG.timeout)
       })
-      
+
       const fetchPromise = fetch(url, {
         method: 'GET',
         headers: {
@@ -96,6 +94,7 @@ export class MapboxSearchService {
 
       if (!response.ok) {
         const isAuthError = response.status === 401 || response.status === 403
+        console.error('[Mapbox Service] API error:', response.status, response.statusText)
         throw new Error(`Mapbox API error: ${response.status} ${response.statusText}`, {
           cause: { statusCode: response.status, isAuthError }
         })
@@ -126,7 +125,7 @@ export class MapboxSearchService {
       const responseTime = Date.now() - startTime
       const mapboxError = this.parseError(error)
 
-      
+      console.error('[Mapbox Service] Search error:', mapboxError.message)
 
       // Log error telemetry
       this.logTelemetry({

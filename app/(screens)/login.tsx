@@ -1,39 +1,74 @@
+import { Button, Input, Loading, Screen, Typography } from '@/components/common';
+import { MigratedStyles } from '@/constants/MigratedStyles';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
+// import { StatusBar } from 'expo-status-bar';
 import { Formik } from 'formik';
-import React, { useState } from 'react';
-import { ActivityIndicator, Image, ImageBackground, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  Image,
+  ImageBackground,
+  KeyboardAvoidingView,
+  Platform,
+  StatusBar,
+  TextInput,
+  View
+} from 'react-native';
 import * as Animatable from 'react-native-animatable';
-import Icon from 'react-native-vector-icons/Ionicons';
 import * as Yup from 'yup';
 import ResetModal from './resetPassword';
-import SignUpModal from './singup';
+import SignUpModal from './signup';
 
 const API_URL = Constants.expoConfig?.extra?.API_BASE_URL;
 
-const cardBackgroundColor = 'rgba(255, 255, 255, 0.9)';
-const primaryButtonColor = '#007AFF';
-const textColorPrimary = '#333';
-const textColorLink = '#007AFF';
-const inputBackgroundColor = '#f2f2f2';
-
 const validationSchema = Yup.object().shape({
-  email: Yup.string().email('Por favor, introduce un correo electrónico válido').required('El correo electrónico es requerido'),
-  password: Yup.string().required('La contraseña es requerida'),
+  email: Yup.string()
+    .email('Please enter a valid email address')
+    .required('Please enter your email'),
+  password: Yup.string()
+    .required('Please enter your password')
+    // .min(6, 'Password must be at least 6 characters'),
 });
 
-export default function LoginScreen() {
+export default function LoginScreenMigrated() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
   const [isSignUpModalVisible, setSignUpModalVisible] = useState(false);
   const [resetModalVisible, setResetModalVisible] = useState(false);
 
+  // Referencias para navegación del teclado
+  const passwordInputRef = useRef<TextInput>(null);
 
-  const handleLogin = async (values: any) => {
+    useEffect(() => {
+      // Hide status bar only on Android for splash screen
+      if (Platform.OS === 'android') {
+        StatusBar.setHidden(false);
+      }
+  
+      // Clean up: restore status bar visibility when component unmounts (Android only)
+      return () => {
+        if (Platform.OS === 'android') {
+          console.log('entrooooo login')
+          StatusBar.setHidden(false);
+        }
+      };
+    }, []);
+
+  // Configure StatusBar to be transparent only on this screen (Android)
+  useFocusEffect(
+    useCallback(() => {
+      // This will apply when the screen comes into focus
+      return () => {
+        // This cleanup function runs when the screen loses focus
+        // The StatusBar will automatically reset to app default when navigating away
+      };
+    }, [])
+  );
+
+  const handleLogin = async (values: { email: string; password: string }) => {
     setLoading(true);
     setErrorMessage('');
     try {
@@ -47,227 +82,190 @@ export default function LoginScreen() {
 
       const data = await response.json();
 
-      if (response.ok && data.accessToken) { 
+      if (response.ok && data.accessToken) {
         AsyncStorage.setItem('accessToken', data.accessToken);
         AsyncStorage.setItem('userId', String(data.pkUser));
         router.push('/(tabs)');
       } else {
-        setErrorMessage(data.message || 'Credenciales incorrectas');
+        setErrorMessage(`Email or password incorrect.\nPlease try again.`);
       }
     } catch (error) {
-      setErrorMessage('Hubo un error al iniciar sesión');
-      console.error('Error de inicio de sesión:', error);
+      setErrorMessage('Connection failed. Please check your internet and try again.');
+      console.log('SERVER OFFLINE? Login error:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const toggleShowPassword = () => {
-    setShowPassword(!showPassword);
-  };
-
   return (
     <ImageBackground
       source={require('@/assets/images/ingenieros.jpeg')}
-      style={styles.backgroundImageLogin}
+      style={MigratedStyles.loginBackgroundImage}
+      blurRadius={10}
     >
-      <View style={styles.container}>
-        <LinearGradient
-          colors={['rgba(76, 102, 159, 0.5)', '#ADD8E6', '#FFDAB9']}
-          style={styles.backgroundGradient}
-          start={{ x: 0.5, y: 0 }}
-          end={{ x: 0.5, y: 1 }}
-        />
-        <Animatable.View
-          animation="pulse" 
-          iterationCount="infinite" 
-          duration={2000} 
-          style={styles.iconContainer}
+      {/* StatusBar transparent only for login screen on Android */}
+      <StatusBar
+        barStyle="light-content"
+        backgroundColor="transparent"
+        translucent={Platform.OS === 'android'}
+      />
+      
+      <LinearGradient
+       colors={['rgba(230, 57, 70, 0.2)', 'rgba(230, 57, 70, 0.3)', 'rgba(230, 57, 70, 0.6)']}
+        style={MigratedStyles.loginOverlay}
+      />
+
+      <Screen 
+        safeArea={true} 
+        edges={Platform.OS === 'android' ? ['bottom'] : ['top', 'bottom']} 
+        style={MigratedStyles.loginScreen}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={MigratedStyles.loginKeyboardView}
         >
-          <Image
-            source={require('../../assets/images/icon-tnb.png')}
-            style={styles.imageSplash}
-          />
-        </Animatable.View>
-
-        <Animatable.View animation="fadeIn" duration={1000} style={styles.content}>
-          <View style={[styles.card, { backgroundColor: cardBackgroundColor }]}>
-            <Text style={[styles.title, { color: textColorPrimary }]}>Sign In</Text>
-            <Formik
-              initialValues={{ email: '', password: '' }}
-              validationSchema={validationSchema}
-              onSubmit={handleLogin}
+          <View style={MigratedStyles.loginContainer}>
+            {/* Logo Section */}
+            <Animatable.View
+              animation="fadeInDown"
+              duration={1000}
+              style={MigratedStyles.loginLogoContainer}
             >
-              {({ handleChange, handleBlur, handleSubmit, values, errors, touched }) => (
-                <>
-                  <TextInput
-                    style={[styles.input, { backgroundColor: inputBackgroundColor }]}
-                    placeholder="Correo electrónico"
-                    placeholderTextColor="#888"
-                    onChangeText={handleChange('email')}
-                    onBlur={handleBlur('email')}
-                    value={values.email}
-                  />
-                  {touched.email && errors.email && (
-                    <Text style={styles.errorText}>{errors.email}</Text>
-                  )}
+              <Animatable.View
+                animation="pulse"
+                iterationCount="infinite"
+                duration={2000}
+              >
+                <Image
+                  source={require('../../assets/images/icon-tnb.png')}
+                  style={MigratedStyles.loginLogo}
+                />
+              </Animatable.View>
+              
+              <Typography variant="h2" color="inverse" style={MigratedStyles.loginWelcomeText}>
+                Welcome Back!
+              </Typography>
+              
+              <Typography variant="body1" color="inverse" style={MigratedStyles.loginSubtitle}>
+                Sign in to get started
+              </Typography>
+            </Animatable.View>
 
-                  <View style={styles.passwordContainer}>
-                    <TextInput
-                      style={[styles.passwordInput, { backgroundColor: inputBackgroundColor }]}
-                      placeholder="Contraseña"
-                      placeholderTextColor="#888"
-                      secureTextEntry={!showPassword}
-                      onChangeText={handleChange('password')}
-                      onBlur={handleBlur('password')}
-                      value={values.password}
-                    />
-                    <TouchableOpacity onPress={toggleShowPassword} style={styles.eyeIcon}>
-                      <Icon
-                        name={showPassword ? 'eye-outline' : 'eye-off-outline'}
-                        size={24}
-                        color="#888"
+            {/* Form Section */}
+            <Animatable.View
+              animation="fadeInUp"
+              duration={1000}
+              delay={300}
+              style={MigratedStyles.loginFormContainer}
+            >
+              <View style={MigratedStyles.loginCard}>
+                <Formik
+                  initialValues={{ email: '', password: '' }}
+                  validationSchema={validationSchema}
+                  onSubmit={handleLogin}
+                >
+                  {({ handleChange, handleBlur, handleSubmit, values, errors, touched }) => (
+                    <>
+                      <Input
+                        placeholder="Email address"
+                        leftIcon="mail-outline"
+                        value={values.email}
+                        onChangeText={handleChange('email')}
+                        onBlur={handleBlur('email')}
+                        error={touched.email && errors.email ? errors.email : undefined}
+                        keyboardType="email-address"
+                        autoCapitalize="none"
+                        autoComplete="email"
+                        returnKeyType='next'
+                        onSubmitEditing={() => passwordInputRef.current?.focus()}
+                        blurOnSubmit={false}
                       />
-                    </TouchableOpacity>
-                  </View>
-                  {touched.password && errors.password && (
-                    <Text style={styles.errorText}>{errors.password}</Text>
-                  )}
 
-                  <TouchableOpacity
-                    style={[styles.button, { backgroundColor: primaryButtonColor }]}
-                    onPress={() => handleSubmit()}
-                    disabled={loading}
-                  >
-                    {loading ? (
-                      <ActivityIndicator color="white" />
-                    ) : (
-                      <Text style={styles.buttonText}>Log In</Text>
-                    )}
-                  </TouchableOpacity>
-                </>
-              )}
-            </Formik>
-            {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
-            <TouchableOpacity onPress={() => setSignUpModalVisible(true)}>
-              <Text style={[styles.link, { color: textColorLink }]}>Create account</Text>
-            </TouchableOpacity>
-            <Text>Forgot your password?</Text>
-            <TouchableOpacity onPress={() => setResetModalVisible(true)}>
-              <Text style={[styles.link, { color: textColorLink }]}>Reset</Text>
-            </TouchableOpacity>
+                      <Input
+                        ref={passwordInputRef}
+                        placeholder="Password"
+                        leftIcon="lock-closed-outline"
+                        value={values.password}
+                        onChangeText={handleChange('password')}
+                        onBlur={handleBlur('password')}
+                        error={touched.password && errors.password ? errors.password : undefined}
+                        secureTextEntry={true}
+                        autoCapitalize="none"
+                        autoComplete="password"
+                        returnKeyType='go'
+                        onSubmitEditing={() => handleSubmit() }
+                      />
+
+                      {errorMessage ? (
+                        <View style={MigratedStyles.loginErrorContainer}>
+                          <Typography variant="body2" color="error" style={MigratedStyles.loginErrorText}>
+                            {errorMessage}
+                          </Typography>
+                        </View>
+                      ) : null}
+
+                      <Button
+                        title="Sign In"
+                        onPress={() => handleSubmit()}
+                        loading={loading}
+                        fullWidth
+                        size="lg"
+                        variant="primary"
+                        style={MigratedStyles.loginButton}
+                      />
+
+                      <Button
+                        title="Forgot your password?"
+                        onPress={() => setResetModalVisible(true)}
+                        variant="ghost"
+                        size="sm"
+                        style={MigratedStyles.loginForgotButton}
+                      />
+                    </>
+                  )}
+                </Formik>
+
+                <View style={MigratedStyles.loginDivider}>
+                  <View style={MigratedStyles.loginDividerLine} />
+                  <Typography variant="body2" color="tertiary" style={MigratedStyles.loginDividerText}>
+                    OR
+                  </Typography>
+                  <View style={MigratedStyles.loginDividerLine} />
+                </View>
+
+                <Button
+                  title="Create Account"
+                  onPress={() => setSignUpModalVisible(true)}
+                  variant="outline"
+                  fullWidth
+                  size="lg"
+                  style={MigratedStyles.loginSignupButton}
+                />
+              </View>
+            </Animatable.View>
           </View>
-        </Animatable.View>
-      </View>
-       <SignUpModal isVisible={isSignUpModalVisible} onClose={() => setSignUpModalVisible(false)} />
-       <ResetModal isVisible={resetModalVisible} onClose={() => setResetModalVisible(false)} />
+        </KeyboardAvoidingView>
+
+        {/* Loading Overlay */}
+        <Loading
+          visible={loading}
+          variant="overlay"
+          message="Signing you in..."
+          size="lg"
+        />
+
+        {/* Modals */}
+        <SignUpModal 
+          isVisible={isSignUpModalVisible} 
+          onClose={() => setSignUpModalVisible(false)} 
+        />
+        
+        <ResetModal 
+          isVisible={resetModalVisible} 
+          onClose={() => setResetModalVisible(false)} 
+        />
+      </Screen>
     </ImageBackground>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  backgroundGradient: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    top: 0,
-    bottom: 0,
-  },
-  iconContainer: {
-    position: 'absolute',
-    top: '10%',
-    justifyContent: 'center',
-    alignItems: 'center',
-    width: '100%',
-    shadowColor: '#000', 
-    shadowOffset: { width: 0, height: 2 }, 
-    shadowOpacity: 0.25, 
-    shadowRadius: 3.84, 
-    elevation: 5, 
-  },
-  content: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  imageSplash: {
-    width: 120,
-    height: 120,
-    margin: 10,
-  },
-  card: {
-    borderRadius: 40,
-    padding: 30,
-    marginTop: 120,
-    width: '80%',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 8,
-    backgroundColor: 'transparent',
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-    borderWidth: 10,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 20,
-  },
-  backgroundImageLogin: {
-    flex: 1,
-    resizeMode: 'cover',
-    justifyContent: 'center',
-  },
-  input: {
-    borderRadius: 10,
-    paddingVertical: 15,
-    paddingHorizontal: 20,
-    marginBottom: 15,
-    fontSize: 16,
-    width: '100%',
-    color: textColorPrimary,
-  },
-  button: {
-    borderRadius: 10,
-    paddingVertical: 15,
-    width: '100%',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  buttonText: {
-    color: 'white',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  link: {
-    fontSize: 14,
-  },
-  errorText: {
-    color: 'red',
-    marginBottom: 10,
-  },
-  passwordContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    width: '100%',
-    borderRadius: 10,
-    backgroundColor: inputBackgroundColor,
-    marginBottom: 15,
-  },
-  passwordInput: {
-    flex: 1,
-    paddingVertical: 15,
-    paddingHorizontal: 20,
-    fontSize: 16,
-    color: textColorPrimary,
-    borderRadius: 10,
-  },
-  eyeIcon: {
-    padding: 15,
-  },
-});

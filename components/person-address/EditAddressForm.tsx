@@ -39,8 +39,10 @@ export const EditAddressForm = forwardRef<EditAddressFormRef, EditAddressFormPro
   const hasInitialized = useRef(false)
   const zipCodeRef = useRef<TextInput>(null)
   const addressLine2Ref = useRef<TextInput>(null)
+  const scrollViewRef = useRef<ScrollView>(null)
   const [useManualEntry, setUseManualEntry] = useState(false)
   const [mappingWarnings, setMappingWarnings] = useState<string[]>([])
+  const [scrollEnabled, setScrollEnabled] = useState(true)
 
   useImperativeHandle(ref, () => ({
     focusZipCode: () => {
@@ -193,13 +195,15 @@ export const EditAddressForm = forwardRef<EditAddressFormRef, EditAddressFormPro
   return (
     <View style={addressStyles.newAddressFormContainer}>
       <ScrollView
+        ref={scrollViewRef}
         style={addressStyles.newAddressForm}
         contentContainerStyle={{ paddingBottom: 40 }}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
+        scrollEnabled={scrollEnabled}
       >
       <Text style={addressStyles.formLabel}>Address</Text>
-      
+
       {/* Address Input - Use autocomplete if available and not in manual mode */}
       {isMapboxAvailable() && !useManualEntry ? (
         <AddressAutocomplete
@@ -211,6 +215,7 @@ export const EditAddressForm = forwardRef<EditAddressFormRef, EditAddressFormPro
           style={addressStyles.formInput}
           addressLine2Ref={addressLine2Ref}
           addressLine2Value={externalFormData.addressLine2}
+          onScrollEnabledChange={setScrollEnabled}
         />
       ) : (
         <TextInput

@@ -1,15 +1,19 @@
-import { Stack } from 'expo-router';
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
+import { DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
+import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
+import * as SystemUI from 'expo-system-ui';
 import { useEffect } from 'react';
+import { Platform } from 'react-native';
+import 'react-native-reanimated';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Provider } from 'react-redux';
 import { PersistGate } from 'redux-persist/integration/react';
-import 'react-native-reanimated';
 
+import { Theme } from '@/constants/Theme';
 import { useColorScheme } from '@/hooks/useColorScheme';
-import { store, persistor } from '@/store';
+import { persistor, store } from '@/store';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -25,22 +29,31 @@ export default function RootLayout() {
     }
   }, [loaded]);
 
+  // Configure Android Navigation Bar
+  useEffect(() => {
+    if (Platform.OS === 'android') {
+      SystemUI.setBackgroundColorAsync(Theme.colors.navigation.bar);
+    }
+  }, []);
+
   if (!loaded) {
     return null;
   }
 
   return (
-    <Provider store={store}>
-      <PersistGate loading={null} persistor={persistor}>
-        <ThemeProvider value={DefaultTheme}>
-          <Stack>
-            <Stack.Screen name="(screens)" options={{ headerShown: false }} />
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen name="+not-found" />
-          </Stack>
-          <StatusBar style="auto" />
-        </ThemeProvider>
-      </PersistGate>
-    </Provider>
+    <SafeAreaProvider>
+      <Provider store={store}>
+        <PersistGate loading={null} persistor={persistor}>
+          <ThemeProvider value={DefaultTheme}>
+            <Stack>
+              <Stack.Screen name="(screens)" options={{ headerShown: false }} />
+              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+              <Stack.Screen name="+not-found" />
+            </Stack>
+            <StatusBar style="light" backgroundColor={Theme.colors.primary[500]} />
+          </ThemeProvider>
+        </PersistGate>
+      </Provider>
+    </SafeAreaProvider>
   );
 }

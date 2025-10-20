@@ -1,81 +1,93 @@
-import { StyleSheet, Platform } from 'react-native'
+import { StyleSheet, Platform } from 'react-native';
+import { Theme } from '@/constants/Theme';
 
 export const styles = StyleSheet.create({
-  backgroundTop: {
-    borderBottomWidth: 0,
-    backgroundColor: 'transparent',
+  container: {
+    marginBottom: Theme.spacing.base,
   },
-  linearGradientHeader: {
-    width: '100%',
-    paddingTop: 60,
-    paddingBottom: 20,
-    overflow: 'hidden',
+
+  gradient: {
+    paddingTop: Platform.OS === 'ios' ? 60 : 50,
+    paddingBottom: Theme.spacing.lg,
+    paddingHorizontal: Theme.spacing.base,
     ...Platform.select({
       ios: {
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 5,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 8,
       },
       android: {
-        elevation: 3,
+        elevation: 8,
       },
     }),
   },
-  headerContainer: {
+
+  content: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingHorizontal: 15,
-    paddingTop: 0,
-    marginBottom: 0,
-    width: '100%',
-    backgroundColor: 'transparent',
-  },
-  leftHeader: {
-    flexDirection: 'row',
     alignItems: 'center',
   },
-  rightHeader: {
+
+  leftSection: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: Theme.spacing.md,
   },
+
   menuButton: {
-    marginRight: 10,
+    width: 40,
+    height: 40,
+    borderRadius: Theme.borderRadius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
   },
-  companyLogo: {
-    width: 28,
-    height: 28,
-    marginRight: 5,
+
+  logo: {
+    width: 40,
+    height: 40,
+    borderRadius: Theme.borderRadius.md,
   },
-  getMoneyButton: {
-    backgroundColor: '#FFD700',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 15,
-    marginLeft: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 3,
-    elevation: 5,
+
+  rightSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Theme.spacing.sm,
   },
-  getMoneyButtonText: {
-    color: '#333',
-    fontWeight: 'bold',
-    fontSize: 14,
+
+  rewardButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: Theme.colors.text.inverse,
+    paddingHorizontal: Theme.spacing.md,
+    paddingVertical: Theme.spacing.sm,
+    borderRadius: Theme.borderRadius.full,
+    ...Theme.shadows.sm,
   },
+
+  rewardText: {
+    fontSize: Theme.typography.fontSize.sm,
+    fontWeight: Theme.typography.fontWeight.semiBold,
+    color: Theme.colors.primary[600],
+  },
+
   balanceButton: {
-    backgroundColor: '#F5EDED',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 15,
-    marginLeft: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: Theme.spacing.md,
+    paddingVertical: Theme.spacing.sm,
+    borderRadius: Theme.borderRadius.full,
     borderWidth: 1,
-    borderColor: '#333',
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
-  balanceButtonText: {
-    color: '#333',
-    fontWeight: 'bold',
-    fontSize: 14,
+
+  balanceText: {
+    fontSize: Theme.typography.fontSize.sm,
+    fontWeight: Theme.typography.fontWeight.semiBold,
+    color: Theme.colors.text.inverse,
   },
-})
+});

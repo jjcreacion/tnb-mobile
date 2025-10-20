@@ -1,41 +1,43 @@
-import React, { useEffect, useCallback } from 'react'
-import { View, StyleSheet, Alert } from 'react-native'
-import AsyncStorage from '@react-native-async-storage/async-storage'
-import Constants from 'expo-constants'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import {
-  loadUserAddresses,
   loadCitiesAndStates,
+  loadUserAddresses,
   updatePrimaryAddress,
 } from '@/store/slices/addressSlice'
-import { fetchCampaigns, expressInterest } from '@/store/slices/campaignSlice'
+import { expressInterest, fetchCampaigns } from '@/store/slices/campaignSlice'
 import { fetchCategories } from '@/store/slices/categorySlice'
 import {
-  setMenuVisible,
-  toggleSearch,
-  setServiceSearchQuery,
-  openRequestModal,
-  closeCampaignModal,
-  openCampaignModal,
-  openAddressModal,
   closeAddressModal,
+  closeCampaignModal,
   closeRequestModal,
+  openAddressModal,
+  openCampaignModal,
+  openRequestModal,
+  setMenuVisible,
+  setServiceSearchQuery,
+  toggleSearch,
 } from '@/store/slices/uiSlice'
 import { loadUserData } from '@/store/slices/userSlice'
+import AsyncStorage from '@react-native-async-storage/async-storage'
+import Constants from 'expo-constants'
+import { StatusBar } from 'expo-status-bar'
+import React, { useCallback, useEffect } from 'react'
+import { Alert, StyleSheet, View } from 'react-native'
 
 import {
-  HomeHeader,
   AddressSelector,
   CampaignCarousel,
+  HomeHeader,
   ServicesExplorer,
 } from '@/components/home'
+import { AddressModal } from '@/components/person-address'
 import CampaignModal from '../(screens)/CampaignModal'
 import RequestModal from '../(screens)/RequestModal'
 import SideMenu from '../(screens)/SideMenu'
-import { AddressModal } from '@/components/person-address'
 
 import { useReferralReward } from '@/hooks/home/useReferralReward'
-import type { Category, Campaign, Address } from '@/types'
+import { Theme } from '@/constants/Theme'
+import type { Address, Campaign, Category } from '@/types'
 
 const API_BASE_URL = Constants.expoConfig?.extra?.API_BASE_URL || ''
 
@@ -176,6 +178,7 @@ const HomeScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
+      <StatusBar style="light" backgroundColor={Theme.colors.primary[500]} />
       <HomeHeader
         onMenuPress={handleMenuPress}
         referralReward={referralReward}
