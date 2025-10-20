@@ -6,6 +6,7 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  Pressable,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -523,9 +524,9 @@ const Register: React.FC = () => {
                   keyboardShouldPersistTaps="handled"
                   showsVerticalScrollIndicator={false}
                 >
-                  <View style={styles.formContainer}>
+                  <View style={styles.formContainer} pointerEvents="box-none">
                     {/* Personal Information Section */}
-                    <Text style={styles.sectionTitle}>Personal Information</Text>
+                    <Text style={styles.sectionTitle} pointerEvents="none">Personal Information</Text>
 
                     <Input
                       ref={firstNameRef}
@@ -578,9 +579,9 @@ const Register: React.FC = () => {
                     />
 
                     {/* Phone Section */}
-                    <Text style={styles.sectionTitle}>Phone Number</Text>
+                    <Text style={styles.sectionTitle} pointerEvents="none">Phone Number</Text>
 
-                    <Text style={styles.sectionLabel}>Phone *</Text>
+                    <Text style={styles.sectionLabel} pointerEvents="none">Phone *</Text>
                     <View style={styles.phoneContainer}>
                       <CountryCodeSelector
                         selectedCode={values.countryCode}
@@ -606,13 +607,13 @@ const Register: React.FC = () => {
                       />
                     </View>
                     {errors.phoneNumber && touched.phoneNumber && (
-                      <Text style={styles.errorText}>{String(errors.phoneNumber)}</Text>
+                      <Text style={styles.errorText} pointerEvents="none">{String(errors.phoneNumber)}</Text>
                     )}
 
                     {/* Address Section */}
-                    <Text style={styles.sectionTitle}>Address Information</Text>
+                    <Text style={styles.sectionTitle} pointerEvents="none">Address Information</Text>
 
-                    <Text style={styles.sectionLabel}>Address *</Text>
+                    <Text style={styles.sectionLabel} pointerEvents="none">Address *</Text>
 
                     {mapboxAvailable && !useManualEntry ? (
                       <AddressAutocomplete
@@ -646,16 +647,16 @@ const Register: React.FC = () => {
                       />
                     )}
                     {errors.address && touched.address && (
-                      <Text style={styles.errorText}>{String(errors.address)}</Text>
+                      <Text style={styles.errorText} pointerEvents="none">{String(errors.address)}</Text>
                     )}
 
                     {mappingWarnings.length > 0 && (
-                      <View style={styles.warningContainer}>
+                      <View style={styles.warningContainer} pointerEvents="none">
                         <Text style={styles.warningText}>Note: Please verify address details</Text>
                       </View>
                     )}
 
-                    <Text style={styles.sectionLabel}>Address Line 2 (Optional)</Text>
+                    <Text style={styles.sectionLabel} pointerEvents="none">Address Line 2 (Optional)</Text>
                     <TextInput
                       ref={addressLine2Ref}
                       style={styles.formInput}
@@ -670,53 +671,59 @@ const Register: React.FC = () => {
                       autoComplete="address-line2"
                     />
 
-                    <View style={styles.formRow}>
-                      <View style={styles.formColumn}>
-                        <Text style={styles.sectionLabel}>State *</Text>
-                        <TouchableOpacity
-                          style={styles.formInput}
+                    <View style={styles.formRow} pointerEvents="box-none">
+                      <View style={styles.formColumn} pointerEvents="box-none">
+                        <Text style={styles.sectionLabel} pointerEvents="none">State *</Text>
+                        <Pressable
+                          style={({ pressed }) => [
+                            styles.formInput,
+                            pressed && styles.formInputPressed,
+                          ]}
                           onPress={() => {
                             // Save current form values before navigating
                             setFormData(values)
                             setCurrentScreen('state')
                           }}
-                          activeOpacity={0.7}
                         >
                           <Text
                             style={[styles.formInputText, !values.state && styles.placeholderText]}
+                            pointerEvents="none"
                           >
                             {values.state || 'e.g FL'}
                           </Text>
-                        </TouchableOpacity>
+                        </Pressable>
                         {errors.state && touched.state && (
-                          <Text style={styles.errorText}>{String(errors.state)}</Text>
+                          <Text style={styles.errorText} pointerEvents="none">{String(errors.state)}</Text>
                         )}
                       </View>
 
-                      <View style={styles.formColumn}>
-                        <Text style={styles.sectionLabel}>City *</Text>
-                        <TouchableOpacity
-                          style={styles.formInput}
+                      <View style={styles.formColumn} pointerEvents="box-none">
+                        <Text style={styles.sectionLabel} pointerEvents="none">City *</Text>
+                        <Pressable
+                          style={({ pressed }) => [
+                            styles.formInput,
+                            pressed && styles.formInputPressed,
+                          ]}
                           onPress={() => {
                             // Save current form values before navigating
                             setFormData(values)
                             setCurrentScreen('city')
                           }}
-                          activeOpacity={0.7}
                         >
                           <Text
                             style={[styles.formInputText, !values.city && styles.placeholderText]}
+                            pointerEvents="none"
                           >
                             {values.city || 'e.g Jacksonville'}
                           </Text>
-                        </TouchableOpacity>
+                        </Pressable>
                         {errors.city && touched.city && (
-                          <Text style={styles.errorText}>{String(errors.city)}</Text>
+                          <Text style={styles.errorText} pointerEvents="none">{String(errors.city)}</Text>
                         )}
                       </View>
                     </View>
 
-                    <Text style={styles.sectionLabel}>Zip Code *</Text>
+                    <Text style={styles.sectionLabel} pointerEvents="none">Zip Code *</Text>
                     <TextInput
                       ref={zipCodeRef}
                       style={styles.formInput}
@@ -732,7 +739,7 @@ const Register: React.FC = () => {
                       autoComplete="postal-code"
                     />
                     {errors.zipCode && touched.zipCode && (
-                      <Text style={styles.errorText}>{String(errors.zipCode)}</Text>
+                      <Text style={styles.errorText} pointerEvents="none">{String(errors.zipCode)}</Text>
                     )}
 
                     {loading && (
@@ -820,6 +827,10 @@ const styles = StyleSheet.create({
     color: Theme.colors.neutral[900],
     backgroundColor: Theme.colors.background.primary,
     marginBottom: 16,
+  },
+  formInputPressed: {
+    opacity: 0.7,
+    backgroundColor: Theme.colors.neutral[50],
   },
   formInputText: {
     fontSize: 16,

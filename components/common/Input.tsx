@@ -163,7 +163,7 @@ export const Input = forwardRef((
   return (
     <View style={[styles.container, containerStyle]}>
       {label && (
-        <View style={styles.labelContainer}>
+        <View style={styles.labelContainer} pointerEvents="none">
           <Text style={styles.label}>{label}</Text>
           {required && <Text style={styles.required}>*</Text>}
         </View>
@@ -223,8 +223,8 @@ export const Input = forwardRef((
         )}
       </View>
 
-      {error && <Text style={styles.errorText}>{error}</Text>}
-      {helperText && !error && <Text style={styles.helperText}>{helperText}</Text>}
+      {error && <Text style={styles.errorText} pointerEvents="none">{error}</Text>}
+      {helperText && !error && <Text style={styles.helperText} pointerEvents="none">{helperText}</Text>}
     </View>
   );
 });
