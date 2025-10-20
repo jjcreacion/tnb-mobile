@@ -1,6 +1,7 @@
 export { HomeHeader } from './HomeHeader'
 export { ActivityHeader } from './ActivityHeader'
 export { HistoryHeader } from './HistoryHeader'
+export { BillingHeader } from './BillingHeader'
 export { AddressSelector } from './AddressSelector'
 export { CampaignCarousel } from './CampaignCarousel'
 export { ServicesExplorer } from './ServicesExplorer'

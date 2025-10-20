@@ -1,10 +1,11 @@
-import { Button, Card, Screen } from '@/components/common';
+import { Button, Card } from '@/components/common';
+import { BillingHeader } from '@/components/home';
 import { Theme } from '@/constants/Theme';
-import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
-import React from 'react';
+import React, { useState, useCallback } from 'react';
 import { FlatList, Platform, StyleSheet, Text, View } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
+import SideMenu from '../(screens)/SideMenu';
 
 interface Transaction {
   id: string;
@@ -21,6 +22,12 @@ const transactions: Transaction[] = [
 ];
 
 export default function BillingScreen() {
+  const [isMenuVisible, setMenuVisible] = useState(false);
+
+  const handleMenuPress = useCallback(() => {
+    setMenuVisible(true);
+  }, []);
+
   const totalBalance = transactions
     .filter(t => t.type === 'payment')
     .reduce((sum, t) => sum + t.amount, 0);
@@ -74,22 +81,9 @@ export default function BillingScreen() {
   );
 
   return (
-    <Screen safeArea edges={['top', 'bottom']}>
+    <View style={styles.container}>
       <StatusBar style="light" backgroundColor={Theme.colors.primary[500]} />
-      <LinearGradient
-        colors={[Theme.colors.primary[500], Theme.colors.primary[600]]}
-        style={styles.header}
-      >
-        <View style={styles.headerContent}>
-          <View style={styles.headerIcon}>
-            <Icon name="wallet" size={28} color={Theme.colors.text.inverse} />
-          </View>
-          <View style={styles.headerTextContainer}>
-            <Text style={styles.headerTitle}>Billing</Text>
-            <Text style={styles.headerSubtitle}>Manage your payments</Text>
-          </View>
-        </View>
-      </LinearGradient>
+      <BillingHeader onMenuPress={handleMenuPress} />
 
       {/* Balance Card */}
       <Card variant="elevated" padding="lg" style={styles.balanceCard}>
@@ -136,49 +130,19 @@ export default function BillingScreen() {
           />
         </Card>
       </View>
-    </Screen>
+
+      <SideMenu
+        isVisible={isMenuVisible}
+        onClose={() => setMenuVisible(false)}
+      />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  header: {
-    paddingTop: Theme.spacing.lg,
-    paddingBottom: Theme.spacing.xl,
-    paddingHorizontal: Theme.spacing.base,
-    marginBottom: Theme.spacing.lg,
-    ...Theme.shadows.md,
-  },
-
-  headerContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-
-  headerIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: Theme.borderRadius.full,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  headerTextContainer: {
+  container: {
     flex: 1,
-  },
-
-  headerTitle: {
-    fontSize: Theme.typography.fontSize['2xl'],
-    fontWeight: Theme.typography.fontWeight.bold,
-    color: Theme.colors.text.inverse,
-    marginBottom: 2,
-  },
-
-  headerSubtitle: {
-    fontSize: Theme.typography.fontSize.sm,
-    color: 'rgba(255, 255, 255, 0.9)',
-    fontWeight: Theme.typography.fontWeight.medium,
+    backgroundColor: Theme.colors.background.secondary,
   },
 
   balanceCard: {
