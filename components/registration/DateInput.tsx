@@ -65,6 +65,13 @@ export const DateInput: React.FC<DateInputProps> = ({
   }
 
   const handleIOSConfirm = () => {
+    // Save the current date value if no value was previously set
+    if (!value) {
+      const year = dateValue.getFullYear()
+      const month = String(dateValue.getMonth() + 1).padStart(2, '0')
+      const day = String(dateValue.getDate()).padStart(2, '0')
+      onChange(`${year}-${month}-${day}`)
+    }
     setShowPicker(false)
   }
 
