@@ -20,15 +20,24 @@ export const CampaignCarousel = memo<CampaignCarouselProps>(
     const [currentIndex, setCurrentIndex] = useState(0)
 
     useEffect(() => {
+      let interval: ReturnType<typeof setInterval> | null = null
+
       if (campaigns.length > 0) {
-        const interval = setInterval(() => {
-          const nextIndex = (currentIndex + 1) % campaigns.length
-          setCurrentIndex(nextIndex)
-          flatListRef.current?.scrollToIndex({ animated: true, index: nextIndex })
+        interval = setInterval(() => {
+          setCurrentIndex(prevIndex => {
+            const nextIndex = (prevIndex + 1) % campaigns.length
+            flatListRef.current?.scrollToIndex({ animated: true, index: nextIndex })
+            return nextIndex
+          })
         }, 5000)
-        return () => clearInterval(interval)
       }
-    }, [currentIndex, campaigns])
+
+      return () => {
+        if (interval !== null) {
+          clearInterval(interval)
+        }
+      }
+    }, [campaigns.length])
 
     return (
       <>

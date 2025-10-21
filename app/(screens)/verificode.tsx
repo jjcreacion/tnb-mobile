@@ -123,10 +123,12 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
   // Auto-focus first input on mount - Optimized approach
   useEffect(() => {
     // Use requestAnimationFrame for immediate, smooth focus
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
     const frame = requestAnimationFrame(() => {
       // Small delay only for iOS to ensure component is ready
       if (Platform.OS === 'ios') {
-        setTimeout(() => {
+        timeoutId = setTimeout(() => {
           inputsRef.current[0]?.focus();
         }, 100);
       } else {
@@ -134,7 +136,12 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
       }
     });
 
-    return () => cancelAnimationFrame(frame);
+    return () => {
+      cancelAnimationFrame(frame);
+      if (timeoutId !== null) {
+        clearTimeout(timeoutId);
+      }
+    };
   }, []);
 
   // Monitor code changes for debugging
@@ -164,8 +171,10 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
 
   // Timer countdown
   useEffect(() => {
+    let interval: ReturnType<typeof setInterval> | null = null;
+
     if (timer > 0 && validationState !== 'valid') {
-      const interval = setInterval(() => {
+      interval = setInterval(() => {
         setTimer(prevTimer => {
           const newTimer = prevTimer - 1;
           if (newTimer === 0) {
@@ -174,9 +183,14 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
           return newTimer;
         });
       }, 1000);
-      return () => clearInterval(interval);
     }
-  }, [timer, validationState]);
+
+    return () => {
+      if (interval !== null) {
+        clearInterval(interval);
+      }
+    };
+  }, [validationState]);
 
   // Helper function to add managed timeouts
   const addTimeout = useCallback((callback: () => void, delay: number) => {
@@ -227,7 +241,9 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
     checkClipboardForValidCode();
 
     // Check clipboard every 2 seconds when component is focused
-    const interval = setInterval(checkClipboardForValidCode, 2000);
+    const interval = setInterval(() => {
+      checkClipboardForValidCode();
+    }, 2000);
 
     return () => clearInterval(interval);
   }, [checkClipboardForValidCode]);
