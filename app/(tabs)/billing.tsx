@@ -36,13 +36,13 @@ export default function BillingScreen() {
     const getTypeConfig = (type: string) => {
       switch (type) {
         case 'payment':
-          return { icon: 'check-circle', color: Theme.colors.success[500] };
+          return { icon: 'checkmark-circle', color: Theme.colors.success[500] };
         case 'refund':
           return { icon: 'refresh', color: Theme.colors.info[500] };
         case 'pending':
-          return { icon: 'schedule', color: Theme.colors.warning[500] };
+          return { icon: 'time', color: Theme.colors.warning[500] };
         default:
-          return { icon: 'attach-money', color: Theme.colors.neutral[500] };
+          return { icon: 'cash', color: Theme.colors.neutral[500] };
       }
     };
 
@@ -98,7 +98,7 @@ export default function BillingScreen() {
       {/* Transaction History */}
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Transaction History</Text>
-        <Icon name="filter-list" size={20} color={Theme.colors.text.secondary} />
+        <Icon name="funnel" size={20} color={Theme.colors.text.secondary} />
       </View>
 
       <FlatList
@@ -114,7 +114,7 @@ export default function BillingScreen() {
       <View style={styles.paymentSection}>
         <Card variant="outlined" padding="md">
           <View style={styles.paymentHeader}>
-            <Icon name="credit-card" size={24} color={Theme.colors.primary[500]} />
+            <Icon name="card" size={24} color={Theme.colors.primary[500]} />
             <Text style={styles.paymentTitle}>Payment Methods</Text>
           </View>
           <Text style={styles.paymentDescription}>

@@ -1,0 +1,601 @@
+import { Card } from '@/components/common';
+import { Theme } from '@/constants/Theme';
+import { FontAwesome } from '@expo/vector-icons';
+import { StatusBar } from 'expo-status-bar';
+import React, { useRef, useState, useMemo } from 'react';
+import {
+  Animated,
+  Easing,
+  Linking,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+  Dimensions,
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
+import Icon from 'react-native-vector-icons/Ionicons';
+import SideMenu from '../(screens)/SideMenu';
+
+interface SocialLink {
+  icon: string;
+  url: string;
+  IconComponent: any;
+  label: string;
+}
+
+interface ContactInfo {
+  icon: string;
+  text: string;
+  type: 'location' | 'email' | 'phone';
+}
+
+const HEADER_MAX_HEIGHT = 340;
+const HEADER_MIN_HEIGHT = 95;
+const ICON_MAX_SIZE = 100;
+const ICON_MIN_SIZE = 38;
+const SCROLL_RANGE = HEADER_MAX_HEIGHT - HEADER_MIN_HEIGHT;
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+
+export default function SupportScreen() {
+  const [isMenuVisible, setMenuVisible] = useState(false);
+  const insets = useSafeAreaInsets();
+  const scrollY = useRef(new Animated.Value(0)).current;
+
+  // ===== HEADER HEIGHT ANIMATION =====
+  const headerHeight = useMemo(
+    () =>
+      scrollY.interpolate({
+        inputRange: [0, SCROLL_RANGE],
+        outputRange: [HEADER_MAX_HEIGHT, HEADER_MIN_HEIGHT],
+        extrapolate: 'clamp',
+      }),
+    [scrollY]
+  );
+
+  // ===== ICON ANIMATIONS =====
+  // Icon size with easing effect
+  const iconSize = useMemo(
+    () =>
+      scrollY.interpolate({
+        inputRange: [0, SCROLL_RANGE],
+        outputRange: [ICON_MAX_SIZE, ICON_MIN_SIZE],
+        extrapolate: 'clamp',
+      }),
+    [scrollY]
+  );
+
+
+  // Icon position X (move to left responsively)
+  const iconTranslateX = useMemo(
+    () =>
+      scrollY.interpolate({
+        inputRange: [0, SCROLL_RANGE],
+        outputRange: [0, -(SCREEN_WIDTH * 0.15)],
+        extrapolate: 'clamp',
+      }),
+    [scrollY]
+  );
+
+  // Icon position Y (move upward but respect SafeArea)
+  const iconTranslateY = useMemo(
+    () =>
+      scrollY.interpolate({
+        inputRange: [0, SCROLL_RANGE],
+        outputRange: [0, -10],
+        extrapolate: 'clamp',
+      }),
+    [scrollY]
+  );
+
+  // ===== TEXT ANIMATIONS =====
+  // Text container position
+  const textTranslateX = useMemo(
+    () =>
+      scrollY.interpolate({
+        inputRange: [0, SCROLL_RANGE],
+        outputRange: [0, SCREEN_WIDTH * 0.12],
+        extrapolate: 'clamp',
+      }),
+    [scrollY]
+  );
+
+  // Text container translateY
+  const textTranslateY = useMemo(
+    () =>
+      scrollY.interpolate({
+        inputRange: [0, SCROLL_RANGE],
+        outputRange: [15, -20],
+        extrapolate: 'clamp',
+      }),
+    [scrollY]
+  );
+
+  // Text opacity with smooth curve
+  const textOpacity = useMemo(
+    () =>
+      scrollY.interpolate({
+        inputRange: [0, SCROLL_RANGE],
+        outputRange: [1, 0.9],
+        extrapolate: 'clamp',
+      }),
+    [scrollY]
+  );
+
+  // Progress indicator visibility
+  const progressOpacity = useMemo(
+    () =>
+      scrollY.interpolate({
+        inputRange: [0, SCROLL_RANGE * 0.3],
+        outputRange: [0, 1],
+        extrapolate: 'clamp',
+      }),
+    [scrollY]
+  );
+
+  // Progress width (0 to 100%)
+  const progressWidth = useMemo(
+    () =>
+      scrollY.interpolate({
+        inputRange: [0, SCROLL_RANGE],
+        outputRange: ['0%', '100%'],
+        extrapolate: 'clamp',
+      }),
+    [scrollY]
+  );
+
+  const socialLinks: SocialLink[] = [
+    {
+      icon: 'tiktok',
+      url: 'https://www.tiktok.com/@the.national.builders?is_from_webapp=1&sender_device=pc',
+      IconComponent: FontAwesome5,
+      label: 'TikTok',
+    },
+    {
+      icon: 'instagram',
+      url: 'https://www.instagram.com/thenationalbuilders/',
+      IconComponent: FontAwesome,
+      label: 'Instagram',
+    },
+    {
+      icon: 'facebook-square',
+      url: 'https://www.facebook.com/thenationalbuilder',
+      IconComponent: FontAwesome,
+      label: 'Facebook',
+    },
+    {
+      icon: 'globe',
+      url: 'https://www.thenationalbuilders.com/portal',
+      IconComponent: FontAwesome,
+      label: 'Website',
+    },
+  ];
+
+  const contactInfo: ContactInfo[] = [
+    {
+      icon: 'location',
+      text: '9101 LBJ Freeway 300, Dallas, TX, United States, Texas',
+      type: 'location',
+    },
+    {
+      icon: 'mail',
+      text: 'Info@thenationalbuilders.com',
+      type: 'email',
+    },
+    {
+      icon: 'call',
+      text: '(862) 401 2414',
+      type: 'phone',
+    },
+  ];
+
+  const whatsappLink = 'https://api.whatsapp.com/send/?phone=%2B12294445456&text=Hi%2C+I+have+a+question...&type=phone_number&app_absent=0';
+
+  const handleLinkPress = (url: string) => {
+    Linking.openURL(url);
+  };
+
+  const handleContactPress = (type: string, value: string) => {
+    if (type === 'email') {
+      Linking.openURL(`mailto:${value}`);
+    } else if (type === 'phone') {
+      Linking.openURL(`tel:${value.replace(/[^0-9]/g, '')}`);
+    }
+  };
+
+  return (
+    <View style={styles.container}>
+      <StatusBar style="light" backgroundColor={Theme.colors.primary[500]} />
+
+      {/* ===== PROFESSIONAL ANIMATED SUPPORT HEADER ===== */}
+      <Animated.View
+        style={[
+          styles.headerContainer,
+          {
+            paddingTop: insets.top + Theme.spacing.lg,
+            height: headerHeight,
+          },
+        ]}
+      >
+        {/* Gradient Overlay Background */}
+        <View style={styles.gradientOverlay} />
+
+        {/* Progress Indicator Bar */}
+        <Animated.View
+          style={[
+            styles.progressBar,
+            {
+              opacity: progressOpacity,
+              width: progressWidth,
+            },
+          ]}
+        />
+
+        {/* Header Content Wrapper */}
+        <Animated.View style={styles.headerContent}>
+          {/* Icon Container */}
+          <Animated.View
+            style={[
+              styles.iconCircle,
+              {
+                width: iconSize,
+                height: iconSize,
+                transform: [
+                  { translateX: iconTranslateX },
+                  { translateY: iconTranslateY },
+                ],
+              },
+            ]}
+          >
+            <Icon name="headset" size={40} color="#FFFFFF" />
+          </Animated.View>
+
+          {/* Text Container with Dynamic Typography */}
+          <Animated.View
+            style={[
+              styles.textContainer,
+              {
+                opacity: textOpacity,
+                transform: [
+                  { translateX: textTranslateX },
+                  { translateY: textTranslateY },
+                ],
+              },
+            ]}
+          >
+            <Animated.Text style={styles.headerTitle}>
+              Support
+            </Animated.Text>
+            <Animated.Text style={styles.headerSubtitle}>
+              We're here to help you
+            </Animated.Text>
+          </Animated.View>
+        </Animated.View>
+      </Animated.View>
+
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+        scrollEventThrottle={16}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: false }
+        )}
+      >
+
+      <View style={styles.content}>
+        {/* Head Office Card */}
+        <Card variant="elevated" padding="lg" style={styles.officeCard}>
+          <View style={styles.cardHeader}>
+            <Icon name="business" size={32} color={Theme.colors.primary[500]} />
+            <Text style={styles.cardTitle}>Head Office</Text>
+          </View>
+
+          {contactInfo.map((info, index) => (
+            <TouchableOpacity
+              key={index}
+              style={styles.contactItem}
+              onPress={() => info.type !== 'location' && handleContactPress(info.type, info.text)}
+              disabled={info.type === 'location'}
+            >
+              <View style={styles.contactIconContainer}>
+                <Icon name={info.icon} size={20} color={Theme.colors.primary[500]} />
+              </View>
+              <Text style={styles.contactText}>{info.text}</Text>
+            </TouchableOpacity>
+          ))}
+        </Card>
+
+        {/* Social Media Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Connect With Us</Text>
+          <Card variant="elevated" padding="lg">
+            <View style={styles.socialContainer}>
+              {socialLinks.map((link, index) => (
+                <TouchableOpacity
+                  key={index}
+                  style={styles.socialButton}
+                  onPress={() => handleLinkPress(link.url)}
+                >
+                  <View style={styles.socialIconContainer}>
+                    <link.IconComponent name={link.icon} size={28} color={Theme.colors.primary[500]} />
+                  </View>
+                  <Text style={styles.socialLabel}>{link.label}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </Card>
+        </View>
+
+        {/* WhatsApp Button */}
+        <TouchableOpacity
+          style={styles.whatsappButton}
+          onPress={() => handleLinkPress(whatsappLink)}
+        >
+          <View style={styles.whatsappIconContainer}>
+            <FontAwesome name="whatsapp" size={28} color="#FFFFFF" />
+          </View>
+          <View style={styles.whatsappTextContainer}>
+            <Text style={styles.whatsappTitle}>Contact us on WhatsApp</Text>
+            <Text style={styles.whatsappSubtitle}>Get instant support</Text>
+          </View>
+          <Icon name="chevron-forward" size={24} color="#FFFFFF" />
+        </TouchableOpacity>
+
+        {/* Help Section */}
+        <Card variant="outlined" padding="lg" style={styles.helpCard}>
+          <View style={styles.helpContent}>
+            <Icon name="help-circle" size={48} color={Theme.colors.primary[500]} />
+            <Text style={styles.helpTitle}>Need Help?</Text>
+            <Text style={styles.helpText}>
+              Our support team is available 24/7 to assist you with any questions or concerns.
+            </Text>
+          </View>
+        </Card>
+      </View>
+      </ScrollView>
+
+      <SideMenu
+        isVisible={isMenuVisible}
+        onClose={() => setMenuVisible(false)}
+      />
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: Theme.colors.background.secondary,
+  },
+
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: Theme.spacing['2xl'],
+  },
+
+  content: {
+    paddingHorizontal: Theme.spacing.base,
+    paddingBottom: Theme.spacing['2xl'],
+  },
+
+  officeCard: {
+    marginBottom: Theme.spacing.xl,
+  },
+
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: Theme.spacing.lg,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: Theme.colors.border.light,
+  },
+
+  cardTitle: {
+    fontSize: Theme.typography.fontSize.xl,
+    fontWeight: Theme.typography.fontWeight.bold,
+    color: Theme.colors.text.primary,
+  },
+
+  contactItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: Theme.colors.border.light,
+  },
+
+  contactIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: Theme.borderRadius.md,
+    backgroundColor: Theme.colors.primary[50],
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  contactText: {
+    flex: 1,
+    fontSize: Theme.typography.fontSize.sm,
+    color: Theme.colors.text.secondary,
+    lineHeight: Theme.typography.lineHeight.base,
+  },
+
+  section: {
+    marginBottom: Theme.spacing.xl,
+  },
+
+  sectionTitle: {
+    fontSize: Theme.typography.fontSize.lg,
+    fontWeight: Theme.typography.fontWeight.bold,
+    color: Theme.colors.text.primary,
+    marginBottom: 12,
+  },
+
+  socialContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    gap: Theme.spacing.sm,
+  },
+
+  socialButton: {
+    alignItems: 'center',
+    flex: 1,
+    gap: Theme.spacing.sm,
+  },
+
+  socialIconContainer: {
+    width: 56,
+    height: 56,
+    borderRadius: Theme.borderRadius.xl,
+    backgroundColor: Theme.colors.primary[50],
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...Theme.shadows.sm,
+  },
+
+  socialLabel: {
+    fontSize: Theme.typography.fontSize.xs,
+    fontWeight: Theme.typography.fontWeight.medium,
+    color: Theme.colors.text.secondary,
+    textAlign: 'center',
+  },
+
+  whatsappButton: {
+    backgroundColor: '#25D366',
+    paddingVertical: Theme.spacing.lg,
+    paddingHorizontal: Theme.spacing.base,
+    borderRadius: Theme.borderRadius.xl,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: Theme.spacing.xl,
+    ...Theme.shadows.md,
+  },
+
+  whatsappIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: Theme.borderRadius.full,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  whatsappTextContainer: {
+    flex: 1,
+  },
+
+  whatsappTitle: {
+    color: '#FFFFFF',
+    fontSize: Theme.typography.fontSize.base,
+    fontWeight: Theme.typography.fontWeight.bold,
+    marginBottom: 2,
+  },
+
+  whatsappSubtitle: {
+    color: 'rgba(255, 255, 255, 0.9)',
+    fontSize: Theme.typography.fontSize.sm,
+  },
+
+  helpCard: {
+    backgroundColor: Theme.colors.primary[50],
+    borderColor: Theme.colors.primary[200],
+  },
+
+  helpContent: {
+    alignItems: 'center',
+    gap: 12,
+  },
+
+  helpTitle: {
+    fontSize: Theme.typography.fontSize.xl,
+    fontWeight: Theme.typography.fontWeight.bold,
+    color: Theme.colors.primary[700],
+  },
+
+  helpText: {
+    fontSize: Theme.typography.fontSize.sm,
+    color: Theme.colors.text.secondary,
+    textAlign: 'center',
+    lineHeight: Theme.typography.lineHeight.lg,
+  },
+
+  headerContainer: {
+    backgroundColor: Theme.colors.primary[500],
+    paddingBottom: Theme.spacing['2xl'],
+    paddingHorizontal: Theme.spacing.base,
+    alignItems: 'center',
+    overflow: 'hidden',
+  },
+
+  gradientOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.05)',
+  },
+
+  progressBar: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    height: 3,
+    backgroundColor: 'rgba(255, 255, 255, 0.6)',
+    borderRadius: 1.5,
+  },
+
+  headerContent: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: Theme.spacing.lg,
+    flexDirection: 'column',
+    paddingHorizontal: Theme.spacing.base,
+    paddingVertical: Theme.spacing.base,
+    zIndex: 1,
+  },
+
+  iconCircle: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+
+  headerTitle: {
+    fontSize: 28,
+    fontWeight: Theme.typography.fontWeight.bold,
+    color: '#FFFFFF',
+    lineHeight: 34,
+    letterSpacing: 0.5,
+  },
+
+  headerSubtitle: {
+    fontSize: 18,
+    color: 'rgba(255, 255, 255, 0.9)',
+    lineHeight: 24,
+    letterSpacing: 0.3,
+  },
+
+  textContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Theme.spacing.xs,
+  },
+});
