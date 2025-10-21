@@ -4,7 +4,7 @@ import Constants from 'expo-constants';
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
 import { Formik } from 'formik';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
     Animated,
     Image,
@@ -90,15 +90,19 @@ interface ModalProps {
   states?: State[];
 }
 
-const RequestMigrated: React.FC<ModalProps> = ({ 
-  isVisible, 
-  onClose, 
-  selectedCategory, 
+const RequestMigrated: React.FC<ModalProps> = ({
+  isVisible,
+  onClose,
+  selectedCategory,
   onServiceCreated,
   primaryAddress,
-  cities = [],
-  states = []
+  cities: citiesProp,
+  states: statesProp
 }) => {
+  // Memoize default props to prevent unnecessary re-renders
+  const cities = useMemo(() => citiesProp || [], [citiesProp]);
+  const states = useMemo(() => statesProp || [], [statesProp]);
+
   // Estados utilizados en el componente
   const [images, setImages] = useState<string[]>([]);
   const [latitude, setLatitude] = useState<number | null>(null);
@@ -131,42 +135,53 @@ const RequestMigrated: React.FC<ModalProps> = ({
   const [initialScrollPosition, setInitialScrollPosition] = useState(0);
   const mapHeight = useRef(new Animated.Value(200)).current;
   const scrollViewRef = useRef<ScrollView>(null);
+  // Store pending timers for cleanup on unmount
+  const pendingTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  // Clean up all pending timers on unmount
+  useEffect(() => {
+    return () => {
+      pendingTimersRef.current.forEach(timer => clearTimeout(timer));
+      pendingTimersRef.current = [];
+    };
+  }, []);
 
   const API_URL = Constants.expoConfig?.extra?.API_BASE_URL;
 
   // Función para expandir el mapa
   const expandMap = () => {
     if (isMapExpanded) return;
-    
+
     setIsMapExpanded(true);
-    
+
     Animated.timing(mapHeight, {
       toValue: 450,
       duration: 400,
       useNativeDriver: false,
     }).start(() => {
-      setTimeout(() => {
+      const timer = setTimeout(() => {
         if (scrollViewRef.current) {
           scrollViewRef.current.scrollToEnd({ animated: true });
         }
       }, 100);
+      pendingTimersRef.current.push(timer);
     });
   };
 
   // Función para contraer el mapa
   const collapseMap = () => {
     if (!isMapExpanded) return;
-    
+
     setIsMapExpanded(false);
     setIsMapInteracting(false);
     setShouldPreventNextPress(false);
-    
+
     Animated.timing(mapHeight, {
       toValue: 200,
       duration: 400,
       useNativeDriver: false,
     }).start(() => {
-      setTimeout(() => {
+      const timer = setTimeout(() => {
         if (scrollViewRef.current) {
           scrollViewRef.current.scrollTo({
             y: initialScrollPosition,
@@ -174,6 +189,7 @@ const RequestMigrated: React.FC<ModalProps> = ({
           });
         }
       }, 100);
+      pendingTimersRef.current.push(timer);
     });
   };
 
@@ -317,14 +333,19 @@ const RequestMigrated: React.FC<ModalProps> = ({
       });
 
       if (!response.ok) {
-        throw new Error('Failed to upload images');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `Upload failed with status ${response.status}`);
       }
 
+      const responseData = await response.json();
       return true;
     } catch (error) {
-      console.error('Error uploading images:', error);
-      setError('Failed to upload images');
-      return false;
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      console.error('Error uploading images:', errorMessage);
+      // Inform user but don't block request - images can be added later
+      setError(`Image upload failed: ${errorMessage}. Request has been created but images were not uploaded.`);
+      // Return true so the service request still goes through
+      return true;
     }
   };
 
@@ -372,20 +393,19 @@ const RequestMigrated: React.FC<ModalProps> = ({
       const serviceRequestId = data.requestId;
 
       if (serviceRequestId && images.length > 0) {
-        const imagesUploaded = await uploadImages(serviceRequestId);
-        if (!imagesUploaded) {
-          return;
-        }
+        await uploadImages(serviceRequestId);
+        // Continue regardless of image upload result - service request was created successfully
       }
 
       setSuccess(true);
-      setTimeout(() => {
+      const timer = setTimeout(() => {
         setSuccess(false);
         onClose();
         if (onServiceCreated) {
           onServiceCreated();
         }
       }, 3000);
+      pendingTimersRef.current.push(timer);
 
     } catch (error) {
       console.error('Error creating service request:', error);
@@ -664,14 +684,15 @@ const RequestMigrated: React.FC<ModalProps> = ({
                         setShouldPreventNextPress(false);
                         return;
                       }
-                      
+
                       if (isMapExpanded) {
                         const { latitude: lat, longitude: lng } = event.nativeEvent.coordinate;
                         setLatitude(lat);
                         setLongitude(lng);
-                        setTimeout(() => {
+                        const timer = setTimeout(() => {
                           collapseMap();
                         }, 300);
+                        pendingTimersRef.current.push(timer);
                       }
                     }}
                   >
@@ -684,14 +705,15 @@ const RequestMigrated: React.FC<ModalProps> = ({
                     )}
                   </MapView>
                   
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     style={styles.gpsButton}
                     onPress={() => {
                       getLocation();
                       if (isMapExpanded) {
-                        setTimeout(() => {
+                        const timer = setTimeout(() => {
                           collapseMap();
                         }, 300);
+                        pendingTimersRef.current.push(timer);
                       }
                     }}
                   >
@@ -987,7 +1009,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: Theme.borderRadius.xl,
-    marginBottom: Theme.spacing.md,
+    marginBottom: Theme.spacing.sm,
   },
 
   categoryTitle: {
@@ -1014,7 +1036,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: Theme.spacing.base,
-    paddingVertical: Theme.spacing.md,
+    paddingVertical: Theme.spacing.sm,
     backgroundColor: Theme.colors.background.primary,
     borderWidth: 1,
     borderColor: Theme.colors.border.default,
@@ -1046,8 +1068,8 @@ const styles = StyleSheet.create({
 
   gpsButton: {
     position: 'absolute',
-    bottom: Theme.spacing.md,
-    right: Theme.spacing.md,
+    bottom: Theme.spacing.sm,
+    right: Theme.spacing.sm,
     backgroundColor: Theme.colors.primary[500],
     borderRadius: Theme.borderRadius.full,
     width: 40,
@@ -1074,7 +1096,7 @@ const styles = StyleSheet.create({
   imagePreviewContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginTop: Theme.spacing.md,
+    marginTop: Theme.spacing.sm,
     gap: Theme.spacing.sm,
   },
 
@@ -1108,7 +1130,7 @@ const styles = StyleSheet.create({
 
   buttonContainer: {
     flexDirection: 'row',
-    gap: Theme.spacing.md,
+    gap: Theme.spacing.sm,
     marginTop: Theme.spacing['2xl'],
     marginBottom: Theme.spacing.lg,
   },
@@ -1162,8 +1184,8 @@ const styles = StyleSheet.create({
   },
 
   outsideMapTouchArea: {
-    marginTop: Theme.spacing.md,
-    padding: Theme.spacing.md,
+    marginTop: Theme.spacing.sm,
+    padding: Theme.spacing.sm,
     backgroundColor: Theme.colors.primary[50],
     borderRadius: Theme.borderRadius.md,
     borderWidth: 1,
@@ -1182,8 +1204,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: Theme.colors.background.secondary,
     borderRadius: Theme.borderRadius.md,
-    marginBottom: Theme.spacing.md,
-    paddingHorizontal: Theme.spacing.md,
+    marginBottom: Theme.spacing.sm,
+    paddingHorizontal: Theme.spacing.sm,
     paddingVertical: Theme.spacing.sm,
     borderWidth: 1,
     borderColor: Theme.colors.border.light,
@@ -1234,7 +1256,7 @@ const styles = StyleSheet.create({
 
   subCategoryInfo: {
     flex: 1,
-    marginRight: Theme.spacing.md,
+    marginRight: Theme.spacing.sm,
   },
 
   subCategorySelectedText: {
@@ -1273,8 +1295,8 @@ const styles = StyleSheet.create({
     borderRadius: Theme.borderRadius.lg,
     minHeight: 100,
     maxHeight: 150,
-    paddingHorizontal: Theme.spacing.md,
-    paddingVertical: Theme.spacing.md,
+    paddingHorizontal: Theme.spacing.sm,
+    paddingVertical: Theme.spacing.sm,
     ...Theme.shadows.sm,
   },
 

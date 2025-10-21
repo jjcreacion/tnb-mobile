@@ -9,6 +9,7 @@ import {
 } from 'react-native'
 import * as Animatable from 'react-native-animatable'
 import Icon from 'react-native-vector-icons/MaterialIcons'
+import { Theme } from '@/constants/Theme'
 import type { Category } from '@/types'
 import { ServiceCard } from './ServiceCard'
 import { styles } from './styles'
@@ -56,7 +57,7 @@ export const ServicesExplorer = memo<ServicesExplorerProps>(
             <Icon
               name={isSearchVisible ? 'close' : 'search'}
               size={24}
-              color="#7c1310"
+              color={Theme.colors.primary[800]}
             />
           </TouchableOpacity>
         </View>
@@ -80,7 +81,7 @@ export const ServicesExplorer = memo<ServicesExplorerProps>(
 
         <ScrollView contentContainerStyle={styles.allServicesContainer}>
           {loading ? (
-            <ActivityIndicator size="large" color="#ea0e08" />
+            <ActivityIndicator size="large" color={Theme.colors.primary[500]} />
           ) : error ? (
             <Text style={styles.errorMessage}>{error}</Text>
           ) : filteredCategories.length > 0 ? (

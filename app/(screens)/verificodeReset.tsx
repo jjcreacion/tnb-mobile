@@ -44,7 +44,8 @@ const VerifyPasswordResetCode: React.FC<VerifyPasswordResetCodeProps> = ({
       setTimer(300);
       setIsCodeCorrect(false);
       setShowSetNewPassword(false);
-      setTimeout(() => inputsRef.current[0]?.focus(), 100);
+      const focusTimer = setTimeout(() => inputsRef.current[0]?.focus(), 100);
+      return () => clearTimeout(focusTimer);
     }
   }, [isVisible]);
 

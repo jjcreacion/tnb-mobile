@@ -1,6 +1,7 @@
 import React, { memo, useRef, useEffect, useState } from 'react'
 import { View, Text, FlatList, ActivityIndicator, Dimensions } from 'react-native'
 import type { Campaign } from '@/types'
+import { Theme } from '@/constants/Theme'
 import { CampaignCard } from './CampaignCard'
 import { styles } from './styles'
 
@@ -47,7 +48,7 @@ export const CampaignCarousel = memo<CampaignCarouselProps>(
 
         <View style={styles.carouselContainer}>
           {loading ? (
-            <ActivityIndicator size="large" color="#ea0e08" />
+            <ActivityIndicator size="large" color={Theme.colors.primary[500]} />
           ) : error ? (
             <Text style={styles.errorMessage}>{error}</Text>
           ) : campaigns.length > 0 ? (

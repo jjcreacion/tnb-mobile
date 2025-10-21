@@ -1,4 +1,5 @@
 import { StyleSheet, Platform } from 'react-native'
+import { Theme } from '@/constants/Theme'
 
 export const styles = StyleSheet.create({
   sectionHeader: {
@@ -11,7 +12,7 @@ export const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#7c1310',
+    color: Theme.colors.primary[800],
   },
   searchIcon: {
     padding: 5,
@@ -22,12 +23,12 @@ export const styles = StyleSheet.create({
   },
   searchInput: {
     height: 45,
-    backgroundColor: '#fff',
+    backgroundColor: Theme.colors.background.primary,
     borderRadius: 8,
     paddingHorizontal: 15,
     fontSize: 16,
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: Theme.colors.border.default,
   },
   allServicesContainer: {
     flexDirection: 'column',
@@ -41,7 +42,7 @@ export const styles = StyleSheet.create({
     marginBottom: 15,
     paddingVertical: 10,
     paddingHorizontal: 15,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: Theme.colors.background.primary,
     borderRadius: 10,
     ...Platform.select({
       ios: {
@@ -71,20 +72,20 @@ export const styles = StyleSheet.create({
     fontSize: 16,
     marginLeft: 15,
     fontWeight: '500',
-    color: '#333',
+    color: Theme.colors.text.primary,
   },
   serviceDescription: {
     fontSize: 12,
     marginLeft: 15,
-    color: '#666',
+    color: Theme.colors.text.secondary,
   },
   errorMessage: {
-    color: 'red',
+    color: Theme.colors.error[500],
     textAlign: 'center',
     padding: 20,
   },
   noResultsMessage: {
-    color: '#666',
+    color: Theme.colors.text.secondary,
     textAlign: 'center',
     padding: 20,
     fontSize: 16,

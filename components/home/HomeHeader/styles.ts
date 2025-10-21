@@ -41,7 +41,7 @@ export const styles = StyleSheet.create({
     borderRadius: Theme.borderRadius.md,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: Theme.colors.whiteOverlay.light,
   },
 
   logo: {
@@ -77,12 +77,12 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: Theme.colors.whiteOverlay.light,
     paddingHorizontal: 12,
     paddingVertical: Theme.spacing.sm,
     borderRadius: Theme.borderRadius.full,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
+    borderColor: Theme.colors.whiteOverlay.medium,
   },
 
   balanceText: {

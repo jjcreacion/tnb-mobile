@@ -197,7 +197,7 @@ const styles = StyleSheet.create({
     backgroundColor: Theme.colors.neutral[300],
     borderRadius: Theme.borderRadius.full,
     alignSelf: 'center',
-    marginTop: Theme.spacing.md,
+    marginTop: Theme.spacing.sm,
     marginBottom: Theme.spacing.sm,
   },
 
@@ -206,7 +206,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: Theme.spacing.lg,
-    paddingBottom: Theme.spacing.md,
+    paddingBottom: Theme.spacing.sm,
     borderBottomWidth: 1,
     borderBottomColor: Theme.colors.border.light,
   },
@@ -231,6 +231,6 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     paddingHorizontal: Theme.spacing.lg,
-    paddingTop: Theme.spacing.md,
+    paddingTop: Theme.spacing.sm,
   },
 });

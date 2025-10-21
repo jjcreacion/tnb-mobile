@@ -75,7 +75,7 @@ const Register: React.FC = () => {
   const [stateSearchText, setStateSearchText] = useState('')
 
   // Form state (shared across screens)
-  const [formData, setFormData] = useState<any>({
+  const [formData, setFormData] = useState<RegistrationFormData>({
     firstName: '',
     lastName: '',
     birthDate: '',
@@ -91,6 +91,7 @@ const Register: React.FC = () => {
     latitude: undefined,
     longitude: undefined,
     isMapboxResult: false,
+    country: 'United States'
   })
 
 
@@ -128,6 +129,16 @@ const Register: React.FC = () => {
   const setFieldValueRef = useRef<any>(null)
   // Store current form values in a ref to preserve them during screen navigation
   const currentFormValuesRef = useRef<any>(null)
+  // Store pending timers for cleanup
+  const pendingTimersRef = useRef<ReturnType<typeof setTimeout>[]>([])
+
+  // Clean up all pending timers on unmount
+  useEffect(() => {
+    return () => {
+      pendingTimersRef.current.forEach(timer => clearTimeout(timer))
+      pendingTimersRef.current = []
+    }
+  }, [])
 
   // Configure StatusBar
   useEffect(() => {
@@ -146,6 +157,10 @@ const Register: React.FC = () => {
           authService.getAllCities(),
           authService.getAllStates(),
         ])
+
+        if (!citiesData || !statesData) {
+          throw new Error('Failed to load cities or states')
+        }
 
         const mappedCities = citiesData.map((c) => ({
           pkCity: c.pkCity,
@@ -171,6 +186,9 @@ const Register: React.FC = () => {
         setFilteredCities(mappedCities)
       } catch (error) {
         console.error('Error loading cities and states:', error)
+        // Keep existing state - don't show empty state
+        setCities([])
+        setStates([])
       } finally {
         setLoadingData(false)
       }
@@ -311,9 +329,10 @@ const Register: React.FC = () => {
     setCurrentScreen('form')
     setCitySearchText('')
 
-    setTimeout(() => {
+    const timer = setTimeout(() => {
       zipCodeRef.current?.focus()
     }, 300)
+    pendingTimersRef.current.push(timer)
   }
 
   const handleStateSelect = (state: State) => {
@@ -376,9 +395,10 @@ const Register: React.FC = () => {
 
   // Keyboard navigation helper - focus on next field
   const focusNextField = (nextRef: React.RefObject<TextInput | null>) => {
-    setTimeout(() => {
+    const timer = setTimeout(() => {
       nextRef.current?.focus()
     }, 100)
+    pendingTimersRef.current.push(timer)
   }
 
   // Handle back button with confirmation alert

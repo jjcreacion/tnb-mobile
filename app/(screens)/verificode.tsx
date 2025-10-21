@@ -36,8 +36,8 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
   const [hasValidClipboard, setHasValidClipboard] = useState(false);
   const [storedPassword, setStoredPassword] = useState<string>('');
   const inputsRef = useRef<(TextInput | null)[]>([]);
-  const timeoutsRef = useRef<number[]>([]);
-  const validationTimeoutRef = useRef<number | null>(null);
+  const timeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const validationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   
   // Track recent input activity to prevent phantom backspaces (iOS)
   const recentInputRef = useRef<{
@@ -194,7 +194,7 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
 
   // Helper function to add managed timeouts
   const addTimeout = useCallback((callback: () => void, delay: number) => {
-    const timeout = setTimeout(callback, delay) as unknown as number;
+    const timeout = setTimeout(callback, delay);
     timeoutsRef.current.push(timeout);
     return timeout;
   }, []);
@@ -1729,7 +1729,7 @@ const styles = StyleSheet.create({
   // Debug styles - Solo para desarrollo iOS
   debugContainer: {
     backgroundColor: Theme.colors.background.secondary,
-    padding: Theme.spacing.md,
+    padding: Theme.spacing.sm,
     borderRadius: Theme.borderRadius.lg,
     marginVertical: Theme.spacing.lg,
     borderWidth: 1,

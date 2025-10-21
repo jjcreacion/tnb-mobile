@@ -175,7 +175,7 @@ const styles = StyleSheet.create({
   },
 
   optionIcon: {
-    marginRight: Theme.spacing.md,
+    marginRight: Theme.spacing.sm,
   },
 
   optionText: {
@@ -183,7 +183,7 @@ const styles = StyleSheet.create({
   },
 
   cancelContainer: {
-    paddingTop: Theme.spacing.md,
+    paddingTop: Theme.spacing.sm,
     borderTopWidth: 1,
     borderTopColor: Theme.colors.border.light,
   },

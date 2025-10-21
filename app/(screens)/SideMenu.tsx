@@ -38,6 +38,16 @@ const SideMenu: React.FC<SideMenuProps> = ({ isVisible, onClose }) => {
   const router = useRouter();
   const slideAnim = useRef(new Animated.Value(-MENU_WIDTH)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  // Store pending timers for cleanup on unmount
+  const pendingTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  // Clean up all pending timers on unmount
+  useEffect(() => {
+    return () => {
+      pendingTimersRef.current.forEach(timer => clearTimeout(timer));
+      pendingTimersRef.current = [];
+    };
+  }, []);
 
   useEffect(() => {
     if (isVisible) {
@@ -83,9 +93,10 @@ const SideMenu: React.FC<SideMenuProps> = ({ isVisible, onClose }) => {
     try {
       await AsyncStorage.multiRemove(['accessToken', 'userId']);
       onClose();
-      setTimeout(() => {
+      const timer = setTimeout(() => {
         router.replace('/login' as any);
       }, 300);
+      pendingTimersRef.current.push(timer);
     } catch (error) {
       console.error('Error al cerrar sesión:', error);
     }
@@ -168,17 +179,17 @@ const SideMenu: React.FC<SideMenuProps> = ({ isVisible, onClose }) => {
               onPress={onClose}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
-              <Icon name="close" size={24} color="#FFFFFF" />
+              <Icon name="close" size={24} color={Theme.colors.text.inverse} />
             </TouchableOpacity>
 
             {/* User Avatar & Info */}
             <View style={styles.userSection}>
               <View style={styles.avatarContainer}>
                 <LinearGradient
-                  colors={['rgba(255,255,255,0.3)', 'rgba(255,255,255,0.1)']}
+                  colors={[Theme.colors.whiteOverlay.medium, Theme.colors.whiteOverlay.light]}
                   style={styles.avatarGradient}
                 >
-                  <Icon name="person" size={32} color="#FFFFFF" />
+                  <Icon name="person" size={32} color={Theme.colors.text.inverse} />
                 </LinearGradient>
                 <View style={styles.statusIndicator} />
               </View>
@@ -232,7 +243,7 @@ const SideMenu: React.FC<SideMenuProps> = ({ isVisible, onClose }) => {
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
               >
-                <Icon name="logout" size={18} color="#FFFFFF" />
+                <Icon name="logout" size={18} color={Theme.colors.text.inverse} />
                 <Text style={styles.logoutText}>Log Out</Text>
               </LinearGradient>
             </TouchableOpacity>
@@ -253,7 +264,7 @@ const styles = StyleSheet.create({
 
   backdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    backgroundColor: Theme.colors.overlay.dark,
   },
 
   backdropTouchable: {
@@ -291,7 +302,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: Theme.borderRadius.full,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: Theme.colors.whiteOverlay.light,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: Theme.spacing.sm,
@@ -314,7 +325,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
+    borderColor: Theme.colors.whiteOverlay.medium,
   },
 
   statusIndicator: {
@@ -337,12 +348,12 @@ const styles = StyleSheet.create({
   userName: {
     fontSize: Theme.typography.fontSize.lg,
     fontWeight: Theme.typography.fontWeight.bold,
-    color: '#FFFFFF',
+    color: Theme.colors.text.inverse,
   },
 
   userEmail: {
     fontSize: Theme.typography.fontSize.xs,
-    color: 'rgba(255, 255, 255, 0.8)',
+    color: Theme.colors.whiteOverlay.veryStrong,
   },
 
   menuContent: {
@@ -399,7 +410,7 @@ const styles = StyleSheet.create({
   badgeText: {
     fontSize: 10,
     fontWeight: Theme.typography.fontWeight.bold,
-    color: '#FFFFFF',
+    color: Theme.colors.text.inverse,
   },
 
   chevron: {
@@ -426,7 +437,7 @@ const styles = StyleSheet.create({
   logoutText: {
     fontSize: Theme.typography.fontSize.sm,
     fontWeight: Theme.typography.fontWeight.bold,
-    color: '#FFFFFF',
+    color: Theme.colors.text.inverse,
   },
 
   versionText: {

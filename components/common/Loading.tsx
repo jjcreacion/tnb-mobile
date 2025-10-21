@@ -118,7 +118,7 @@ const styles = StyleSheet.create({
 
   inline: {
     alignItems: 'center',
-    paddingVertical: Theme.spacing.md,
+    paddingVertical: Theme.spacing.sm,
   },
 
   // Content
@@ -127,7 +127,7 @@ const styles = StyleSheet.create({
   },
 
   message: {
-    marginTop: Theme.spacing.md,
+    marginTop: Theme.spacing.sm,
     textAlign: 'center',
   },
 

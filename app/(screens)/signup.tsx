@@ -423,7 +423,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     gap: Theme.spacing.sm,
     backgroundColor: Theme.colors.error[50],
-    padding: Theme.spacing.md,
+    padding: Theme.spacing.sm,
     borderRadius: Theme.borderRadius.lg,
     marginBottom: Theme.spacing.lg,
     borderWidth: 1,
@@ -438,7 +438,7 @@ const styles = StyleSheet.create({
   },
 
   continueButton: {
-    marginTop: Theme.spacing.md,
+    marginTop: Theme.spacing.sm,
     marginBottom: Theme.spacing.sm,
   },
 
@@ -448,7 +448,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginTop: Theme.spacing.lg,
     paddingVertical: Theme.spacing.sm,
-    marginBottom: Theme.spacing.md,
+    marginBottom: Theme.spacing.sm,
   },
 
   footerText: {

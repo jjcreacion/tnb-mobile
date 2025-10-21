@@ -59,7 +59,7 @@ const AddressAutocompleteComponent = forwardRef<TextInput, AddressAutocompletePr
 
   const textInputRef = useRef<TextInput>(null)
   const isMounted = useRef(true)
-  const debounceTimerRef = useRef<number | null>(null)
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const scrollViewRef = useRef<ScrollView>(null)
   const lastQueryRef = useRef<string>('')
 
@@ -76,9 +76,7 @@ const AddressAutocompleteComponent = forwardRef<TextInput, AddressAutocompletePr
 
   // Cleanup on unmount
   useEffect(() => {
-    console.log('[AddressAutocomplete] Component mounted')
     return () => {
-      console.log('[AddressAutocomplete] Component unmounting, clearing timer:', debounceTimerRef.current)
       isMounted.current = false
       if (debounceTimerRef.current) {
         clearTimeout(debounceTimerRef.current)
@@ -93,9 +91,7 @@ const AddressAutocompleteComponent = forwardRef<TextInput, AddressAutocompletePr
 
   // Sync external value with internal value
   useEffect(() => {
-    console.log('[AddressAutocomplete] value changed:', value, 'internal:', internalValue)
     if (value !== internalValue && !isSelectionInProgress) {
-      console.log('[AddressAutocomplete] Syncing external value to internal')
       setInternalValue(value)
     }
   }, [value, internalValue, isSelectionInProgress])
@@ -124,10 +120,7 @@ const AddressAutocompleteComponent = forwardRef<TextInput, AddressAutocompletePr
 
   // Debounced search function - fetch up to 30 results but show only 5 initially
   const searchAddresses = useCallback(async (query: string) => {
-    console.log('[AddressAutocomplete] searchAddresses called with query:', query)
-
     if (!isMounted.current || query.length < MAPBOX_CONFIG.minChars) {
-      console.log('[AddressAutocomplete] Skipping search - mounted:', isMounted.current, 'query length:', query.length, 'minChars:', MAPBOX_CONFIG.minChars)
       setSuggestions([])
       setAllSuggestions([])
       setDisplayedCount(5)
@@ -138,22 +131,16 @@ const AddressAutocompleteComponent = forwardRef<TextInput, AddressAutocompletePr
 
     // Don't search if we have a completed selection with the same value or selection is in progress
     if ((hasCompletedSelection && query === selectedValue) || isSelectionInProgress) {
-      console.log('[AddressAutocomplete] Skipping search - hasCompletedSelection:', hasCompletedSelection, 'isSelectionInProgress:', isSelectionInProgress)
       setIsLoading(false)
       return
     }
-
-    console.log('[AddressAutocomplete] Starting Mapbox search for:', query)
 
     try {
       setError(null)
       // Request 30 results from API (we'll display 5 at a time)
       const results = await mapboxSearchService.searchAddresses(query, 30)
 
-      console.log('[AddressAutocomplete] Received', results.length, 'results from Mapbox')
-
       if (isMounted.current) {
-        console.log('[AddressAutocomplete] Updating UI with results')
         setAllSuggestions(results)
         setSuggestions(results.slice(0, 5))
         setDisplayedCount(5)
@@ -161,19 +148,15 @@ const AddressAutocompleteComponent = forwardRef<TextInput, AddressAutocompletePr
         setHasSearched(true)
       }
     } catch (err) {
-      console.log('[AddressAutocomplete] Error during search:', err)
-
       if (isMounted.current) {
         const mapboxError = err as MapboxError
 
         // Handle timeout errors more gracefully
         if (mapboxError.isTimeoutError) {
-          console.log('[AddressAutocomplete] Timeout error - clearing error message')
           // For timeout errors, just clear suggestions and allow manual entry
           // Don't show a red error message as timeouts are common
           setError(null)
         } else {
-          console.log('[AddressAutocomplete] Showing error:', mapboxError.message)
           // For other errors, show the error message
           setError(mapboxError.message)
         }
@@ -185,29 +168,23 @@ const AddressAutocompleteComponent = forwardRef<TextInput, AddressAutocompletePr
       }
     } finally {
       if (isMounted.current) {
-        console.log('[AddressAutocomplete] Search complete, setting loading to false')
         setIsLoading(false)
       }
     }
   }, [hasCompletedSelection, selectedValue, isSelectionInProgress])
 
   const debouncedSearch = useCallback((query: string) => {
-    console.log('[AddressAutocomplete] debouncedSearch called for:', query, '(debounce:', MAPBOX_CONFIG.debounceMs, 'ms)')
-
     // Clear existing timer
     if (debounceTimerRef.current) {
-      console.log('[AddressAutocomplete] Clearing existing debounce timer:', debounceTimerRef.current)
       clearTimeout(debounceTimerRef.current)
     }
 
     // Set new timer
     const timerId = setTimeout(() => {
-      console.log('[AddressAutocomplete] Debounce timer fired, calling searchAddresses')
       searchAddresses(query)
-    }, MAPBOX_CONFIG.debounceMs) as unknown as number
+    }, MAPBOX_CONFIG.debounceMs)
 
     debounceTimerRef.current = timerId
-    console.log('[AddressAutocomplete] Created new timer with ID:', timerId)
   }, [searchAddresses])
 
   // Load more suggestions when scrolling to the end
@@ -234,8 +211,6 @@ const AddressAutocompleteComponent = forwardRef<TextInput, AddressAutocompletePr
 
   // Handle text input changes
   const handleTextChange = (text: string) => {
-    console.log('[AddressAutocomplete] handleTextChange called with text:', text)
-
     // Update internal value immediately for responsive UI
     setInternalValue(text)
 
@@ -244,14 +219,12 @@ const AddressAutocompleteComponent = forwardRef<TextInput, AddressAutocompletePr
 
     // Don't process if selection is currently in progress
     if (isSelectionInProgress) {
-      console.log('[AddressAutocomplete] Selection in progress, skipping')
       return
     }
 
     // Reset selection state if text is manually changed after a selection
     // Add small delay on iOS to prevent race condition with external value updates
     if (hasCompletedSelection && text !== selectedValue) {
-      console.log('[AddressAutocomplete] Resetting completed selection')
       if (Platform.OS === 'ios') {
         setTimeout(() => {
           if (internalValue !== selectedValue) {
@@ -266,24 +239,20 @@ const AddressAutocompleteComponent = forwardRef<TextInput, AddressAutocompletePr
     }
 
     if (!isMapboxAvailable()) {
-      console.log('[AddressAutocomplete] Mapbox not available, falling back to manual input')
       return // Fall back to manual input
     }
 
     // Don't search if this is the same value as a completed selection
     if (hasCompletedSelection && text === selectedValue) {
-      console.log('[AddressAutocomplete] Same as completed selection, hiding suggestions')
       setShowSuggestions(false)
       return
     }
 
     if (text.length >= MAPBOX_CONFIG.minChars) {
-      console.log('[AddressAutocomplete] Text length sufficient, starting search')
       setIsLoading(true)
       setShowSuggestions(true)
       debouncedSearch(text)
     } else {
-      console.log('[AddressAutocomplete] Text too short, clearing suggestions')
       setIsLoading(false)
       setShowSuggestions(false)
       setSuggestions([])
@@ -340,14 +309,6 @@ const AddressAutocompleteComponent = forwardRef<TextInput, AddressAutocompletePr
       setIsSelectionInProgress(false)
     }, selectionDelay)
 
-    // Log selection telemetry
-    mapboxSearchService['logTelemetry']?.({
-      timestamp: Date.now(),
-      eventType: 'selection',
-      selectedSuggestionIndex: suggestions.findIndex(s => s.id === suggestion.id),
-      wasSuccessful: true
-    })
-
     // Focus Address Line 2 if ref provided and position cursor at end of existing text
     if (addressLine2Ref && addressLine2Ref.current) {
       setTimeout(() => {
@@ -375,13 +336,6 @@ const AddressAutocompleteComponent = forwardRef<TextInput, AddressAutocompletePr
     setSelectedValue('')
     setIsSelectionInProgress(false)
     onFallbackToManual()
-
-    // Log fallback telemetry
-    mapboxSearchService['logTelemetry']?.({
-      timestamp: Date.now(),
-      eventType: 'fallback',
-      wasSuccessful: true
-    })
   }
 
   // Hide suggestions when input loses focus

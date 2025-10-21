@@ -125,6 +125,34 @@ export const Colors = {
     medium: 'rgba(0, 0, 0, 0.3)',
     dark: 'rgba(0, 0, 0, 0.6)',
   },
+
+  // White Overlay Variants (for elevated surfaces and transparent backgrounds)
+  whiteOverlay: {
+    light: 'rgba(255, 255, 255, 0.2)',
+    medium: 'rgba(255, 255, 255, 0.3)',
+    mediumPlus: 'rgba(255, 255, 255, 0.4)',
+    strong: 'rgba(255, 255, 255, 0.6)',
+    veryStrong: 'rgba(255, 255, 255, 0.8)',
+    almostOpaque: 'rgba(255, 255, 255, 0.9)',
+  },
+
+  // Primary Overlay Variants (for tinted overlays)
+  primaryOverlay: {
+    light: 'rgba(230, 57, 70, 0.2)',
+    medium: 'rgba(230, 57, 70, 0.3)',
+    strong: 'rgba(230, 57, 70, 0.6)',
+  },
+
+  // Gradient Overlay (for campaign cards and images)
+  gradientOverlay: {
+    light: 'rgba(0, 0, 0, 0.4)',
+    dark: 'rgba(0, 0, 0, 0.7)',
+  },
+
+  // Social Media Colors
+  social: {
+    whatsapp: '#25D366',
+  },
 };
 
 // ============================================

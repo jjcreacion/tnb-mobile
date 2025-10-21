@@ -272,8 +272,8 @@ const styles = StyleSheet.create({
   headerContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Theme.spacing.md,
-    marginBottom: Theme.spacing.md,
+    gap: Theme.spacing.sm,
+    marginBottom: Theme.spacing.sm,
   },
 
   headerIcon: {
@@ -300,14 +300,14 @@ const styles = StyleSheet.create({
   },
 
   card: {
-    marginBottom: Theme.spacing.md,
+    marginBottom: Theme.spacing.sm,
   },
 
   cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: Theme.spacing.md,
+    marginBottom: Theme.spacing.sm,
     gap: Theme.spacing.sm,
   },
 
@@ -319,16 +319,16 @@ const styles = StyleSheet.create({
     fontSize: Theme.typography.fontSize.lg,
     fontWeight: Theme.typography.fontWeight.bold,
     color: Theme.colors.text.primary,
-    lineHeight: Theme.typography.lineHeight.md,
+    lineHeight: Theme.typography.lineHeight.base,
   },
 
   addressContainer: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: Theme.spacing.xs,
-    marginBottom: Theme.spacing.md,
+    marginBottom: Theme.spacing.sm,
     paddingVertical: Theme.spacing.sm,
-    paddingHorizontal: Theme.spacing.md,
+    paddingHorizontal: Theme.spacing.sm,
     backgroundColor: Theme.colors.background.secondary,
     borderRadius: Theme.borderRadius.md,
   },
@@ -337,7 +337,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: Theme.typography.fontSize.sm,
     color: Theme.colors.text.secondary,
-    lineHeight: Theme.typography.lineHeight.md,
+    lineHeight: Theme.typography.lineHeight.base,
   },
 
   cardFooter: {
@@ -345,7 +345,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginTop: Theme.spacing.sm,
-    paddingTop: Theme.spacing.md,
+    paddingTop: Theme.spacing.sm,
     borderTopWidth: 1,
     borderTopColor: Theme.colors.border.light,
   },
@@ -395,7 +395,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    gap: Theme.spacing.md,
+    gap: Theme.spacing.sm,
   },
 
   loadingText: {

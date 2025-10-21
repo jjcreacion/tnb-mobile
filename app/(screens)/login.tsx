@@ -51,7 +51,6 @@ export default function LoginScreenMigrated() {
       // Clean up: restore status bar visibility when component unmounts (Android only)
       return () => {
         if (Platform.OS === 'android') {
-          console.log('entrooooo login')
           StatusBar.setHidden(false);
         }
       };
@@ -83,8 +82,10 @@ export default function LoginScreenMigrated() {
       const data = await response.json();
 
       if (response.ok && data.accessToken) {
-        AsyncStorage.setItem('accessToken', data.accessToken);
-        AsyncStorage.setItem('userId', String(data.pkUser));
+        await Promise.all([
+          AsyncStorage.setItem('accessToken', data.accessToken),
+          AsyncStorage.setItem('userId', String(data.pkUser))
+        ]);
         router.push('/(tabs)');
       } else {
         setErrorMessage(`Email or password incorrect.\nPlease try again.`);
