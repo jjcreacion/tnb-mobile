@@ -183,11 +183,16 @@ const SignUp: React.FC<ModalProps> = ({ isVisible, onClose }) => {
       onRequestClose={handleClose}
       statusBarTranslucent
     >
-      <TouchableWithoutFeedback onPress={handleBackdropPress}>
-        <View style={styles.modalOverlay}>
-          <TouchableWithoutFeedback>
-            <View style={styles.keyboardAvoidingView}>
-              {!showVerifyCode ? (
+      <View style={styles.modalOverlay}>
+        {/* Backdrop only shown when NOT in VerifyCode screen */}
+        {!showVerifyCode && (
+          <TouchableWithoutFeedback onPress={handleBackdropPress}>
+            <View style={styles.backdropArea} />
+          </TouchableWithoutFeedback>
+        )}
+
+        <View style={styles.keyboardAvoidingView}>
+          {!showVerifyCode ? (
                 <KeyboardAvoidingView
                   behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                   style={styles.innerContainer}
@@ -201,9 +206,9 @@ const SignUp: React.FC<ModalProps> = ({ isVisible, onClose }) => {
                       bounces={true}
                     >
                       {/* Header */}
-                      <View style={styles.header}>
-                        <Text style={styles.title}>Create Your Account</Text>
-                        <Text style={styles.subtitle}>Let's get you started!</Text>
+                      <View style={styles.header} pointerEvents="box-none">
+                        <Text style={styles.title} pointerEvents="none">Create Your Account</Text>
+                        <Text style={styles.subtitle} pointerEvents="none">Let's get you started!</Text>
                       </View>
 
                       {/* Close Button */}
@@ -221,7 +226,7 @@ const SignUp: React.FC<ModalProps> = ({ isVisible, onClose }) => {
                       </TouchableOpacity>
 
                       {/* Form */}
-                      <View style={styles.form}>
+                      <View style={styles.form} pointerEvents="box-none">
                         <Input
                           ref={emailRef}
                           label="Email Address"
@@ -285,7 +290,7 @@ const SignUp: React.FC<ModalProps> = ({ isVisible, onClose }) => {
                         />
 
                         {exist && (
-                          <View style={styles.errorContainer}>
+                          <View style={styles.errorContainer} pointerEvents="none">
                             <Ionicons
                               name="alert-circle"
                               size={20}
@@ -308,8 +313,8 @@ const SignUp: React.FC<ModalProps> = ({ isVisible, onClose }) => {
                           style={styles.continueButton}
                         />
 
-                        <View style={styles.footer}>
-                          <Text style={styles.footerText}>Already have an account? </Text>
+                        <View style={styles.footer} pointerEvents="box-none">
+                          <Text style={styles.footerText} pointerEvents="none">Already have an account? </Text>
                           <Button
                             title="Sign In"
                             variant="ghost"
@@ -329,10 +334,8 @@ const SignUp: React.FC<ModalProps> = ({ isVisible, onClose }) => {
                   email={email}
                 />
               )}
-            </View>
-          </TouchableWithoutFeedback>
         </View>
-      </TouchableWithoutFeedback>
+      </View>
     </Modal>
   );
 };
@@ -342,6 +345,14 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Theme.colors.overlay.dark,
     justifyContent: 'flex-end',
+  },
+
+  backdropArea: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
 
   keyboardAvoidingView: {

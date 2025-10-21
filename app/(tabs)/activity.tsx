@@ -1,13 +1,14 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import Constants from 'expo-constants';
-import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import React, { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, Platform, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
-import { Screen, Card, StatusBadge } from '@/components/common';
+import { Card, StatusBadge } from '@/components/common';
+import { ActivityHeader } from '@/components/home';
 import { Theme } from '@/constants/Theme';
+import SideMenu from '../(screens)/SideMenu';
 
 interface Service {
   requestId: string;
@@ -23,6 +24,7 @@ const ActivityScreen = () => {
   const [userId, setUserId] = useState<string | null>(null);
   const API_URL = Constants.expoConfig?.extra?.API_BASE_URL;
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isMenuVisible, setMenuVisible] = useState(false);
 
   const fetchServices = useCallback(async (currentUserId: string) => {
     setIsRefreshing(true);
@@ -80,18 +82,22 @@ const ActivityScreen = () => {
     }
   }, [fetchServices]);
 
+  const handleMenuPress = useCallback(() => {
+    setMenuVisible(true);
+  }, []);
+
   const getStatusConfig = (status: number) => {
     switch (status) {
       case 1:
-        return { text: 'Finish', variant: 'warning' as const, icon: 'checkmark-circle-outline' };
+        return { text: 'Finish', variant: 'warning' as const };
       case 2:
-        return { text: 'Approved', variant: 'success' as const, icon: 'checkmark-done-circle' };
+        return { text: 'Approved', variant: 'success' as const };
       case 3:
-        return { text: 'In Progress', variant: 'info' as const, icon: 'hourglass-outline' };
+        return { text: 'In Progress', variant: 'info' as const };
       case 4:
-        return { text: 'Closed', variant: 'neutral' as const, icon: 'close-circle-outline' };
+        return { text: 'Closed', variant: 'neutral' as const };
       default:
-        return { text: 'Pending', variant: 'warning' as const, icon: 'time-outline' };
+        return { text: 'Pending', variant: 'warning' as const };
     }
   };
 
@@ -99,7 +105,7 @@ const ActivityScreen = () => {
     const statusConfig = getStatusConfig(service.status);
 
     return (
-      <Card variant="elevated" padding="base" style={styles.card}>
+      <Card variant="elevated" padding="md" style={styles.card}>
         <View style={styles.cardHeader}>
           <View style={styles.cardHeaderLeft}>
             <Text style={styles.cardTitle} numberOfLines={2}>
@@ -122,7 +128,7 @@ const ActivityScreen = () => {
         </View>
 
         <View style={styles.cardFooter}>
-          <StatusBadge label={statusConfig.text} variant={statusConfig.variant} icon={statusConfig.icon} />
+          <StatusBadge label={statusConfig.text} variant={statusConfig.variant} />
           <View style={styles.dateContainer}>
             <Icon name="calendar-outline" size={14} color={Theme.colors.text.tertiary} />
             <Text style={styles.dateText}>
@@ -159,30 +165,9 @@ const ActivityScreen = () => {
   );
 
   return (
-    <Screen safeArea edges={['top', 'bottom']}>
+    <View style={styles.container}>
       <StatusBar style="light" backgroundColor={Theme.colors.primary[500]} />
-      <LinearGradient
-        colors={[Theme.colors.primary[500], Theme.colors.primary[600]]}
-        style={styles.header}
-      >
-        <View style={styles.headerContent}>
-          <View style={styles.headerIcon}>
-            <Icon name="notifications" size={28} color={Theme.colors.text.inverse} />
-          </View>
-          <View style={styles.headerTextContainer}>
-            <Text style={styles.headerTitle}>Activity</Text>
-            <Text style={styles.headerSubtitle}>Track your service requests</Text>
-          </View>
-        </View>
-        {services.length > 0 && (
-          <View style={styles.statsContainer}>
-            <View style={styles.statItem}>
-              <Text style={styles.statNumber}>{services.length}</Text>
-              <Text style={styles.statLabel}>Total Requests</Text>
-            </View>
-          </View>
-        )}
-      </LinearGradient>
+      <ActivityHeader onMenuPress={handleMenuPress} />
 
       {/* Content */}
       {loading ? (
@@ -213,11 +198,21 @@ const ActivityScreen = () => {
           showsVerticalScrollIndicator={false}
         />
       )}
-    </Screen>
+
+      <SideMenu
+        isVisible={isMenuVisible}
+        onClose={() => setMenuVisible(false)}
+      />
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: Theme.colors.background.secondary,
+  },
+
   header: {
     paddingTop: Theme.spacing.lg,
     paddingBottom: Theme.spacing.xl,
@@ -244,45 +239,7 @@ const styles = StyleSheet.create({
 
   headerTextContainer: {
     flex: 1,
-  },
-
-  headerTitle: {
-    fontSize: Theme.typography.fontSize['2xl'],
-    fontWeight: Theme.typography.fontWeight.bold,
-    color: Theme.colors.text.inverse,
-    marginBottom: 2,
-  },
-
-  headerSubtitle: {
-    fontSize: Theme.typography.fontSize.sm,
-    color: 'rgba(255, 255, 255, 0.9)',
-    fontWeight: Theme.typography.fontWeight.medium,
-  },
-
-  statsContainer: {
-    flexDirection: 'row',
-    gap: Theme.spacing.md,
-    marginTop: Theme.spacing.sm,
-  },
-
-  statItem: {
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    paddingVertical: Theme.spacing.sm,
-    paddingHorizontal: Theme.spacing.base,
-    borderRadius: Theme.borderRadius.lg,
-    minWidth: 100,
-  },
-
-  statNumber: {
-    fontSize: Theme.typography.fontSize.xl,
-    fontWeight: Theme.typography.fontWeight.bold,
-    color: Theme.colors.text.inverse,
-    marginBottom: 2,
-  },
-
-  statLabel: {
-    fontSize: Theme.typography.fontSize.xs,
-    color: 'rgba(255, 255, 255, 0.8)',
+    backgroundColor: Theme.colors.background.secondary,
   },
 
   listContent: {
