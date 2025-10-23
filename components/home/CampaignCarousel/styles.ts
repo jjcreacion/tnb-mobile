@@ -1,5 +1,5 @@
-import { StyleSheet, Platform, Dimensions } from 'react-native'
 import { Theme } from '@/constants/Theme'
+import { Dimensions, Platform, StyleSheet } from 'react-native'
 
 const { width: screenWidth } = Dimensions.get('window')
 
@@ -18,7 +18,7 @@ export const styles = StyleSheet.create({
   },
   carouselContainer: {
     height: 200,
-    marginBottom: 5,
+    marginBottom: 0,
     justifyContent: 'center',
     alignItems: 'center',
   },

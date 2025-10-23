@@ -1,13 +1,13 @@
-import { StyleSheet, Platform } from 'react-native'
 import { Theme } from '@/constants/Theme'
+import { Platform, StyleSheet } from 'react-native'
 
 export const styles = StyleSheet.create({
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 20,
-    marginTop: 5,
-    marginBottom: 15,
+    marginTop: 0,
+    marginBottom: 10,
   },
   sectionTitle: {
     fontSize: 20,
@@ -29,6 +29,10 @@ export const styles = StyleSheet.create({
     fontSize: 16,
     borderWidth: 1,
     borderColor: Theme.colors.border.default,
+  },
+  searchInputFocused: {
+    borderColor: Theme.colors.border.focus, // Uses global focus color from Theme
+    borderWidth: 1.5,
   },
   allServicesContainer: {
     flexDirection: 'column',

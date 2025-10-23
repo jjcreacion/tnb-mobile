@@ -148,8 +148,8 @@ export const Input = forwardRef((
   const inputContainerStyles = [
     styles.inputContainer,
     styles[size],
-    isFocused && styles.focused,
-    error && styles.error,
+    error && styles.error, // Error takes priority over focus
+    isFocused && !error && styles.focused, // Focus only when no error
     disabled && styles.disabled,
   ];
 
@@ -174,7 +174,13 @@ export const Input = forwardRef((
           <Icon
             name={leftIcon}
             size={Theme.iconSize.sm}
-            color={isFocused ? Theme.colors.primary[500] : Theme.colors.text.tertiary}
+            color={
+              error
+                ? Theme.colors.border.error
+                : isFocused
+                  ? Theme.colors.border.focus
+                  : Theme.colors.text.tertiary
+            }
             style={styles.leftIcon}
           />
         )}
@@ -217,7 +223,13 @@ export const Input = forwardRef((
             <Icon
               name={rightIcon}
               size={Theme.iconSize.sm}
-              color={isFocused ? Theme.colors.primary[500] : Theme.colors.text.tertiary}
+              color={
+                error
+                  ? Theme.colors.border.error
+                  : isFocused
+                    ? Theme.colors.border.focus
+                    : Theme.colors.text.tertiary
+              }
             />
           </TouchableOpacity>
         )}
@@ -257,7 +269,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: Theme.colors.background.primary,
     borderWidth: 1,
-    borderColor: Theme.colors.border.default,
+    borderColor: Theme.colors.border.default, // Soft, professional gray (#E5E7EB)
     borderRadius: Theme.borderRadius.lg,
     ...Theme.shadows.sm,
   },
@@ -278,12 +290,13 @@ const styles = StyleSheet.create({
   },
 
   focused: {
-    borderColor: Theme.colors.primary[500],
+    borderColor: Theme.colors.border.focus, // Dark gray (neutral[600])
     borderWidth: 1.5,
   },
 
   error: {
-    borderColor: Theme.colors.error[500],
+    borderColor: Theme.colors.border.error, // Red for errors
+    borderWidth: 1.5,
   },
 
   disabled: {

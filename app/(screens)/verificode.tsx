@@ -35,6 +35,7 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
   const [isProcessing, setIsProcessing] = useState(false);
   const [hasValidClipboard, setHasValidClipboard] = useState(false);
   const [storedPassword, setStoredPassword] = useState<string>('');
+  const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
   const inputsRef = useRef<(TextInput | null)[]>([]);
   const timeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const validationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -1394,6 +1395,7 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
                     ref={(ref) => { inputsRef.current[index] = ref; }}
                     style={[
                       styles.codeInput,
+                      focusedIndex === index && validationState === 'idle' && styles.codeInputFocused,
                       validationState === 'invalid' && styles.codeInputError,
                       validationState === 'expired' && styles.codeInputError,
                       validationState === 'valid' && styles.codeInputSuccess,
@@ -1401,6 +1403,8 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
                     value={digit}
                     onChangeText={(value) => handleInputChange(value, index)}
                     onKeyPress={(e) => handleKeyPress(e, index)}
+                    onFocus={() => setFocusedIndex(index)}
+                    onBlur={() => setFocusedIndex(null)}
                     maxLength={6}
                     keyboardType="numeric"
                     textAlign="center"
@@ -1641,6 +1645,11 @@ const styles = StyleSheet.create({
     fontWeight: Theme.typography.fontWeight.bold,
     color: Theme.colors.text.primary,
     ...Theme.shadows.sm,
+  },
+
+  codeInputFocused: {
+    borderColor: Theme.colors.border.focus, // Uses global focus color from Theme
+    borderWidth: 2.5,
   },
 
   codeInputError: {

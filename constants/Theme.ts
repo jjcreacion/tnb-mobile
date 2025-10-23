@@ -96,6 +96,12 @@ export const Colors = {
     elevated: '#FFFFFF',
   },
 
+  // Button States
+  button: {
+    disabledBackground: '#E5E5E5', // Neutral 200 - Light gray for disabled state
+    disabledText: '#9CA3AF', // Gray-400 - Readable text on disabled background
+  },
+
   // Navigation Colors
   navigation: {
     bar: '#050505', // Android navigation bar background
@@ -116,8 +122,10 @@ export const Colors = {
     light: '#F3F4F6',
     default: '#E5E7EB',
     dark: '#D1D5DB',
-    focus: '#E63946',
+    focus: '#B8B8B8', // Focus state - Change here to apply globally across all inputs
+    error: '#EF4444', // Red for error state (error[500])
   },
+
 
   // Overlay
   overlay: {
@@ -416,3 +424,6 @@ export const Theme = {
 };
 
 export type ThemeType = typeof Theme;
+
+// Type-safe border colors
+export type BorderColors = typeof Colors.border;

@@ -38,6 +38,8 @@ export const ServicesExplorer = memo<ServicesExplorerProps>(
     onSearchChange,
     apiBaseUrl,
   }) => {
+    const [isSearchFocused, setIsSearchFocused] = React.useState(false)
+
     const filteredCategories = useMemo(() => {
       if (!searchQuery) return categories
 
@@ -69,11 +71,16 @@ export const ServicesExplorer = memo<ServicesExplorerProps>(
             style={styles.searchContainer}
           >
             <TextInput
-              style={styles.searchInput}
+              style={[
+                styles.searchInput,
+                isSearchFocused && styles.searchInputFocused,
+              ]}
               placeholder="Search for a service..."
               placeholderTextColor="#999"
               value={searchQuery}
               onChangeText={onSearchChange}
+              onFocus={() => setIsSearchFocused(true)}
+              onBlur={() => setIsSearchFocused(false)}
               autoFocus={true}
             />
           </Animatable.View>

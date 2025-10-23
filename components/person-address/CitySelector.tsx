@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { FlatList, Platform, Text, TextInput, TouchableOpacity, View } from 'react-native'
 import { AddressService } from './AddressService'
 import { addressStyles } from './styles'
@@ -21,6 +21,7 @@ export const CitySelector: React.FC<CitySelectorProps> = ({
   onCitySelect,
   selectedStateId,
 }) => {
+  const [isFocused, setIsFocused] = useState(false)
   // Separar ciudades por estado seleccionado vs otros estados para mostrar conteo
   const selectedStateCities = selectedStateId ? cities.filter(city => city.fkState === selectedStateId) : []
   const otherStateCities = selectedStateId ? cities.filter(city => city.fkState !== selectedStateId) : cities
@@ -67,10 +68,15 @@ export const CitySelector: React.FC<CitySelectorProps> = ({
   return (
     <View style={addressStyles.selectorContainer}>
       <TextInput
-        style={addressStyles.searchInput}
+        style={[
+          addressStyles.searchInput,
+          isFocused && addressStyles.searchInputFocused,
+        ]}
         placeholder="Search for a city"
         value={searchText}
         onChangeText={onSearchTextChange}
+        onFocus={() => setIsFocused(true)}
+        onBlur={() => setIsFocused(false)}
         autoFocus={Platform.OS === 'android'}
       />
 
