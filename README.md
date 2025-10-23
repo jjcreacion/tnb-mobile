@@ -48,4 +48,52 @@ Join our community of developers creating universal apps.
 
 - [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
 - [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
-# tnb-mobile
+## tnb-mobile
+
+
+## 🚀 Publicar la app en Expo (Cloud) con EAS
+
+Este proyecto utiliza [Expo Application Services (EAS)](https://docs.expo.dev/eas/) para compilar y distribuir la aplicación en la nube. A continuación se detallan los pasos para preparar, actualizar y construir la app para Android e iOS en el entorno de desarrollo.
+
+```bash
+# 1. Verificar información del proyecto
+eas project:info
+
+# 2. Precompilar el proyecto
+npx expo prebuild
+
+# 3. Configurar EAS Build
+eas build:configure
+
+# 4. Publicar actualizaciones OTA (Over-the-Air)
+# esto generará los códigos QR para que los usuarios puedan probarlo cualquier momento
+eas update --platform android --branch development --message ""
+eas update --platform ios --branch development --message ""
+
+
+
+
+## Opcional
+# 5. Compilar la app en la nube
+eas build --platform android --profile development
+eas build --platform ios --profile development
+```
+
+### Generar Build (apk e ipa) local (Sin usar los servidores de EAS)
+```bash
+# 1. Verificar proyecto
+eas project:info
+
+# 2. Precompilar (solo si usas prebuild)
+npx expo prebuild
+
+# 3. Configurar build
+eas build:configure
+
+# 4. Generar APK (para probar)
+eas build -p android --profile preview --output-format apk
+
+# 5. Generar IPA (para TestFlight/App Store)
+eas build -p ios --profile production
+```
+
