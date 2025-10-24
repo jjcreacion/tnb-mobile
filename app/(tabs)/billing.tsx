@@ -4,6 +4,7 @@ import { Theme } from '@/constants/Theme';
 import { StatusBar } from 'expo-status-bar';
 import React, { useState, useCallback } from 'react';
 import { FlatList, Platform, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
 import SideMenu from '../(screens)/SideMenu';
 
@@ -22,6 +23,7 @@ const transactions: Transaction[] = [
 ];
 
 export default function BillingScreen() {
+  const insets = useSafeAreaInsets();
   const [isMenuVisible, setMenuVisible] = useState(false);
 
   const handleMenuPress = useCallback(() => {
@@ -105,7 +107,12 @@ export default function BillingScreen() {
         data={transactions}
         renderItem={renderTransaction}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContent}
+        contentContainerStyle={[
+          styles.listContent,
+          Platform.OS === 'android' && {
+            paddingBottom: 70 + insets.bottom + 220, // Extra space for payment section
+          },
+        ]}
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={renderEmptyState}
       />

@@ -1,5 +1,5 @@
 import React, { memo } from 'react';
-import { View, Image, TouchableOpacity, Text, Platform } from 'react-native';
+import { View, Image, TouchableOpacity, Text } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import Icon from 'react-native-vector-icons/MaterialIcons';

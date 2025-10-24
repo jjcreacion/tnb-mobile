@@ -15,6 +15,7 @@ import {
   StatusBar as RNStatusBar
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import { useAppSelector } from '@/store/hooks';
 
 interface SideMenuProps {
   isVisible: boolean;
@@ -40,6 +41,10 @@ const SideMenu: React.FC<SideMenuProps> = ({ isVisible, onClose }) => {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   // Store pending timers for cleanup on unmount
   const pendingTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  // Get user data from Redux
+  const { userName, userData } = useAppSelector((state) => state.user);
+  const userEmail = userData?.email || 'user@mail.com';
 
   // Clean up all pending timers on unmount
   useEffect(() => {
@@ -194,8 +199,8 @@ const SideMenu: React.FC<SideMenuProps> = ({ isVisible, onClose }) => {
                 <View style={styles.statusIndicator} />
               </View>
               <View style={styles.userInfo}>
-                <Text style={styles.userName}>Welcome!</Text>
-                <Text style={styles.userEmail} numberOfLines={1}>user@mail.com</Text>
+                <Text style={styles.userName}>{userName}</Text>
+                <Text style={styles.userEmail} numberOfLines={1}>{userEmail}</Text>
               </View>
             </View>
           </LinearGradient>

@@ -3,7 +3,8 @@ import axios from 'axios';
 import Constants from 'expo-constants';
 import { StatusBar } from 'expo-status-bar';
 import React, { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, FlatList, Platform, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { Card, StatusBadge } from '@/components/common';
 import { ActivityHeader } from '@/components/home';
@@ -19,6 +20,7 @@ interface Service {
 }
 
 const ActivityScreen = () => {
+  const insets = useSafeAreaInsets();
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
@@ -184,7 +186,10 @@ const ActivityScreen = () => {
           keyExtractor={(item) => item.requestId}
           contentContainerStyle={[
             styles.listContent,
-            services.length === 0 && styles.listContentEmpty
+            services.length === 0 && styles.listContentEmpty,
+            Platform.OS === 'android' && {
+              paddingBottom: 70 + insets.bottom + 20,
+            },
           ]}
           ListEmptyComponent={renderEmptyState}
           refreshControl={

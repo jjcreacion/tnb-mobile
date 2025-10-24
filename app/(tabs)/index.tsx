@@ -22,7 +22,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 import Constants from 'expo-constants'
 import { StatusBar } from 'expo-status-bar'
 import React, { useCallback, useEffect } from 'react'
-import { Alert, StyleSheet, View } from 'react-native'
+import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import {
   AddressSelector,
@@ -43,6 +44,7 @@ const API_BASE_URL = Constants.expoConfig?.extra?.API_BASE_URL || ''
 
 const HomeScreen: React.FC = () => {
   const dispatch = useAppDispatch()
+  const insets = useSafeAreaInsets()
 
   // Load referral reward
   useReferralReward()
@@ -185,31 +187,53 @@ const HomeScreen: React.FC = () => {
         userBalance={userBalance}
       />
 
-      <AddressSelector
-        primaryAddress={primaryAddress}
-        addressCount={addresses.length}
-        onPress={handleAddressPress}
-      />
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.keyboardAvoidingView}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+      >
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={[
+            styles.scrollContent,
+            Platform.OS === 'android' && {
+              paddingBottom: 70 + insets.bottom + 20,
+            },
+          ]}
+          showsVerticalScrollIndicator={true}
+          indicatorStyle="black"
+          scrollIndicatorInsets={{ right: 1 }}
+          bounces={true}
+          alwaysBounceVertical={false}
+          keyboardShouldPersistTaps="handled"
+        >
+        <AddressSelector
+          primaryAddress={primaryAddress}
+          addressCount={addresses.length}
+          onPress={handleAddressPress}
+        />
 
-      <CampaignCarousel
-        campaigns={campaigns}
-        loading={loadingCampaigns}
-        error={errorCampaigns}
-        onCampaignPress={handleCampaignPress}
-        apiBaseUrl={API_BASE_URL}
-      />
+        <CampaignCarousel
+          campaigns={campaigns}
+          loading={loadingCampaigns}
+          error={errorCampaigns}
+          onCampaignPress={handleCampaignPress}
+          apiBaseUrl={API_BASE_URL}
+        />
 
-      <ServicesExplorer
-        categories={categories}
-        loading={loadingCategories}
-        error={errorCategories}
-        searchQuery={serviceSearchQuery}
-        isSearchVisible={isSearchVisible}
-        onServicePress={handleServicePress}
-        onToggleSearch={handleToggleSearch}
-        onSearchChange={handleSearchChange}
-        apiBaseUrl={API_BASE_URL}
-      />
+        <ServicesExplorer
+          categories={categories}
+          loading={loadingCategories}
+          error={errorCategories}
+          searchQuery={serviceSearchQuery}
+          isSearchVisible={isSearchVisible}
+          onServicePress={handleServicePress}
+          onToggleSearch={handleToggleSearch}
+          onSearchChange={handleSearchChange}
+          apiBaseUrl={API_BASE_URL}
+        />
+      </ScrollView>
+      </KeyboardAvoidingView>
 
       <RequestModal
         isVisible={isRequestModalVisible}
@@ -249,6 +273,17 @@ const styles = StyleSheet.create({
     flex: 1,
     width: '100%',
     backgroundColor: Theme.colors.neutral[200],
+  },
+  keyboardAvoidingView: {
+    flex: 1,
+  },
+  scrollView: {
+    flex: 1,
+    width: '100%',
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: 20,
   },
 })
 

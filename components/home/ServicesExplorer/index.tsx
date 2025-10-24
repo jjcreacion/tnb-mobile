@@ -86,7 +86,12 @@ export const ServicesExplorer = memo<ServicesExplorerProps>(
           </Animatable.View>
         )}
 
-        <ScrollView contentContainerStyle={styles.allServicesContainer}>
+        <ScrollView
+          contentContainerStyle={styles.allServicesContainer}
+          showsVerticalScrollIndicator={true}
+          indicatorStyle="black"
+          scrollIndicatorInsets={{ right: 1 }}
+        >
           {loading ? (
             <ActivityIndicator size="large" color={Theme.colors.primary[500]} />
           ) : error ? (

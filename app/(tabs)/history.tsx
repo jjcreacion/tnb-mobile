@@ -4,7 +4,8 @@ import Constants from 'expo-constants';
 import { StatusBar } from 'expo-status-bar';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, FlatList, Platform, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { Card } from '@/components/common';
 import { HistoryHeader } from '@/components/home';
@@ -44,6 +45,7 @@ interface Status {
 }
 
 const HistoryScreen = () => {
+  const insets = useSafeAreaInsets();
   const [services, setServices] = useState<ServiceRequest[]>([]);
   const [statusList, setStatusList] = useState<Status[]>([]);
   const [loading, setLoading] = useState(true);
@@ -232,7 +234,10 @@ const HistoryScreen = () => {
           keyExtractor={(item) => item.requestId.toString()}
           contentContainerStyle={[
             styles.listContent,
-            services.length === 0 && styles.listContentEmpty
+            services.length === 0 && styles.listContentEmpty,
+            Platform.OS === 'android' && {
+              paddingBottom: 70 + insets.bottom + 20,
+            },
           ]}
           ListEmptyComponent={renderEmptyState}
           refreshControl={

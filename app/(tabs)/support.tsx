@@ -6,12 +6,14 @@ import { StatusBar } from 'expo-status-bar';
 import React, { useState, useCallback } from 'react';
 import {
     Linking,
+    Platform,
     ScrollView,
     StyleSheet,
     Text,
     TouchableOpacity,
     View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
 import Icon from 'react-native-vector-icons/Ionicons';
 import SideMenu from '../(screens)/SideMenu';
@@ -30,6 +32,7 @@ interface ContactInfo {
 }
 
 export default function SupportScreen() {
+  const insets = useSafeAreaInsets();
   const [isMenuVisible, setMenuVisible] = useState(false);
 
   const handleMenuPress = useCallback(() => {
@@ -102,7 +105,12 @@ export default function SupportScreen() {
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContent,
+          Platform.OS === 'android' && {
+            paddingBottom: 70 + insets.bottom + 20,
+          },
+        ]}
       >
 
       <View style={styles.content}>

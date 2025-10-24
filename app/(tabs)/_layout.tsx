@@ -14,11 +14,12 @@ export default function TabsLayout() {
       screenOptions={{
         // tabBarActiveTintColor: Theme.colors.primary[800],
         // tabBarInactiveTintColor: 'rgba(255, 255, 255, 0.8)',
-        
+
         tabBarActiveTintColor: Theme.colors.primary[50],
         tabBarInactiveTintColor: 'rgba(255, 255, 255, 0.4)',
         headerShown: false,
         tabBarButton: HapticTab,
+        tabBarHideOnKeyboard: Platform.OS === 'android' ? true : undefined,
         tabBarStyle: Platform.select({
           ios: {
             backgroundColor: Theme.colors.primary[500],

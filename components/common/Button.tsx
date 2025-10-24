@@ -74,8 +74,8 @@ export const Button: React.FC<ButtonProps> = ({
     const renderIcon = (iconNode: React.ReactNode) => {
       if (!iconNode || typeof iconNode !== 'object') return iconNode;
 
-      if (disabled) {
-        return React.cloneElement(iconNode as React.ReactElement, {
+      if (disabled && React.isValidElement(iconNode)) {
+        return React.cloneElement(iconNode as React.ReactElement<any>, {
           color: Theme.colors.button.disabledText,
         });
       }
