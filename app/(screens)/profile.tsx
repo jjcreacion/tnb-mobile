@@ -270,8 +270,8 @@ export default function ProfileScreenMigrated() {
         style="light" 
         backgroundColor={Theme.colors.primary[500]}
       />
-      <Screen safeArea={true} scrollable>
-        <View style={MigratedStyles.profileContainer}>
+      <Screen safeArea={true} scrollable disableKeyboardDismiss={true}>
+        <View style={MigratedStyles.profileContainer} pointerEvents="box-none">
         {/* Header with Background Image */}
         <ImageBackground
           source={require('@/assets/images/roof-repair.jpg')}
@@ -305,20 +305,22 @@ export default function ProfileScreenMigrated() {
         </ImageBackground>
 
         {/* Profile Content */}
-        <View style={MigratedStyles.profileContentContainer}>
+        <View style={MigratedStyles.profileContentContainer} pointerEvents="box-none">
           {/* User ID and Join Date */}
           <Card variant="elevated" style={MigratedStyles.profileUserInfoCard}>
-            <Typography variant="h3" color="secondary" style={MigratedStyles.profileEmailText}>
-              {userData.email}
-            </Typography>
-            <Typography variant="h3" color="primary" style={MigratedStyles.profileUserIdText}>
-              Client ID: #{userData.pkUser || '000000'}
-            </Typography>
-            {userData.createdAt && (
-              <Typography variant="body2" color="secondary" style={MigratedStyles.profileJoinDateText}>
-                Member since {userData.createdAt}
+            <View pointerEvents="box-none">
+              <Typography variant="h3" color="secondary" style={MigratedStyles.profileEmailText} pointerEvents="none">
+                {userData.email}
               </Typography>
-            )}
+              <Typography variant="h3" color="primary" style={MigratedStyles.profileUserIdText} pointerEvents="none">
+                Client ID: #{userData.pkUser || '000000'}
+              </Typography>
+              {userData.createdAt && (
+                <Typography variant="body2" color="secondary" style={MigratedStyles.profileJoinDateText} pointerEvents="none">
+                  Member since {userData.createdAt}
+                </Typography>
+              )}
+            </View>
           </Card>
 
           {/* Edit Button */}
@@ -335,11 +337,11 @@ export default function ProfileScreenMigrated() {
 
           {/* Profile Form */}
           <Card variant="outlined" style={MigratedStyles.profileFormCard}>
-            <Typography variant="h4" color="primary" style={MigratedStyles.profileSectionTitle}>
+            <Typography variant="h4" color="primary" style={MigratedStyles.profileSectionTitle} pointerEvents="none">
               My Profile
             </Typography>
 
-            <View style={MigratedStyles.profileFormSection}>
+            <View style={MigratedStyles.profileFormSection} pointerEvents="box-none">
               <Input
                 label="First Name"
                 value={userData.firstName}
