@@ -1038,7 +1038,7 @@ export const MigratedStyles = StyleSheet.create({
   },
 
   profileFormCard: {
-    marginBottom: Theme.spacing.xl,
+    marginBottom: Theme.spacing.lg,
     padding: Theme.spacing.lg,
   },
 
@@ -1050,7 +1050,7 @@ export const MigratedStyles = StyleSheet.create({
   },
 
   profileFormSection: {
-    marginBottom: Theme.spacing.xl,
+    marginBottom: 0,
   },
 
   profileInputContainer: {
@@ -1062,6 +1062,27 @@ export const MigratedStyles = StyleSheet.create({
     paddingTop: Theme.spacing.lg,
     borderTopWidth: 1,
     borderTopColor: Theme.colors.border.light,
+  },
+
+  profileActionsContainer: {
+    gap: Theme.spacing.base,
+    marginTop: Theme.spacing.base,
+    paddingHorizontal: Theme.spacing.base,
+  },
+
+  profileActionButtonsContainer: {
+    flexDirection: 'row',
+    gap: Theme.spacing.sm,
+    marginTop: Theme.spacing.xl,
+    paddingHorizontal: Theme.spacing.base,
+  },
+
+  profileCancelButton: {
+    marginTop: Theme.spacing.sm,
+  },
+
+  profileSaveButton: {
+    flex: 1,
   },
 
   // ===== REQUEST MODAL SCREEN =====

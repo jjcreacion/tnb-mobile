@@ -4,10 +4,12 @@ import {
     Animated,
     BackHandler,
     Dimensions,
+    Platform,
     StyleSheet,
     TouchableOpacity,
     View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { Typography } from './Typography';
 
@@ -45,6 +47,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
 }) => {
   const translateY = useRef(new Animated.Value(screenHeight)).current;
   const backdropOpacity = useRef(new Animated.Value(0)).current;
+  const insets = useSafeAreaInsets();
 
   const sheetHeight = sizeMap[size];
 
@@ -149,7 +152,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
         )}
 
         {/* Content */}
-        <View style={styles.content}>
+        <View style={[styles.content, { paddingBottom: Math.max(insets.bottom, Theme.spacing.lg) }]}>
           {children}
         </View>
       </Animated.View>
@@ -230,7 +233,5 @@ const styles = StyleSheet.create({
 
   content: {
     flex: 1,
-    paddingHorizontal: Theme.spacing.lg,
-    paddingTop: Theme.spacing.sm,
   },
 });

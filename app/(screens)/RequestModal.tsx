@@ -8,6 +8,9 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
     Animated,
     Image,
+    KeyboardAvoidingView,
+    Modal as RNModal,
+    Platform,
     ScrollView,
     StyleSheet,
     TextInput,
@@ -15,6 +18,7 @@ import {
     View
 } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Yup from 'yup';
 
 // Import migrated components
@@ -25,7 +29,6 @@ import {
     Card,
     Input,
     Loading,
-    Modal,
     Typography
 } from '@/components/common';
 import { Theme } from '@/constants/Theme';
@@ -102,6 +105,7 @@ const RequestMigrated: React.FC<ModalProps> = ({
   // Memoize default props to prevent unnecessary re-renders
   const cities = useMemo(() => citiesProp || [], [citiesProp]);
   const states = useMemo(() => statesProp || [], [statesProp]);
+  const insets = useSafeAreaInsets();
 
   // Estados utilizados en el componente
   const [images, setImages] = useState<string[]>([]);
@@ -337,7 +341,7 @@ const RequestMigrated: React.FC<ModalProps> = ({
         throw new Error(errorData.message || `Upload failed with status ${response.status}`);
       }
 
-      const responseData = await response.json();
+      await response.json();
       return true;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
@@ -482,27 +486,37 @@ const RequestMigrated: React.FC<ModalProps> = ({
   // ... (copiada desde el archivo original)
 
   return (
-    <Modal
+    <RNModal
       visible={isVisible}
-      onClose={onClose}
-      size="full"
-      position="center"
-      showCloseButton={false}
-      dismissOnBackdrop={false}
+      animationType="slide"
+      transparent={false}
+      onRequestClose={onClose}
     >
-      <View style={styles.header}>
-        <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-          <MaterialIcons name="close" size={24} color={Theme.colors.text.secondary} />
-        </TouchableOpacity>
-        <Typography variant="h3" color="primary" style={styles.headerTitle}>
-          Request Service
-        </Typography>
-      </View>
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+      >
+        <View style={[
+          styles.header,
+          {
+            paddingTop: Math.max(insets.top, Theme.spacing.base) + Theme.spacing.base,
+          }
+        ]}>
+          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+            <MaterialIcons name="close" size={24} color={Theme.colors.text.secondary} />
+          </TouchableOpacity>
+          <Typography variant="h3" color="primary" style={styles.headerTitle}>
+            Request Service
+          </Typography>
+        </View>
 
-      <ScrollView 
+        <ScrollView
         ref={scrollViewRef}
-        style={styles.scrollView} 
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
         scrollEventThrottle={16}
         onScroll={(event) => {
           if (!isMapExpanded) {
@@ -546,18 +560,18 @@ const RequestMigrated: React.FC<ModalProps> = ({
             enableReinitialize
           >
           {({ handleChange, handleBlur, handleSubmit, values, errors, touched, setFieldValue }) => (
-            <View style={styles.formContainer}>
+            <View style={styles.formContainer} pointerEvents="box-none">
               {/* Service Category Card */}
               <Card variant="elevated" style={styles.categoryCard}>
-                <View style={styles.categoryContent}>
+                <View style={styles.categoryContent} pointerEvents="box-none">
                   <Image
                     source={{ uri: `${API_URL}${selectedCategory?.imagePath}` }}
                     style={styles.categoryImage}
                   />
-                  <Typography variant="h4" color="primary" style={styles.categoryTitle}>
+                  <Typography variant="h4" color="primary" style={styles.categoryTitle} pointerEvents="none">
                     {selectedCategory?.name}
                   </Typography>
-                  <Typography variant="body2" color="secondary" style={styles.categoryDescription}>
+                  <Typography variant="body2" color="secondary" style={styles.categoryDescription} pointerEvents="none">
                     {selectedCategory?.description}
                   </Typography>
                 </View>
@@ -565,28 +579,29 @@ const RequestMigrated: React.FC<ModalProps> = ({
 
               {/* Service Type Selection */}
               {subCategories.length > 0 && (
-                <View style={styles.fieldContainer}>
-                  <Typography variant="body1" color="primary" style={styles.fieldLabel}>
+                <View style={styles.fieldContainer} pointerEvents="box-none">
+                  <Typography variant="body1" color="primary" style={styles.fieldLabel} pointerEvents="none">
                     Service Type *
                   </Typography>
                   <TouchableOpacity
                     style={styles.selectorButton}
                     onPress={() => setShowSubCategorySheet(true)}
                   >
-                    <Typography 
-                      variant="body1" 
+                    <Typography
+                      variant="body1"
                       color={selectedSubCategory ? "primary" : "tertiary"}
+                      pointerEvents="none"
                     >
                       {getSelectedSubCategoryName()}
                     </Typography>
-                    <MaterialIcons 
-                      name="keyboard-arrow-down" 
-                      size={24} 
-                      color={Theme.colors.text.tertiary} 
+                    <MaterialIcons
+                      name="keyboard-arrow-down"
+                      size={24}
+                      color={Theme.colors.text.tertiary}
                     />
                   </TouchableOpacity>
                   {!selectedSubCategory && (
-                    <Typography variant="caption" color="error" style={styles.errorText}>
+                    <Typography variant="caption" color="error" style={styles.errorText} pointerEvents="none">
                       Please select a service type
                     </Typography>
                   )}
@@ -594,8 +609,8 @@ const RequestMigrated: React.FC<ModalProps> = ({
               )}
 
               {/* Description Input */}
-              <View style={styles.fieldContainer}>
-                <Typography variant="body1" color="primary" style={styles.fieldLabel}>
+              <View style={styles.fieldContainer} pointerEvents="box-none">
+                <Typography variant="body1" color="primary" style={styles.fieldLabel} pointerEvents="none">
                   Description
                 </Typography>
                 <View style={[
@@ -623,13 +638,13 @@ const RequestMigrated: React.FC<ModalProps> = ({
 
               {/* Location Section */}
               <Card variant="outlined" style={styles.locationCard}>
-                <Typography variant="h4" color="primary" style={styles.sectionTitle}>
+                <Typography variant="h4" color="primary" style={styles.sectionTitle} pointerEvents="none">
                   Service Location
                 </Typography>
 
                 {/* Service Address Field */}
-                <View style={styles.fieldContainer}>
-                  <Typography variant="body1" color="primary" style={styles.fieldLabel}>
+                <View style={styles.fieldContainer} pointerEvents="box-none">
+                  <Typography variant="body1" color="primary" style={styles.fieldLabel} pointerEvents="none">
                     Service Address
                   </Typography>
                   <Input
@@ -645,13 +660,13 @@ const RequestMigrated: React.FC<ModalProps> = ({
                 </View>
 
                 {/* Location on Map */}
-                <View style={styles.fieldContainer}>
-                  <Typography variant="body1" color="primary" style={styles.fieldLabel}>
+                <View style={styles.fieldContainer} pointerEvents="box-none">
+                  <Typography variant="body1" color="primary" style={styles.fieldLabel} pointerEvents="none">
                     Location on Map
                   </Typography>
-                  <Typography variant="caption" color="secondary" style={styles.fieldHint}>
-                    {isMapExpanded 
-                      ? 'Tap on the map to select your service location. The map will minimize after selection.' 
+                  <Typography variant="caption" color="secondary" style={styles.fieldHint} pointerEvents="none">
+                    {isMapExpanded
+                      ? 'Tap on the map to select your service location. The map will minimize after selection.'
                       : 'Tap the map to expand and select your service location.'}
                   </Typography>
                 </View>
@@ -740,8 +755,8 @@ const RequestMigrated: React.FC<ModalProps> = ({
               </Card>
 
               {/* Images Section */}
-              <View style={styles.fieldContainer}>
-                <Typography variant="body1" color="primary" style={styles.fieldLabel}>
+              <View style={styles.fieldContainer} pointerEvents="box-none">
+                <Typography variant="body1" color="primary" style={styles.fieldLabel} pointerEvents="none">
                   Photos (Optional)
                 </Typography>
                 <TouchableOpacity
@@ -872,7 +887,12 @@ const RequestMigrated: React.FC<ModalProps> = ({
           </Typography>
 
           {/* SubCategories List */}
-          <ScrollView style={styles.subCategoryList} showsVerticalScrollIndicator={true}>
+          <ScrollView
+            style={styles.subCategoryList}
+            contentContainerStyle={styles.subCategoryListContent}
+            showsVerticalScrollIndicator={true}
+            keyboardShouldPersistTaps="handled"
+          >
             {getFilteredSubCategories().length > 0 ? (
               getFilteredSubCategories().map((sub, index) => {
                 const isSelected = selectedSubCategory === sub.pkSubCategory;
@@ -956,17 +976,23 @@ const RequestMigrated: React.FC<ModalProps> = ({
           },
         ]}
       />
-    </Modal>
+      </KeyboardAvoidingView>
+    </RNModal>
   );
 };
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: Theme.colors.background.secondary,
+  },
+
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: Theme.spacing.lg,
-    paddingVertical: Theme.spacing.base,
+    paddingBottom: Theme.spacing.base,
     borderBottomWidth: 1,
     borderBottomColor: Theme.colors.border.light,
     backgroundColor: Theme.colors.background.primary,
@@ -990,6 +1016,11 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
     backgroundColor: Theme.colors.background.secondary,
+  },
+
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: Theme.spacing['2xl'],
   },
 
   formContainer: {
@@ -1196,7 +1227,8 @@ const styles = StyleSheet.create({
 
   // Estilos para BottomSheet de subcategorías
   bottomSheetContent: {
-    padding: Theme.spacing.lg,
+    flex: 1,
+    paddingHorizontal: Theme.spacing.lg,
   },
 
   searchContainer: {
@@ -1228,11 +1260,15 @@ const styles = StyleSheet.create({
   },
 
   subCategoryList: {
-    maxHeight: 320,
+    flex: 1,
+  },
+
+  subCategoryListContent: {
+    flexGrow: 1,
+    paddingBottom: Theme.spacing.xl,
   },
 
   subCategoryItem: {
-    paddingHorizontal: Theme.spacing.lg,
     paddingVertical: Theme.spacing.lg,
     minHeight: 72,
     borderBottomWidth: 0.5,

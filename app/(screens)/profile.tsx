@@ -323,18 +323,6 @@ export default function ProfileScreenMigrated() {
             </View>
           </Card>
 
-          {/* Edit Button */}
-          <View style={MigratedStyles.profileEditButtonContainer}>
-            <Button
-              title={isEditing ? "Cancel" : "Edit Profile"}
-              variant={isEditing ? "outline" : "primary"}
-              size="md"
-              onPress={() => setIsEditing(!isEditing)}
-              icon={<Icon name="edit" size={20} color={isEditing ? Theme.colors.primary[500] : Theme.colors.text.inverse} />}
-              iconPosition="left"
-            />
-          </View>
-
           {/* Profile Form */}
           <Card variant="outlined" style={MigratedStyles.profileFormCard}>
             <Typography variant="h4" color="primary" style={MigratedStyles.profileSectionTitle} pointerEvents="none">
@@ -371,7 +359,7 @@ export default function ProfileScreenMigrated() {
               />
 
               <Input
-                label="Address" 
+                label="Address"
                 value={userData.address}
                 onChangeText={(value) => handleInputChange('address', value)}
                 disabled={!isEditing}
@@ -381,23 +369,42 @@ export default function ProfileScreenMigrated() {
                 containerStyle={MigratedStyles.profileInputContainer}
               />
             </View>
-
-            {/* Save Button */}
-            {isEditing && (
-              <View style={MigratedStyles.profileSaveButtonContainer}>
-                <Button
-                  title="Save Changes"
-                  variant="primary"
-                  size="lg"
-                  onPress={saveChanges}
-                  fullWidth
-                  loading={isLoading}
-                  icon={<Icon name="save" size={20} color={Theme.colors.text.inverse} />}
-                  iconPosition="left"
-                />
-              </View>
-            )}
           </Card>
+
+          {/* Action Buttons */}
+          <View style={MigratedStyles.profileActionsContainer}>
+            {/* Edit Profile / Save Changes Button */}
+            <Button
+              title={isEditing ? "Save Changes" : "Edit Profile"}
+              variant="primary"
+              size="lg"
+              onPress={isEditing ? saveChanges : () => setIsEditing(true)}
+              loading={isLoading}
+              icon={
+                <Icon
+                  name={isEditing ? "save" : "edit"}
+                  size={20}
+                  color={Theme.colors.text.inverse}
+                />
+              }
+              iconPosition="left"
+              fullWidth
+            />
+
+            {/* Cancel Button - Only visible when editing */}
+            {isEditing && (
+              <Button
+                title="Cancel"
+                variant="outline"
+                size="lg"
+                onPress={() => setIsEditing(false)}
+                icon={<Icon name="close" size={20} color={Theme.colors.primary[500]} />}
+                iconPosition="left"
+                fullWidth
+                style={MigratedStyles.profileCancelButton}
+              />
+            )}
+          </View>
         </View>
 
         {/* Loading Overlay */}

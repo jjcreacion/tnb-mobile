@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react'
-import { Modal, Text, TextInput, TouchableOpacity, View } from 'react-native'
+import { KeyboardAvoidingView, Modal, Platform, Text, TextInput, TouchableOpacity, View } from 'react-native'
 import Icon from 'react-native-vector-icons/MaterialIcons'
 
 import { AddressForm, AddressFormRef } from './AddressForm'
@@ -138,56 +138,61 @@ const AddressModal: React.FC<AddressModalProps> = ({
       visible={isVisible}
       onRequestClose={handleClose}
     >
-      <View style={addressStyles.addressContainer}>
-        {/* Header */}
-        <View style={addressStyles.addressHeader}>
-          <TouchableOpacity
-            onPress={handleClose}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            activeOpacity={0.7}
-          >
-            <Icon 
-              name={currentScreen === 'list' ? "close" : "arrow-back"} 
-              size={24} 
-              color="#333" 
-            />
-          </TouchableOpacity>
-          <Text style={addressStyles.addressTitle}>
-            {getTitle()}
-          </Text>
-          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-
-            <View style={{ width: 24 }} />
-          </View>
-        </View>
-
-        {/* Search Bar - Solo mostrar en la pantalla de lista */}
-        {currentScreen === 'list' && (
-          <View style={addressStyles.searchContainer}>
-            <View style={addressStyles.searchInputContainer}>
-              <Icon name="search" size={20} color="#999" style={addressStyles.searchIcon} />
-              <TextInput
-                style={addressStyles.addressSearchInput}
-                placeholder="Search addresses..."
-                value={searchText}
-                onChangeText={setSearchText}
-                placeholderTextColor="#999"
-                autoCapitalize="none"
-                autoCorrect={false}
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+      >
+        <View style={addressStyles.addressContainer}>
+          {/* Header */}
+          <View style={addressStyles.addressHeader}>
+            <TouchableOpacity
+              onPress={handleClose}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              activeOpacity={0.7}
+            >
+              <Icon
+                name={currentScreen === 'list' ? "close" : "arrow-back"}
+                size={24}
+                color="#333"
               />
-              {searchText.length > 0 && (
-                <TouchableOpacity
-                  onPress={() => setSearchText('')}
-                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                >
-                  <Icon name="clear" size={20} color="#999" />
-                </TouchableOpacity>
-              )}
+            </TouchableOpacity>
+            <Text style={addressStyles.addressTitle}>
+              {getTitle()}
+            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+
+              <View style={{ width: 24 }} />
             </View>
           </View>
-        )}
-        {/* Content with conditional rendering for better ScrollView support */}
-        <View style={addressStyles.contentContainer}>
+
+          {/* Search Bar - Solo mostrar en la pantalla de lista */}
+          {currentScreen === 'list' && (
+            <View style={addressStyles.searchContainer}>
+              <View style={addressStyles.searchInputContainer}>
+                <Icon name="search" size={20} color="#999" style={addressStyles.searchIcon} />
+                <TextInput
+                  style={addressStyles.addressSearchInput}
+                  placeholder="Search addresses..."
+                  value={searchText}
+                  onChangeText={setSearchText}
+                  placeholderTextColor="#999"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+                {searchText.length > 0 && (
+                  <TouchableOpacity
+                    onPress={() => setSearchText('')}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  >
+                    <Icon name="clear" size={20} color="#999" />
+                  </TouchableOpacity>
+                )}
+              </View>
+            </View>
+          )}
+          {/* Content with conditional rendering for better ScrollView support */}
+          <View style={addressStyles.contentContainer}>
           {currentScreen === 'list' && (
             <AddressList
               addresses={addresses}
@@ -258,8 +263,7 @@ const AddressModal: React.FC<AddressModalProps> = ({
           )}
         </View>
       </View>
-
-
+      </KeyboardAvoidingView>
     </Modal>
   )
 }
