@@ -7,6 +7,7 @@ import { FlatList, Platform, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
 import SideMenu from '../(screens)/SideMenu';
+import { useAppDispatch, useAppSelector } from '@/store/hooks'
 
 interface Transaction {
   id: string;
@@ -25,10 +26,13 @@ const transactions: Transaction[] = [
 export default function BillingScreen() {
   const insets = useSafeAreaInsets();
   const [isMenuVisible, setMenuVisible] = useState(false);
+  const dispatch = useAppDispatch()
 
   const handleMenuPress = useCallback(() => {
     setMenuVisible(true);
   }, []);
+
+  
 
   const totalBalance = transactions
     .filter(t => t.type === 'payment')
@@ -117,7 +121,7 @@ export default function BillingScreen() {
         ListEmptyComponent={renderEmptyState}
       />
 
-      {/* Payment Method Section */}
+      {/* Payment Method Section 
       <View style={styles.paymentSection}>
         <Card variant="outlined" padding="md">
           <View style={styles.paymentHeader}>
@@ -136,7 +140,7 @@ export default function BillingScreen() {
             style={styles.addButton}
           />
         </Card>
-      </View>
+      </View>*/}
 
       <SideMenu
         isVisible={isMenuVisible}
