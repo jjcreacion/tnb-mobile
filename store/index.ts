@@ -16,6 +16,7 @@ import userReducer from './slices/userSlice'
 import addressReducer from './slices/addressSlice'
 import campaignReducer from './slices/campaignSlice'
 import categoryReducer from './slices/categorySlice'
+import invoiceReducer from './slices/invoiceSlice'
 import uiReducer from './slices/uiSlice'
 
 const rootReducer = combineReducers({
@@ -23,6 +24,7 @@ const rootReducer = combineReducers({
   address: addressReducer,
   campaign: campaignReducer,
   category: categoryReducer,
+  invoice: invoiceReducer,
   ui: uiReducer,
 })
 
