@@ -6,10 +6,13 @@ import { personAddressService } from '../services/api/personAddressService'
 import { personPhoneService } from '../services/api/personPhoneService'
 import { personService } from '../services/api/personService'
 import type { RegistrationFormData } from '../types/registration'
+import { useReferralAttribution } from './useReferralAttribution' 
 
 export const useRegistration = () => {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  
+  const { getStoredReferrerCode } = useReferralAttribution(); 
 
   const registerUser = async (formData: RegistrationFormData) => {
     setLoading(true)
@@ -19,12 +22,15 @@ export const useRegistration = () => {
       // Step 1: Get email and password from AsyncStorage
       const email = await AsyncStorage.getItem('emailForSignIn')
       const password = await AsyncStorage.getItem('passwordForSignUp')
+    
+      const referredByCode = await getStoredReferrerCode(); 
 
       if (!email || !password) {
         throw new Error('Email or password not found. Please restart the registration process.')
       }
 
       console.log('[useRegistration] Starting registration process')
+      console.log('Referral Code captured:', referredByCode || 'N/A')
       console.log('Step 1: Email and password from storage')
 
       // Step 2: Create Person
@@ -48,6 +54,7 @@ export const useRegistration = () => {
         // fkProfile: 1, // Ya no es necesario - el backend lo asigna automáticamente
         email,
         password, // Se envía en texto plano - el backend la hashea
+        referred_by_code: referredByCode || undefined, 
       })
       console.log('✅ User created successfully')
 
