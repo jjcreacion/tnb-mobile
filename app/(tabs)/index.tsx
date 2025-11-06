@@ -21,7 +21,7 @@ import { loadUserData } from '@/store/slices/userSlice'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import Constants from 'expo-constants'
 import { StatusBar } from 'expo-status-bar'
-import React, { useCallback, useEffect } from 'react'
+import React, { useCallback, useEffect, useMemo } from 'react'
 import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
@@ -58,17 +58,15 @@ const HomeScreen: React.FC = () => {
     useAppSelector((state) => state.campaign)
   const { categories, loading: loadingCategories, error: errorCategories } =
     useAppSelector((state) => state.category)
-  const {
-    isMenuVisible,
-    isSearchVisible,
-    serviceSearchQuery,
-    isRequestModalVisible,
-    selectedServiceData,
-    isCampaignModalVisible,
-    selectedCampaignData,
-    isAddressModalVisible,
-    referralReward,
-  } = useAppSelector((state) => state.ui)
+    const isMenuVisible = useAppSelector((state) => state.ui.isMenuVisible)
+  const isSearchVisible = useAppSelector((state) => state.ui.isSearchVisible)
+  const serviceSearchQuery = useAppSelector((state) => state.ui.serviceSearchQuery)
+  const isRequestModalVisible = useAppSelector((state) => state.ui.isRequestModalVisible)
+  const selectedServiceData = useAppSelector((state) => state.ui.selectedServiceData)
+  const isCampaignModalVisible = useAppSelector((state) => state.ui.isCampaignModalVisible)
+  const selectedCampaignData = useAppSelector((state) => state.ui.selectedCampaignData)
+  const isAddressModalVisible = useAppSelector((state) => state.ui.isAddressModalVisible)
+  const referralReward = useAppSelector((state) => state.ui.referralReward)
 
   // Load initial data
   useEffect(() => {
@@ -178,12 +176,40 @@ const HomeScreen: React.FC = () => {
     dispatch(loadUserAddresses())
   }, [dispatch])
 
+  const servicesExplorerComponent = useMemo(
+    () => (
+      <ServicesExplorer
+        categories={categories}
+        loading={loadingCategories}
+        error={errorCategories}
+        searchQuery={serviceSearchQuery}
+        isSearchVisible={isSearchVisible}
+        onServicePress={handleServicePress}
+        onToggleSearch={handleToggleSearch}
+        onSearchChange={handleSearchChange}
+        apiBaseUrl={API_BASE_URL}
+      />
+    ),
+    [
+      categories,
+      loadingCategories,
+      errorCategories,
+      serviceSearchQuery,
+      isSearchVisible,
+      handleServicePress,
+      handleToggleSearch,
+      handleSearchChange,
+    ]
+  )
+
+
   return (
     <View style={styles.container}>
       <StatusBar style="light" backgroundColor={Theme.colors.primary[500]} />
+     
       <HomeHeader
         onMenuPress={handleMenuPress}
-        referralReward={referralReward}
+        referralReward={referralReward || '15'}
         userBalance={userBalance}
       />
 
@@ -221,17 +247,7 @@ const HomeScreen: React.FC = () => {
           apiBaseUrl={API_BASE_URL}
         />
 
-        <ServicesExplorer
-          categories={categories}
-          loading={loadingCategories}
-          error={errorCategories}
-          searchQuery={serviceSearchQuery}
-          isSearchVisible={isSearchVisible}
-          onServicePress={handleServicePress}
-          onToggleSearch={handleToggleSearch}
-          onSearchChange={handleSearchChange}
-          apiBaseUrl={API_BASE_URL}
-        />
+      {servicesExplorerComponent}
       </ScrollView>
       </KeyboardAvoidingView>
 

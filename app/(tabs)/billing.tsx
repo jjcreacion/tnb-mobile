@@ -10,7 +10,6 @@ import SideMenu from '../(screens)/SideMenu';
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import { fetchInvoices } from '@/store/slices/invoiceSlice';
 
-// 💡 Tipo Invoice movido aquí para ser usado.
 export interface Invoice {
   invoice_id: number;
   fk_user: number;
@@ -23,16 +22,10 @@ export interface Invoice {
   updated_at: string;
 }  
 
-// 🚫 ELIMINAMOS los datos mock de Transaction
-// interface Transaction { ... }
-// const transactions: Transaction[] = [ ... ];
-
-
 export default function BillingScreen() {
   const insets = useSafeAreaInsets();
   const [isMenuVisible, setMenuVisible] = useState(false);
   const dispatch = useAppDispatch()
-  // 1. Obtener la lista de facturas, estado de carga y error desde Redux
   const { invoices, loading, error } = useAppSelector(state => state.invoice);
     
   const handleMenuPress = useCallback(() => {
@@ -43,60 +36,73 @@ export default function BillingScreen() {
       dispatch(fetchInvoices())
    }, [dispatch])
   
-  // 2. Actualizar el cálculo del balance usando las facturas reales
-  const totalBalance = invoices
-    .filter(i => i.invoice_status === 'paid') // Asumiendo 'paid' como status de pago
+  const totalSpent = invoices
+    .filter(i => i.invoice_status.toLowerCase() === 'paid') 
     .reduce((sum, i) => sum + i.invoice_amount, 0);
 
-  // 3. Funciones de acción para los botones
+  const sortedInvoices = [...invoices].sort((a, b) => {
+    if (a.invoice_date > b.invoice_date) return -1;
+    if (a.invoice_date < b.invoice_date) return 1;
+    return 0;
+  });
+
   const handleViewPdf = useCallback((url: string) => {
     if (url) {
       Linking.openURL(url);
     }
   }, []);
-
-  const handleDownloadPdf = useCallback((url: string) => {
-    // 💡 Implementación de la lógica de descarga (puede usar Expo FileSystem o RNFS)
-    // Por ahora, solo abrimos el enlace como acción de ejemplo
-    alert(`Descargando factura desde: ${url}`);
-    // Linking.openURL(url); 
-  }, []);
-
-
-  // 4. Nueva función de renderizado para Invoice
+  
   const renderInvoice = ({ item }: { item: Invoice }) => {
-    // Mapeamos el estado de la factura a una configuración de ícono/color similar al original
-    const getTypeConfig = (status: string) => {
-      switch (status) {
-        case 'paid':
-          return { icon: 'checkmark-circle', color: Theme.colors.success[500] };
-        case 'pending':
-          return { icon: 'time', color: Theme.colors.warning[500] };
-        // Puedes añadir más estados como 'cancelled', 'refunded', etc.
-        default:
-          return { icon: 'document-text', color: Theme.colors.neutral[500] };
-      }
+    
+    const getStatusConfig = (status: string) => {
+        switch (status.toLowerCase()) {
+            case 'paid':
+                return { 
+                    label: 'Paid', 
+                    color: Theme.colors.success[600], 
+                    bgColor: Theme.colors.success[50], 
+                    icon: 'checkmark-circle' 
+                };
+            case 'pending':
+                return { 
+                    label: 'Pending', 
+                    color: Theme.colors.warning[600], 
+                    bgColor: Theme.colors.warning[50],
+                    icon: 'time'
+                };
+            case 'cancelled':
+                return { 
+                    label: 'Cancelled', 
+                    color: Theme.colors.error[600], 
+                    bgColor: Theme.colors.error[50],
+                    icon: 'close-circle'
+                };
+            default:
+                return { 
+                    label: status.charAt(0).toUpperCase() + status.slice(1), 
+                    color: Theme.colors.neutral[600], 
+                    bgColor: Theme.colors.neutral[50],
+                    icon: 'document-text'
+                };
+        }
     };
 
-    const config = getTypeConfig(item.invoice_status);
+    const config = getStatusConfig(item.invoice_status);
 
     return (
-      <Card variant="outlined" padding="md" style={styles.transactionCard}>
+      <Card variant="outlined" padding="sm" style={styles.transactionCard}> 
         <View style={styles.transactionContent}>
-          {/* Icono de Status */}
-          <View style={[styles.iconContainer, { backgroundColor: config.color + '20' }]}>
+          <View style={[styles.iconContainer, { backgroundColor: config.bgColor }]}>
             <Icon name={config.icon} size={24} color={config.color} />
           </View>
 
-          {/* Detalles de la Factura */}
           <View style={styles.invoiceDetails}>
             <Text style={styles.invoiceNumber}>
-              Factura: <Text style={styles.invoiceNumberValue}>{item.invoice_number}</Text>
+              Invoice: <Text style={styles.invoiceNumberValue}>{item.invoice_number}</Text>
             </Text>
             <Text style={styles.invoiceDate}>{item.invoice_date}</Text>
           </View>
 
-          {/* Monto de la Factura */}
           <View style={styles.amountContainer}>
             <Text style={[styles.amountText, { color: config.color }]}>
               ${item.invoice_amount.toFixed(2)}
@@ -104,10 +110,9 @@ export default function BillingScreen() {
           </View>
         </View>
 
-        {/* 5. Contenedor de Botones de Acción */}
         <View style={styles.actionButtonsContainer}>
             <Button
-                title="Ver PDF"
+                title="View PDF" 
                 variant="outline"
                 size="sm"
                 icon={<Icon name="open" size={16} color={Theme.colors.primary[500]} />}
@@ -115,14 +120,11 @@ export default function BillingScreen() {
                 onPress={() => handleViewPdf(item.public_link)}
                 style={styles.actionButton}
             />
-            <Button
-                title="Descargar"
-                size="sm"
-                icon={<Icon name="download" size={16} color={Theme.colors.background.primary} />}
-                iconPosition="left"
-                onPress={() => handleDownloadPdf(item.public_link)}
-                style={styles.actionButton}
-            />
+            <View style={[styles.statusButton, { backgroundColor: config.bgColor, borderColor: config.color + '50' }]}>
+                <Text style={[styles.statusButtonText, { color: config.color }]}>
+                    {config.label}
+                </Text>
+            </View>
         </View>
       </Card>
     );
@@ -131,15 +133,15 @@ export default function BillingScreen() {
   const renderEmptyState = () => (
     <View style={styles.emptyState}>
       {loading ? (
-        <Text style={styles.emptyTitle}>Cargando Facturas...</Text>
+        <Text style={styles.emptyTitle}>Loading Invoices...</Text>
       ) : error ? (
-        <Text style={[styles.emptyTitle, { color: Theme.colors.error[500] }]}>Error al Cargar: {error}</Text>
+        <Text style={[styles.emptyTitle, { color: Theme.colors.error[500] }]}>Error Loading: {error}</Text>
       ) : (
         <>
           <Icon name="receipt-long" size={80} color={Theme.colors.neutral[300]} />
-          <Text style={styles.emptyTitle}>Aún no hay Facturas</Text>
+          <Text style={styles.emptyTitle}>No Invoices Yet</Text>
           <Text style={styles.emptyText}>
-            Tu historial de facturación aparecerá aquí.
+            Your billing history will appear here.
           </Text>
         </>
       )}
@@ -151,25 +153,22 @@ export default function BillingScreen() {
       <StatusBar style="light" backgroundColor={Theme.colors.primary[500]} />
       <BillingHeader onMenuPress={handleMenuPress} />
 
-      {/* Balance Card */}
       <Card variant="elevated" padding="lg" style={styles.balanceCard}>
-        <Text style={styles.balanceLabel}>Total Gastado</Text>
-        <Text style={styles.balanceAmount}>${totalBalance.toFixed(2)}</Text>
+        <Text style={styles.balanceLabel}>Total Spent</Text>
+        <Text style={styles.balanceAmount}>${totalSpent.toFixed(2)}</Text>
         <View style={styles.balanceFooter}>
           <Icon name="trending-up" size={16} color={Theme.colors.success[500]} />
-          <Text style={styles.balanceFooterText}>Histórico</Text>
+          <Text style={styles.balanceFooterText}>All-Time</Text>
         </View>
       </Card>
 
-      {/* Transaction History */}
       <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Historial de Facturas</Text>
-        <Icon name="funnel" size={20} color={Theme.colors.text.secondary} />
+        <Text style={styles.sectionTitle}>Invoice History</Text>
       </View>
 
       <FlatList
-        data={invoices} // 👈 USAR LA LISTA REAL
-        renderItem={renderInvoice} // 👈 USAR EL NUEVO RENDERER
+        data={sortedInvoices}
+        renderItem={renderInvoice}
         keyExtractor={(item) => item.invoice_id.toString()}
         contentContainerStyle={[
           styles.listContent,
@@ -190,7 +189,6 @@ export default function BillingScreen() {
 }
 
 const styles = StyleSheet.create({
-  // ... (Estilos existentes) ...
   container: {
     flex: 1,
     backgroundColor: Theme.colors.background.secondary,
@@ -198,9 +196,9 @@ const styles = StyleSheet.create({
   
   balanceCard: {
     marginBottom: Theme.spacing.xl,
-    backgroundColor: Theme.colors.primary[50],
+    backgroundColor: Theme.colors.neutral[50], 
     borderWidth: 1,
-    borderColor: Theme.colors.primary[100],
+    borderColor: Theme.colors.neutral[100], 
   },
   
   balanceLabel: {
@@ -212,7 +210,7 @@ const styles = StyleSheet.create({
   balanceAmount: {
     fontSize: Theme.typography.fontSize['4xl'],
     fontWeight: Theme.typography.fontWeight.bold,
-    color: Theme.colors.primary[600],
+    color: Theme.colors.primary[600], 
     marginBottom: Theme.spacing.sm,
   },
   
@@ -229,7 +227,7 @@ const styles = StyleSheet.create({
   
   sectionHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'space-between', 
     alignItems: 'center',
     marginBottom: Theme.spacing.base,
   },
@@ -251,18 +249,17 @@ const styles = StyleSheet.create({
   transactionContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: Theme.spacing.base, // Espacio antes de los botones
+    marginBottom: Theme.spacing.sm, 
   },
   
   iconContainer: {
-    width: 48,
-    height: 48,
+    width: 40, 
+    height: 40,
     borderRadius: Theme.borderRadius.md,
     alignItems: 'center',
     justifyContent: 'center',
   },
   
-  // 💡 NUEVOS ESTILOS PARA LA FACTURA (Ajustados de transactionDetails)
   invoiceDetails: {
     flex: 1,
     marginLeft: 12,
@@ -280,37 +277,49 @@ const styles = StyleSheet.create({
     color: Theme.colors.text.primary,
   },
   
-  invoiceDate: { // Usamos el estilo existente para la fecha
+  invoiceDate: {
     fontSize: Theme.typography.fontSize.sm,
     color: Theme.colors.text.tertiary,
   },
-  // 💡 FIN NUEVOS ESTILOS
   
   amountContainer: {
     alignItems: 'flex-end',
   },
   
   amountText: {
-    fontSize: Theme.typography.fontSize.lg,
+    fontSize: Theme.typography.fontSize.base, 
     fontWeight: Theme.typography.fontWeight.semiBold,
   },
   
-  // 💡 NUEVO ESTILO para los botones de acción
   actionButtonsContainer: {
       flexDirection: 'row',
       justifyContent: 'flex-end',
-      gap: Theme.spacing.sm, // Espacio entre los botones
-      marginTop: Theme.spacing.sm, // Separar del contenido superior
-      paddingTop: Theme.spacing.base,
+      gap: Theme.spacing.sm,
+      marginTop: Theme.spacing.sm, 
+      paddingTop: Theme.spacing.sm, 
       borderTopWidth: 1,
       borderTopColor: Theme.colors.neutral[100],
   },
 
   actionButton: {
-    minWidth: 120, // Dar un ancho mínimo para que se vean bien
+    minWidth: 100, 
+  },
+  
+  statusButton: {
+      paddingVertical: Theme.spacing.xs,
+      paddingHorizontal: Theme.spacing.base,
+      borderRadius: Theme.borderRadius.sm,
+      borderWidth: 1,
+      minWidth: 100, 
+      alignItems: 'center',
+      justifyContent: 'center',
   },
 
-  // ... (El resto de estilos, como emptyState, etc., se mantienen) ...
+  statusButtonText: {
+      fontSize: Theme.typography.fontSize.sm,
+      fontWeight: Theme.typography.fontWeight.semiBold,
+  },
+ 
   emptyState: {
     flex: 1,
     justifyContent: 'center',

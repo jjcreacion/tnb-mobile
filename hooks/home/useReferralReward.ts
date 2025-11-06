@@ -1,10 +1,11 @@
 import { useEffect } from 'react'
-import { useAppDispatch } from '@/store/hooks'
+import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import { setReferralReward } from '@/store/slices/uiSlice'
 import { settingsService } from '@/services/api'
 
 export const useReferralReward = () => {
   const dispatch = useAppDispatch()
+  const currentReward = useAppSelector((state) => state.ui.referralReward)
 
   useEffect(() => {
     const fetchReferralReward = async () => {
@@ -18,6 +19,8 @@ export const useReferralReward = () => {
       }
     }
 
-    fetchReferralReward()
-  }, [dispatch])
+    if (currentReward === null) {
+      fetchReferralReward()
+    }
+  }, [dispatch, currentReward])
 }

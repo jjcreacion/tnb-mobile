@@ -10,7 +10,7 @@ const tnbLogo = require('@/assets/images/icon-tnb.png');
 
 interface HomeHeaderProps {
   onMenuPress: () => void;
-  referralReward: string;
+  referralReward: string | null;
   userBalance: number | null;
 }
 

@@ -6,6 +6,7 @@ import * as Location from 'expo-location';
 import { Formik } from 'formik';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
+    Alert,
     Animated,
     Image,
     KeyboardAvoidingView,
@@ -259,6 +260,13 @@ const RequestMigrated: React.FC<ModalProps> = ({
 
   // Manejar selección de imágenes
   const handleImagePicker = async () => {
+
+    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (permissionResult.granted === false) {
+      Alert.alert('Permission Denied', 'We need access to your photo gallery to select images.');
+      return;
+    }
+
     let result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsMultipleSelection: true,
@@ -272,6 +280,14 @@ const RequestMigrated: React.FC<ModalProps> = ({
 
   // Manejar tomar foto con cámara
   const handleCameraCapture = async () => {
+
+    // Request permissions first
+    const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
+    if (permissionResult.granted === false) {
+      Alert.alert('Permission Denied', 'We need access to your camera to take a photo.');
+      return;
+    }
+    
     let result = await ImagePicker.launchCameraAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       quality: 1,
