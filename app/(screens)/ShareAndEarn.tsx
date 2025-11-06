@@ -2,24 +2,28 @@ import { FontAwesome } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 import Constants from 'expo-constants';
 import { useRouter } from 'expo-router';
+import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useState } from 'react';
 import { Alert, Image, Share, Text, TouchableOpacity, View } from 'react-native';
+import { loadUserData } from '@/store/slices/userSlice'
 
 // Theme System Components
 import { MigratedStyles } from '../../constants/MigratedStyles';
 import { Theme } from '../../constants/Theme';
 
+
 const ShareAndEarnScreen = () => {
+  
   const router = useRouter();
   const API_BASE_URL = Constants.expoConfig?.extra?.API_BASE_URL;
-  const URL_SHARE_AND_EARN = Constants.expoConfig?.extra?.API_BASE_URL || 'https://myapp.com/invite/';
-
+ 
   const [referralReward, setReferralReward] = useState<string>('19');
-  const [invitationCode, setInvitationCode] = useState<string>('12345678');
 
-  const inviteLink = `${URL_SHARE_AND_EARN}?code=${invitationCode}`;
+  const { userData } = useAppSelector((state) => state.user)
 
+  const invitationCode = userData?.referralCode
+  
   const fetchReferralReward = useCallback(async () => {
     try {
       const response = await fetch(
@@ -31,20 +35,42 @@ const ShareAndEarnScreen = () => {
         setReferralReward(rewardValue);
       } else {
         console.error('Error fetching referral reward, using default.');
-        console.log('setInvitationCode:',setInvitationCode)
       }
     } catch (error) {
       console.error('Error fetching referral reward:', error);
     }
   }, [API_BASE_URL]);
 
-  useEffect(() => {
+ 
+
+  const [shareBaseUrl, setShareBaseUrl] = useState<string>(API_BASE_URL);
+
+  const fetchShareBaseUrl = useCallback(async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/app-settings/url_share_and_earn`);
+      if (response.ok) {
+        const data = await response.json();
+        if (data?.value) {
+          setShareBaseUrl(data.value);
+        }
+      } else {
+        console.error('Error fetching share base URL, using default.');
+      }
+    } catch (error) {
+      console.error('Error fetching share base URL:', error);
+    }
+  }, [API_BASE_URL]);
+
+   useEffect(() => {
     fetchReferralReward();
-  }, [API_BASE_URL, fetchReferralReward]);
+    fetchShareBaseUrl();
+  }, [API_BASE_URL, fetchReferralReward, fetchShareBaseUrl]);
+
+  const inviteLink = `${shareBaseUrl}${invitationCode}`;
 
   const onShare = async () => {
     try {
-      const inviteMessage = `¡Únete a TNB y obtén un servicio de $${referralReward}! Usa mi enlace: ${inviteLink}`;
+      const inviteMessage = `Join TNB and get a $${referralReward} service! Use my link: ${inviteLink}`;
       const result = await Share.share({
         message: inviteMessage,
         url: inviteLink,

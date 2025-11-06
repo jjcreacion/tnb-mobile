@@ -27,22 +27,30 @@ interface ModalProps {
 }
 
 const SignUp: React.FC<ModalProps> = ({ isVisible, onClose }) => {
-  // State management
+  // 1. **Nuevos estados para el Código de Referido**
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  // NUEVO: Código de referido
+  const [referralCode, setReferralCode] = useState('');
+  // NUEVO: Indica si el usuario NO tiene código
+  const [noReferralCode, setNoReferralCode] = useState(false);
+  
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [confirmPasswordError, setConfirmPasswordError] = useState('');
+  // NUEVO: Error del código de referido
+  const [referralCodeError, setReferralCodeError] = useState('');
   const [exist, setExist] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showVerifyCode, setShowVerifyCode] = useState(false);
   const [verificationCode, setVerificationCode] = useState('');
 
-  // Refs for keyboard navigation (iOS)
+  // 2. **Ref para el campo de código de referido**
   const emailRef = useRef<TextInput>(null);
   const passwordRef = useRef<TextInput>(null);
   const confirmPasswordRef = useRef<TextInput>(null);
+  const referralCodeRef = useRef<TextInput>(null); // NUEVO Ref
 
   // Hooks
   const { dismissKeyboard } = useKeyboard();
@@ -54,9 +62,12 @@ const SignUp: React.FC<ModalProps> = ({ isVisible, onClose }) => {
       setEmail('');
       setPassword('');
       setConfirmPassword('');
+      setReferralCode(''); // Reiniciar
+      setNoReferralCode(false); // Reiniciar
       setEmailError('');
       setPasswordError('');
       setConfirmPasswordError('');
+      setReferralCodeError(''); // Reiniciar
       setShowVerifyCode(false);
       setExist(false);
     }
@@ -115,6 +126,7 @@ const SignUp: React.FC<ModalProps> = ({ isVisible, onClose }) => {
     setEmailError('');
     setPasswordError('');
     setConfirmPasswordError('');
+    setReferralCodeError(''); // Reiniciar error de referido
     setExist(false);
 
     // Validate email
@@ -135,6 +147,12 @@ const SignUp: React.FC<ModalProps> = ({ isVisible, onClose }) => {
       return;
     }
 
+    // 3. **Validación del Código de Referido**
+    if (!noReferralCode && !referralCode.trim()) {
+      setReferralCodeError('Please enter a referral code or check the box');
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -142,10 +160,13 @@ const SignUp: React.FC<ModalProps> = ({ isVisible, onClose }) => {
 
       if (existe) {
         setExist(true);
-        // setEmailError('This email is already registered');
       } else {
         await AsyncStorage.setItem('emailForSignIn', email);
         await AsyncStorage.setItem('passwordForSignUp', password);
+        // 4. **Almacenar el código de referido (o un indicador si no lo tiene)**
+        const codeToStore = noReferralCode ? '' : referralCode.trim();
+        await AsyncStorage.setItem('referralCodeForSignUp', codeToStore);
+        
         await generateVerificationCode();
         setShowVerifyCode(true);
       }
@@ -285,9 +306,58 @@ const SignUp: React.FC<ModalProps> = ({ isVisible, onClose }) => {
                           autoComplete="new-password"
                           textContentType="newPassword"
                           editable={!loading}
+                          returnKeyType="next"
+                          onSubmitEditing={() => referralCodeRef.current?.focus()} // Enfocar a Referido
+                        />
+                        
+                        {/* 5. **Input para Código de Referido** */}
+                        <Input
+                          ref={referralCodeRef}
+                          label="Referral Code (Optional)"
+                          placeholder="Enter code"
+                          value={referralCode}
+                          onChangeText={(text) => {
+                            setReferralCode(text);
+                            setReferralCodeError('');
+                          }}
+                          error={referralCodeError}
+                          leftIcon="person-add-outline" // Icono sugerido
+                          autoCapitalize="none"
+                          editable={!loading && !noReferralCode} // Deshabilitar si se marca el checkbox
                           returnKeyType="go"
                           onSubmitEditing={handleNext}
+                          containerStyle={styles.referralInput} // Estilo para separar un poco
                         />
+
+                        {/* 6. **Checkbox para "No tengo código"** */}
+                        <TouchableOpacity
+                          style={styles.checkboxContainer}
+                          onPress={() => {
+                            setNoReferralCode(!noReferralCode);
+                            if (!noReferralCode) { // Si se va a marcar
+                              setReferralCode(''); // Limpiar código
+                              setReferralCodeError(''); // Limpiar error
+                            }
+                          }}
+                          activeOpacity={0.8}
+                          disabled={loading}
+                        >
+                          <View style={[
+                            styles.checkbox,
+                            noReferralCode && styles.checkedCheckbox,
+                          ]}>
+                            {noReferralCode && (
+                              <Ionicons
+                                name="checkmark"
+                                size={14}
+                                color={Theme.colors.text.inverse}
+                              />
+                            )}
+                          </View>
+                          <Text style={styles.checkboxLabel}>
+                            I don't have a referral code
+                          </Text>
+                        </TouchableOpacity>
 
                         {exist && (
                           <View style={styles.errorContainer} pointerEvents="none">
@@ -340,6 +410,7 @@ const SignUp: React.FC<ModalProps> = ({ isVisible, onClose }) => {
   );
 };
 
+// 7. **Nuevos estilos para el checkbox**
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
@@ -454,6 +525,37 @@ const styles = StyleSheet.create({
   footerText: {
     fontSize: Theme.typography.fontSize.sm,
     color: Theme.colors.text.secondary,
+  },
+  
+  // ESTILOS NUEVOS
+  referralInput: {
+    marginBottom: Theme.spacing.sm, // Espacio antes del checkbox
+  },
+  checkboxContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: Theme.spacing.lg, // Espacio después del checkbox
+    paddingVertical: Theme.spacing.xs, // Pequeño padding para el área táctil
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderRadius: Theme.borderRadius.md,
+    borderWidth: 2,
+    borderColor: Theme.colors.primary[500],
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: Theme.spacing.sm,
+    backgroundColor: Theme.colors.background.primary,
+  },
+  checkedCheckbox: {
+    backgroundColor: Theme.colors.primary[500],
+    borderColor: Theme.colors.primary[500],
+  },
+  checkboxLabel: {
+    fontSize: Theme.typography.fontSize.sm,
+    color: Theme.colors.text.secondary,
+    fontWeight: Theme.typography.fontWeight.medium,
   },
 });
 

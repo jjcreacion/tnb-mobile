@@ -6,6 +6,7 @@ export interface User {
   person?: Person
   createdAt?: string
   updatedAt?: string
+  referralCode: string | null
 }
 
 export interface Person {

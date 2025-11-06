@@ -20,6 +20,7 @@ import * as Animatable from 'react-native-animatable';
 import * as Yup from 'yup';
 import ResetModal from './resetPassword';
 import SignUpModal from './signup';
+import { useReferralAttribution } from '../../hooks/useReferralAttribution' 
 
 const API_URL = Constants.expoConfig?.extra?.API_BASE_URL;
 
