@@ -23,7 +23,7 @@ export const useRegistration = () => {
       const email = await AsyncStorage.getItem('emailForSignIn')
       const password = await AsyncStorage.getItem('passwordForSignUp')
     
-      const referredByCode = await getStoredReferrerCode(); 
+      const referredByCode = await AsyncStorage.getItem('referralCodeForSignUp') 
 
       if (!email || !password) {
         throw new Error('Email or password not found. Please restart the registration process.')

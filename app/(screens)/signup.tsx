@@ -26,54 +26,53 @@ interface ModalProps {
   onClose: () => void;
 }
 
+// Interfaz para la respuesta exitosa del API de referido
+interface ReferralData {
+  email: string;
+  firstName: string;
+  lastName: string;
+}
+
 const SignUp: React.FC<ModalProps> = ({ isVisible, onClose }) => {
-  // 1. **Nuevos estados para el Código de Referido**
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  // NUEVO: Código de referido
   const [referralCode, setReferralCode] = useState('');
-  // NUEVO: Indica si el usuario NO tiene código
   const [noReferralCode, setNoReferralCode] = useState(false);
   
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [confirmPasswordError, setConfirmPasswordError] = useState('');
-  // NUEVO: Error del código de referido
   const [referralCodeError, setReferralCodeError] = useState('');
   const [exist, setExist] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showVerifyCode, setShowVerifyCode] = useState(false);
   const [verificationCode, setVerificationCode] = useState('');
 
-  // 2. **Ref para el campo de código de referido**
   const emailRef = useRef<TextInput>(null);
   const passwordRef = useRef<TextInput>(null);
   const confirmPasswordRef = useRef<TextInput>(null);
-  const referralCodeRef = useRef<TextInput>(null); // NUEVO Ref
+  const referralCodeRef = useRef<TextInput>(null); // Ref para Código de Referido
 
-  // Hooks
   const { dismissKeyboard } = useKeyboard();
   const API_URL = Constants.expoConfig?.extra?.API_BASE_URL;
 
-  // Reset form when modal opens
   useEffect(() => {
     if (isVisible) {
       setEmail('');
       setPassword('');
       setConfirmPassword('');
-      setReferralCode(''); // Reiniciar
-      setNoReferralCode(false); // Reiniciar
+      setReferralCode('');
+      setNoReferralCode(false);
       setEmailError('');
       setPasswordError('');
       setConfirmPasswordError('');
-      setReferralCodeError(''); // Reiniciar
+      setReferralCodeError('');
       setShowVerifyCode(false);
       setExist(false);
     }
   }, [isVisible]);
 
-  // Generate and send verification code
   const generateVerificationCode = async () => {
     const code = Math.floor(100000 + Math.random() * 900000).toString();
     setVerificationCode(code);
@@ -96,7 +95,6 @@ const SignUp: React.FC<ModalProps> = ({ isVisible, onClose }) => {
     }
   };
 
-  // Verify if user exists
   const verificarUsuario = async (valor: string): Promise<boolean> => {
     const ruta = `${API_URL}/user/verifyEmail?email=${encodeURIComponent(valor)}`;
 
@@ -116,63 +114,130 @@ const SignUp: React.FC<ModalProps> = ({ isVisible, onClose }) => {
       return datos.exists;
     } catch (error) {
       console.error('Error verificando email:', error);
+      // Asumimos true por seguridad si hay un error de red
       return true;
     }
   };
 
-  // Handle continue button
+  /**
+   * Nueva función para verificar el código de referido contra el API
+   */
+  const verifyReferralCodeApi = async (code: string): Promise<ReferralData> => {
+    const ruta = `${API_URL}/user/verifyReferralCode/${encodeURIComponent(code)}`;
+
+    try {
+      const respuesta = await fetch(ruta, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (respuesta.status === 404) {
+        // Código no encontrado o no válido
+        throw new Error('NOT_FOUND');
+      }
+
+      if (!respuesta.ok) {
+        // Otros errores del servidor
+        throw new Error(`Server Error: ${respuesta.status}`);
+      }
+
+      const datos: ReferralData = await respuesta.json();
+      return datos;
+    } catch (error) {
+      throw error;
+    }
+  };
+
   const handleNext = async () => {
-    // Reset errors
     setEmailError('');
     setPasswordError('');
     setConfirmPasswordError('');
-    setReferralCodeError(''); // Reiniciar error de referido
+    setReferralCodeError('');
     setExist(false);
 
-    // Validate email
+    // 1. Validaciones de campos requeridos (Email, Password)
     if (!validateEmail(email)) {
       setEmailError('Please enter a valid email');
       return;
     }
 
-    // Validate password
     if (!password || password.length < 8) {
       setPasswordError('Password must be at least 8 characters');
       return;
     }
 
-    // Validate confirm password
     if (password !== confirmPassword) {
       setConfirmPasswordError('Passwords must match');
       return;
     }
 
-    // 3. **Validación del Código de Referido**
+    // 2. Validación de código de referido
     if (!noReferralCode && !referralCode.trim()) {
       setReferralCodeError('Please enter a referral code or check the box');
       return;
     }
 
     setLoading(true);
+    let referralDataToStore: {
+      code: string;
+      refereeEmail: string;
+      refereeFullName: string;
+    } | null = null;
+    
+    // 3. Si se proporciona un código, verificarlo
+    if (!noReferralCode && referralCode.trim()) {
+      try {
+        const data = await verifyReferralCodeApi(referralCode.trim());
+        const fullName = `${data.firstName} ${data.lastName}`;
+        
+        referralDataToStore = {
+          code: referralCode.trim(),
+          refereeEmail: data.email,
+          refereeFullName: fullName,
+        };
+        // No hay error, proceed
+      } catch (error) {
+        // Si el API retorna error (ej. 404 NOT_FOUND)
+        setReferralCodeError(
+          'Invalid referral code. Please check the code or select "I don\'t have a referral code"',
+        );
+        setLoading(false);
+        return; // Detener el proceso si el código es inválido
+      }
+    }
 
+    // 4. Verificar si el email ya existe
     try {
       const existe = await verificarUsuario(email);
 
       if (existe) {
         setExist(true);
       } else {
+        // 5. Almacenar datos en AsyncStorage y avanzar a la verificación
+
         await AsyncStorage.setItem('emailForSignIn', email);
         await AsyncStorage.setItem('passwordForSignUp', password);
-        // 4. **Almacenar el código de referido (o un indicador si no lo tiene)**
-        const codeToStore = noReferralCode ? '' : referralCode.trim();
-        await AsyncStorage.setItem('referralCodeForSignUp', codeToStore);
+
+        // Limpiar/Establecer datos de referido
+        await AsyncStorage.removeItem('referreeEmail'); // Corregir si el nombre anterior era incorrecto
+        await AsyncStorage.removeItem('refereeFullName');
+        await AsyncStorage.removeItem('referralCodeForSignUp');
         
+        if (referralDataToStore) {
+          // Si el código fue validado exitosamente
+          await AsyncStorage.setItem('referralCodeForSignUp', referralDataToStore.code);
+          await AsyncStorage.setItem('refereeEmail', referralDataToStore.refereeEmail);
+          await AsyncStorage.setItem('refereeFullName', referralDataToStore.refereeFullName);
+        }
+
         await generateVerificationCode();
         setShowVerifyCode(true);
       }
     } catch (error) {
-      console.error('Error verificando email:', error);
-      setEmailError(`We couldn't verify your email. Please try again.`);
+      console.error('Error during signup process:', error);
+      setEmailError(`We couldn't complete the request. Please try again.`);
     } finally {
       setLoading(false);
     }
@@ -205,7 +270,6 @@ const SignUp: React.FC<ModalProps> = ({ isVisible, onClose }) => {
       statusBarTranslucent
     >
       <View style={styles.modalOverlay}>
-        {/* Backdrop only shown when NOT in VerifyCode screen */}
         {!showVerifyCode && (
           <TouchableWithoutFeedback onPress={handleBackdropPress}>
             <View style={styles.backdropArea} />
@@ -226,13 +290,11 @@ const SignUp: React.FC<ModalProps> = ({ isVisible, onClose }) => {
                       showsVerticalScrollIndicator={false}
                       bounces={true}
                     >
-                      {/* Header */}
                       <View style={styles.header} pointerEvents="box-none">
                         <Text style={styles.title} pointerEvents="none">Create Your Account</Text>
                         <Text style={styles.subtitle} pointerEvents="none">Let's get you started!</Text>
                       </View>
 
-                      {/* Close Button */}
                       <TouchableOpacity
                         onPress={handleClose}
                         style={styles.closeButton}
@@ -246,7 +308,6 @@ const SignUp: React.FC<ModalProps> = ({ isVisible, onClose }) => {
                         />
                       </TouchableOpacity>
 
-                      {/* Form */}
                       <View style={styles.form} pointerEvents="box-none">
                         <Input
                           ref={emailRef}
@@ -307,10 +368,9 @@ const SignUp: React.FC<ModalProps> = ({ isVisible, onClose }) => {
                           textContentType="newPassword"
                           editable={!loading}
                           returnKeyType="next"
-                          onSubmitEditing={() => referralCodeRef.current?.focus()} // Enfocar a Referido
+                          onSubmitEditing={() => referralCodeRef.current?.focus()}
                         />
                         
-                        {/* 5. **Input para Código de Referido** */}
                         <Input
                           ref={referralCodeRef}
                           label="Referral Code (Optional)"
@@ -321,22 +381,21 @@ const SignUp: React.FC<ModalProps> = ({ isVisible, onClose }) => {
                             setReferralCodeError('');
                           }}
                           error={referralCodeError}
-                          leftIcon="person-add-outline" // Icono sugerido
+                          leftIcon="person-add-outline" 
                           autoCapitalize="none"
-                          editable={!loading && !noReferralCode} // Deshabilitar si se marca el checkbox
+                          editable={!loading && !noReferralCode} 
                           returnKeyType="go"
                           onSubmitEditing={handleNext}
-                          containerStyle={styles.referralInput} // Estilo para separar un poco
+                          containerStyle={styles.referralInput} 
                         />
 
-                        {/* 6. **Checkbox para "No tengo código"** */}
                         <TouchableOpacity
                           style={styles.checkboxContainer}
                           onPress={() => {
                             setNoReferralCode(!noReferralCode);
-                            if (!noReferralCode) { // Si se va a marcar
-                              setReferralCode(''); // Limpiar código
-                              setReferralCodeError(''); // Limpiar error
+                            if (!noReferralCode) {
+                              setReferralCode('');
+                              setReferralCodeError('');
                             }
                           }}
                           activeOpacity={0.8}
@@ -410,7 +469,6 @@ const SignUp: React.FC<ModalProps> = ({ isVisible, onClose }) => {
   );
 };
 
-// 7. **Nuevos estilos para el checkbox**
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
@@ -527,15 +585,14 @@ const styles = StyleSheet.create({
     color: Theme.colors.text.secondary,
   },
   
-  // ESTILOS NUEVOS
   referralInput: {
-    marginBottom: Theme.spacing.sm, // Espacio antes del checkbox
+    marginBottom: Theme.spacing.sm,
   },
   checkboxContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: Theme.spacing.lg, // Espacio después del checkbox
-    paddingVertical: Theme.spacing.xs, // Pequeño padding para el área táctil
+    marginBottom: Theme.spacing.lg,
+    paddingVertical: Theme.spacing.xs,
   },
   checkbox: {
     width: 20,

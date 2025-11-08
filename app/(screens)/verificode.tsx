@@ -39,6 +39,7 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
   const inputsRef = useRef<(TextInput | null)[]>([]);
   const timeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const validationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [refereeFullName, setRefereeFullName] = useState<string | null>(null);
   
   // Track recent input activity to prevent phantom backspaces (iOS)
   const recentInputRef = useRef<{
@@ -236,11 +237,18 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
     }
   }, [logDebugEvent, verificationCode]);
 
+  //Load data Referred
+
+  const LoadReferred = async () => {
+    const name = await AsyncStorage.getItem('refereeFullName');
+    setRefereeFullName(name); 
+  }
+
   // Monitor clipboard changes periodically
   useEffect(() => {
     // Initial check
     checkClipboardForValidCode();
-
+    LoadReferred();
     // Check clipboard every 2 seconds when component is focused
     const interval = setInterval(() => {
       checkClipboardForValidCode();
@@ -1355,6 +1363,8 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
     return <Register />;
   }
 
+ 
+
   return (
     <>
       <StatusBar 
@@ -1385,6 +1395,11 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
                   We sent a code to{' '}
                   <Text style={styles.emailText}>{email}</Text>
                 </Text>
+               {refereeFullName && (
+                    <Text style={styles.subtitle}>
+                        Referred by: {refereeFullName}
+                    </Text>
+                )}
               </View>
 
               {/* Code Input */}

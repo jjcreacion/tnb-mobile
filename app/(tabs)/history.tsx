@@ -86,7 +86,6 @@ const HistoryScreen = () => {
         console.error('Error al obtener servicios:', response);
       }
     } catch (error) {
-      console.error('Network or other error fetching services:', error);
       setServices([]);
     } finally {
       setLoading(false);
