@@ -2,37 +2,114 @@ import { FontAwesome } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 import Constants from 'expo-constants';
 import { useRouter } from 'expo-router';
-import { useAppDispatch, useAppSelector } from '@/store/hooks'
+import { useAppSelector } from '@/store/hooks' // Manteniendo solo useAppSelector, useAppDispatch no se usa
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useState } from 'react';
 import { Alert, Image, Share, Text, TouchableOpacity, View, StyleSheet, ScrollView } from 'react-native'; 
-import { loadUserData } from '@/store/slices/userSlice'
 import ReferralListModal from '../../components/referral/ReferralListModal';
-import { Theme } from '../../constants/Theme';
+import { Theme } from '@/constants/Theme';
 
 const ShareAndEarnScreen = () => {
   
   const router = useRouter();
+  // Usamos el API_BASE_URL dinámico para el endpoint de configuración.
   const API_BASE_URL = Constants.expoConfig?.extra?.API_BASE_URL;
-  const [referralReward, setReferralReward] = useState<string>('19');
-  const [isReferralModalVisible, setReferralModalVisible] = useState(false);
-  const { userData } = useAppSelector((state) => state.user)
-  const invitationCode = userData?.referralCode
-  const userId = userData?.userId || 0; 
-  const fetchReferralReward = useCallback(async () => { /* ... */ }, [API_BASE_URL]);
-  const [shareBaseUrl, setShareBaseUrl] = useState<string>(API_BASE_URL);
-  const fetchShareBaseUrl = useCallback(async () => { /* ... */ }, [API_BASE_URL]);
 
+  // Inicialización con valores seguros/vacíos
+  const [referralReward, setReferralReward] = useState<string>('0'); 
+  const [shareBaseUrl, setShareBaseUrl] = useState<string>('');
+  const [isReferralModalVisible, setReferralModalVisible] = useState(false);
+
+  const { userData } = useAppSelector((state) => state.user);
+  const invitationCode = userData?.referralCode;
+  
+  // 1. IMPLEMENTACIÓN DE FETCH PARA MONTO DE RECOMPENSA
+  const fetchReferralReward = useCallback(async () => {
+    if (!API_BASE_URL) return;
+
+    try {
+      const endpoint = `${API_BASE_URL}/app-settings/referral_reward_amount`;
+      const response = await fetch(endpoint);
+      if (!response.ok) {
+        throw new Error('Failed to fetch referral reward amount.');
+      }
+      const data = await response.json();
+      // Asumiendo que 'value' contiene el monto como string (ej: "15.00")
+      setReferralReward(data.value || '0');
+    } catch (error) {
+      console.error('Error fetching referral reward:', error);
+      setReferralReward('0'); // Fallback
+    }
+  }, [API_BASE_URL]);
+
+  // 2. IMPLEMENTACIÓN DE FETCH PARA URL BASE
+  const fetchShareBaseUrl = useCallback(async () => {
+    if (!API_BASE_URL) return;
+
+    try {
+      const endpoint = `${API_BASE_URL}/app-settings/url_share_and_earn`;
+      const response = await fetch(endpoint);
+      if (!response.ok) {
+        throw new Error('Failed to fetch share base URL.');
+      }
+      const data = await response.json();
+      // Asumiendo que 'value' contiene la URL base (ej: "http://example.com/referrals/")
+      setShareBaseUrl(data.value || '');
+    } catch (error) {
+      console.error('Error fetching share base URL:', error);
+      setShareBaseUrl(''); // Fallback
+    }
+  }, [API_BASE_URL]);
+
+
+  // 3. useEffect para llamar a las funciones de fetch al cargar
    useEffect(() => {
     fetchReferralReward();
     fetchShareBaseUrl();
   }, [API_BASE_URL, fetchReferralReward, fetchShareBaseUrl]);
 
+  // La URL completa de invitación se crea con la base obtenida y el código del usuario.
   const inviteLink = `${shareBaseUrl}${invitationCode}`;
 
-  const onShare = async () => { /* ... */ };
+  // Mensaje de invitación en inglés (Opción 1)
+  const getShareMessage = () => {
+    return `Home Service Simplified! 🧹
+
+TNB is a new digital service platform developed to connect you instantly with reliable, top-rated domestic services (cleaning, repairs, maintenance, etc.).
+
+Join the future of home care!
+
+🔗 Sign up using this link: ${inviteLink}
+
+🤝 Use my invitation code: ${invitationCode}
+
+Start simplifying your life and get your first service gift today!`;
+  };
+
+
+  const onShare = async () => { 
+    const message = getShareMessage(); // Usamos la nueva función para obtener el mensaje
+    try {
+      const result = await Share.share({
+        message: message,
+        url: inviteLink,
+        title: 'Invite a Friend to [App Name]!',
+      });
+      if (result.action === Share.sharedAction) {
+        // Compartido exitosamente
+      }
+    } catch (error: any) {
+      Alert.alert('Error', error.message);
+    }
+  };
+  
+  const copyToClipboard = async () => {
+    await Clipboard.setStringAsync(inviteLink);
+    Alert.alert('Copied!', 'The invitation link has been copied to your clipboard.');
+  };
+
+
   const imgShare = require('@/assets/images/share.png')
-  const copyToClipboard = async () => { /* ... */ };
 
   return (
     <>
@@ -60,13 +137,15 @@ const ShareAndEarnScreen = () => {
           </View>
 
           <Text style={styles.title}>Invite a friend</Text>
+          {/* Muestra el monto de la recompensa cargado dinámicamente */}
           <Text style={styles.subtitle}>Share your invitation link so your friends can join and get a ${referralReward} service gift.</Text>
           
           <View style={styles.invitationLinkContainer}>
             <Text style={styles.invitationLinkText}>Your invitation link:</Text>
             <View style={styles.linkDisplay}>
+              {/* Muestra el enlace completo, cargado dinámicamente */}
               <Text style={styles.link} numberOfLines={1} ellipsizeMode="middle">
-                {inviteLink}
+                {inviteLink || 'Loading link...'}
               </Text>
               <TouchableOpacity onPress={copyToClipboard} style={styles.copyButton}>
                 <FontAwesome name="copy" size={18} color={Theme.colors.text.inverse} />
@@ -85,7 +164,7 @@ const ShareAndEarnScreen = () => {
                 style={styles.viewReferralsButton} 
                 onPress={() => setReferralModalVisible(true)}
             >
-                <FontAwesome name="list-alt" size={20} color={Theme.colors.text.primary} style={styles.viewReferralsIcon} />
+                <FontAwesome name="list-alt" size={20} color={Theme.colors.primary[500]} style={styles.viewReferralsIcon} />
                 <Text style={styles.viewReferralsText}>View My Referrals</Text>
                 <FontAwesome name="chevron-right" size={16} color={Theme.colors.text.secondary} />
             </TouchableOpacity>
@@ -112,7 +191,6 @@ const ShareAndEarnScreen = () => {
      <ReferralListModal
                 isVisible={isReferralModalVisible}
                 onClose={() => setReferralModalVisible(false)}
-                userId={userId}
                 API_BASE_URL={API_BASE_URL || ''}
               />
       </>
@@ -131,7 +209,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: Theme.spacing.base,
-    paddingVertical: Theme.spacing.xl, 
+    paddingVertical: Theme.spacing.lg,
     backgroundColor: Theme.colors.primary[500],
     paddingTop: 40, 
   },
@@ -142,14 +220,15 @@ const styles = StyleSheet.create({
     color: Theme.colors.text.inverse,
   },
   content: {
-    padding: Theme.spacing.xl,
+    padding: Theme.spacing.base, 
     alignItems: 'center',
+    paddingBottom: Theme.spacing.xl, 
   },
   imageContainer: {
     position: 'relative',
     width: '100%',
     height: 200,
-    marginBottom: Theme.spacing.xl,
+    marginBottom: Theme.spacing.lg, 
     borderRadius: Theme.borderRadius.lg,
     overflow: 'hidden',
     ...Theme.shadows.md,
@@ -177,12 +256,13 @@ const styles = StyleSheet.create({
     fontSize: Theme.typography.fontSize.base,
     color: Theme.colors.text.secondary,
     textAlign: 'center',
-    marginBottom: Theme.spacing['2xl'],
+    marginBottom: Theme.spacing.none, 
     paddingHorizontal: Theme.spacing.base,
   },
   invitationLinkContainer: {
     width: '100%',
-    marginBottom: Theme.spacing['2xl'],
+    marginTop: Theme.spacing.lg, 
+    marginBottom: Theme.spacing.base, 
     alignItems: 'flex-start',
   },
   invitationLinkText: {
@@ -216,7 +296,7 @@ const styles = StyleSheet.create({
   },
   buttonContainer: {
     width: '100%',
-    marginBottom: Theme.spacing.lg, 
+    marginBottom: Theme.spacing.sm, 
   },
   shareButton: {
     backgroundColor: Theme.colors.primary[500],
@@ -240,9 +320,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: Theme.spacing.base,
+    paddingVertical: Theme.spacing.sm,
     paddingHorizontal: Theme.spacing.sm,
-    marginBottom: Theme.spacing.lg,
+    marginBottom: Theme.spacing.sm, 
   },
   viewReferralsText: {
     flex: 1,
@@ -258,11 +338,11 @@ const styles = StyleSheet.create({
     height: 1,
     width: '100%',
     backgroundColor: Theme.colors.border.light,
-    marginBottom: Theme.spacing.xl,
+    marginBottom: Theme.spacing.sm, 
   },
   additionalInfoContainer: {
     width: '100%',
-    padding: Theme.spacing.lg,
+    padding: Theme.spacing.base, 
     backgroundColor: Theme.colors.background.primary, 
     borderRadius: Theme.borderRadius.md,
     borderWidth: 1,
@@ -272,7 +352,7 @@ const styles = StyleSheet.create({
   infoRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    marginBottom: Theme.spacing.base,
+    marginBottom: Theme.spacing.xs, 
   },
   infoIcon: {
     marginRight: Theme.spacing.sm,

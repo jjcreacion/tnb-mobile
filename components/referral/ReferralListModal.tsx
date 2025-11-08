@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Modal, View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, FlatList, Alert } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
-import { Theme } from '../../constants/Theme';
+import AsyncStorage from '@react-native-async-storage/async-storage'; // 1. IMPORTAR ASYNCSTORAGE
+import { Theme } from '@/constants/Theme';
 import Constants from 'expo-constants';
 
 interface ReferredUser {
@@ -13,7 +14,6 @@ interface ReferredUser {
 interface ReferralListModalProps {
   isVisible: boolean;
   onClose: () => void;
-  userId: number; 
   API_BASE_URL: string; 
 }
 
@@ -26,20 +26,134 @@ const formatDate = (dateString: string) => {
   });
 };
 
-const ReferralListModal: React.FC<ReferralListModalProps> = ({ isVisible, onClose, userId, API_BASE_URL }) => {
+const ReferralListModal: React.FC<ReferralListModalProps> = ({ isVisible, onClose, API_BASE_URL }) => {
+  const [internalUserId, setInternalUserId] = useState<number | null>(null);
   const [referrals, setReferrals] = useState<ReferredUser[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
  
-  const endpoint = `${API_BASE_URL}/user/referred-by/${userId}`;
+  const endpoint = `${API_BASE_URL}/user/referred-by/${internalUserId}`;
+
+  useEffect(() => {
+    const loadUserId = async () => {
+      try {
+        const userIdString = await AsyncStorage.getItem('userId');
+        if (userIdString) {
+          setInternalUserId(parseInt(userIdString, 10));
+        } else {
+          console.warn('User ID not found in AsyncStorage.');
+        }
+      } catch (e) {
+        console.error('Error reading userId from AsyncStorage', e);
+      }
+    };
+    loadUserId();
+  }, []);
+
+
+  const modalStyles = useMemo(() => StyleSheet.create({
+        centeredView: {
+            flex: 1,
+            justifyContent: 'flex-end',
+            alignItems: 'center',
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        },
+        modalView: {
+            width: '100%',
+            maxHeight: '80%', 
+            backgroundColor: Theme.colors.background.primary,
+            borderTopLeftRadius: Theme.borderRadius.xl,
+            borderTopRightRadius: Theme.borderRadius.xl,
+            padding: Theme.spacing.xl,
+            alignItems: 'center',
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: -2 },
+            shadowOpacity: 0.25,
+            shadowRadius: 4,
+            elevation: 5,
+        },
+        modalHeader: {
+            width: '100%',
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: Theme.spacing.lg,
+            paddingBottom: Theme.spacing.sm,
+            borderBottomWidth: 1,
+            borderBottomColor: Theme.colors.border.light,
+        },
+        modalTitle: {
+            fontSize: Theme.typography.fontSize['xl'],
+            fontWeight: Theme.typography.fontWeight.bold,
+            color: Theme.colors.text.primary,
+        },
+        closeButton: {
+            padding: Theme.spacing.xs,
+        },
+        loading: {
+            marginVertical: Theme.spacing['2xl'],
+        },
+        errorText: {
+            color: Theme.colors.error[500],
+            textAlign: 'center',
+            marginTop: Theme.spacing.lg,
+        },
+        list: {
+            width: '100%',
+        },
+        listItem: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            paddingVertical: Theme.spacing.base,
+            borderBottomWidth: 1,
+            borderBottomColor: Theme.colors.neutral[100],
+        },
+        icon: {
+            marginRight: Theme.spacing.lg,
+        },
+        textContainer: {
+            flex: 1,
+        },
+        listName: {
+            fontSize: Theme.typography.fontSize.base,
+            fontWeight: Theme.typography.fontWeight.medium,
+            color: Theme.colors.text.primary,
+        },
+        listDate: {
+            fontSize: Theme.typography.fontSize.sm,
+            color: Theme.colors.text.secondary,
+            marginTop: 2,
+        },
+        listReward: {
+            fontSize: Theme.typography.fontSize.base,
+            fontWeight: Theme.typography.fontWeight.bold,
+            color: Theme.colors.success[600],
+        },
+        emptyContainer: {
+            alignItems: 'center',
+            paddingVertical: Theme.spacing['2xl'],
+        },
+        emptyText: {
+            fontSize: Theme.typography.fontSize.lg,
+            fontWeight: Theme.typography.fontWeight.medium,
+            color: Theme.colors.neutral[500],
+            marginTop: Theme.spacing.lg,
+        },
+        emptyTextSmall: {
+            fontSize: Theme.typography.fontSize.base,
+            color: Theme.colors.neutral[400],
+            marginTop: Theme.spacing.sm,
+        }
+  }), [Theme]);
+
 
   const fetchReferrals = useCallback(async () => {
-    if (!userId || !isVisible) return;
+    if (!internalUserId || !isVisible) return; 
 
     setIsLoading(true);
     setError(null);
     try {
-      const response = await fetch(endpoint);
+      const response = await fetch(endpoint); 
       
       if (!response.ok) {
         if (response.status === 404 || response.status === 204) {
@@ -59,13 +173,14 @@ const ReferralListModal: React.FC<ReferralListModalProps> = ({ isVisible, onClos
     } finally {
       setIsLoading(false);
     }
-  }, [userId, isVisible]);
+  }, [internalUserId, isVisible, endpoint]); // Actualizar dependencias
+
 
   useEffect(() => {
-    if (isVisible) {
+    if (isVisible && internalUserId) { 
       fetchReferrals();
     }
-  }, [isVisible, fetchReferrals]);
+  }, [isVisible, internalUserId, fetchReferrals]); 
 
   const renderItem = ({ item }: { item: ReferredUser }) => (
     <View style={modalStyles.listItem}>
@@ -74,9 +189,19 @@ const ReferralListModal: React.FC<ReferralListModalProps> = ({ isVisible, onClos
         <Text style={modalStyles.listName}>{item.referredFullName}</Text>
         <Text style={modalStyles.listDate}>Joined: {formatDate(item.referredAt)}</Text>
       </View>
-      <Text style={modalStyles.listReward}>+${parseFloat(item.rewardAmount).toFixed(0)}</Text>
     </View>
   );
+
+  if (isVisible && internalUserId === null && !error && !isLoading) {
+    return (
+        <Modal animationType="slide" transparent={true} visible={isVisible} onRequestClose={onClose}>
+            <View style={modalStyles.centeredView}>
+                <ActivityIndicator size="large" color={Theme.colors.primary[500]} />
+            </View>
+        </Modal>
+    );
+  }
+
 
   return (
     <Modal
@@ -109,7 +234,7 @@ const ReferralListModal: React.FC<ReferralListModalProps> = ({ isVisible, onClos
             <FlatList
               data={referrals}
               renderItem={renderItem}
-              keyExtractor={(item, index) => index.toString()}
+              keyExtractor={(_, index) => index.toString()}
               style={modalStyles.list}
             />
           )}
@@ -118,100 +243,5 @@ const ReferralListModal: React.FC<ReferralListModalProps> = ({ isVisible, onClos
     </Modal>
   );
 };
-
-const modalStyles = StyleSheet.create({
-    centeredView: {
-        flex: 1,
-        justifyContent: 'flex-end',
-        alignItems: 'center',
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    },
-    modalView: {
-        width: '100%',
-        maxHeight: '80%', 
-        backgroundColor: Theme.colors.background.primary,
-        borderTopLeftRadius: Theme.borderRadius.xl,
-        borderTopRightRadius: Theme.borderRadius.xl,
-        padding: Theme.spacing.xl,
-        alignItems: 'center',
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: -2 },
-        shadowOpacity: 0.25,
-        shadowRadius: 4,
-        elevation: 5,
-    },
-    modalHeader: {
-        width: '100%',
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: Theme.spacing.lg,
-        paddingBottom: Theme.spacing.sm,
-        borderBottomWidth: 1,
-        borderBottomColor: Theme.colors.border.light,
-    },
-    modalTitle: {
-        fontSize: Theme.typography.fontSize['xl'],
-        fontWeight: Theme.typography.fontWeight.bold,
-        color: Theme.colors.text.primary,
-    },
-    closeButton: {
-        padding: Theme.spacing.xs,
-    },
-    loading: {
-        marginVertical: Theme.spacing['2xl'],
-    },
-    errorText: {
-        color: Theme.colors.danger[500],
-        textAlign: 'center',
-        marginTop: Theme.spacing.lg,
-    },
-    list: {
-        width: '100%',
-    },
-    listItem: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingVertical: Theme.spacing.base,
-        borderBottomWidth: 1,
-        borderBottomColor: Theme.colors.neutral[100],
-    },
-    icon: {
-        marginRight: Theme.spacing.lg,
-    },
-    textContainer: {
-        flex: 1,
-    },
-    listName: {
-        fontSize: Theme.typography.fontSize.base,
-        fontWeight: Theme.typography.fontWeight.medium,
-        color: Theme.colors.text.primary,
-    },
-    listDate: {
-        fontSize: Theme.typography.fontSize.sm,
-        color: Theme.colors.text.secondary,
-        marginTop: 2,
-    },
-    listReward: {
-        fontSize: Theme.typography.fontSize.base,
-        fontWeight: Theme.typography.fontWeight.bold,
-        color: Theme.colors.success[600],
-    },
-    emptyContainer: {
-        alignItems: 'center',
-        paddingVertical: Theme.spacing['2xl'],
-    },
-    emptyText: {
-        fontSize: Theme.typography.fontSize.lg,
-        fontWeight: Theme.typography.fontWeight.medium,
-        color: Theme.colors.neutral[500],
-        marginTop: Theme.spacing.lg,
-    },
-    emptyTextSmall: {
-        fontSize: Theme.typography.fontSize.base,
-        color: Theme.colors.neutral[400],
-        marginTop: Theme.spacing.sm,
-    }
-});
 
 export default ReferralListModal;

@@ -36,7 +36,6 @@ const ActivityScreen = () => {
 
       if (response.status === 200) {
         setServices(response.data);
-        console.log('Datos del usuario cargados:', response.data);
       } else if (response.status === 404) {
         if (response.data && response.data.message && response.data.message.includes('No requests found')) {
           setServices([]);

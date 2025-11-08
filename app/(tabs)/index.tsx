@@ -5,6 +5,7 @@ import {
   updatePrimaryAddress,
 } from '@/store/slices/addressSlice'
 import { expressInterest, fetchCampaigns } from '@/store/slices/campaignSlice'
+import { shallowEqual } from 'react-redux'; // Necesaria para la corrección
 import { fetchCategories } from '@/store/slices/categorySlice'
 import {
   closeAddressModal,
@@ -49,16 +50,28 @@ const HomeScreen: React.FC = () => {
   // Load referral reward
   useReferralReward()
 
-  // Redux selectors
-  const { userName, userBalance } = useAppSelector((state) => state.user)
-  const { addresses, primaryAddress, cities, states } = useAppSelector(
-    (state) => state.address
-  )
-  const { campaigns, loading: loadingCampaigns, error: errorCampaigns } =
-    useAppSelector((state) => state.campaign)
-  const { categories, loading: loadingCategories, error: errorCategories } =
-    useAppSelector((state) => state.category)
-    const isMenuVisible = useAppSelector((state) => state.ui.isMenuVisible)
+  // User
+  const userName = useAppSelector((state) => state.user.userName)
+  const userBalance = useAppSelector((state) => state.user.userBalance)
+
+  // Address
+  const addresses = useAppSelector((state) => state.address.addresses, shallowEqual); 
+  const primaryAddress = useAppSelector((state) => state.address.primaryAddress, shallowEqual); 
+  const cities = useAppSelector((state) => state.address.cities, shallowEqual); 
+  const states = useAppSelector((state) => state.address.states, shallowEqual); 
+
+  // Campaign
+  const campaigns = useAppSelector((state) => state.campaign.campaigns, shallowEqual); 
+  const loadingCampaigns = useAppSelector((state) => state.campaign.loading);
+  const errorCampaigns = useAppSelector((state) => state.campaign.error);
+
+  // Category
+  const categories = useAppSelector((state) => state.category.categories, shallowEqual); 
+  const loadingCategories = useAppSelector((state) => state.category.loading);
+  const errorCategories = useAppSelector((state) => state.category.error);
+    
+  // UI
+  const isMenuVisible = useAppSelector((state) => state.ui.isMenuVisible)
   const isSearchVisible = useAppSelector((state) => state.ui.isSearchVisible)
   const serviceSearchQuery = useAppSelector((state) => state.ui.serviceSearchQuery)
   const isRequestModalVisible = useAppSelector((state) => state.ui.isRequestModalVisible)
@@ -77,7 +90,6 @@ const HomeScreen: React.FC = () => {
     dispatch(fetchCategories())
   }, [dispatch])
 
-  // Handlers
   const handleMenuPress = useCallback(() => {
     dispatch(setMenuVisible(true))
   }, [dispatch])
@@ -176,37 +188,11 @@ const HomeScreen: React.FC = () => {
     dispatch(loadUserAddresses())
   }, [dispatch])
 
-  const servicesExplorerComponent = useMemo(
-    () => (
-      <ServicesExplorer
-        categories={categories}
-        loading={loadingCategories}
-        error={errorCategories}
-        searchQuery={serviceSearchQuery}
-        isSearchVisible={isSearchVisible}
-        onServicePress={handleServicePress}
-        onToggleSearch={handleToggleSearch}
-        onSearchChange={handleSearchChange}
-        apiBaseUrl={API_BASE_URL}
-      />
-    ),
-    [
-      categories,
-      loadingCategories,
-      errorCategories,
-      serviceSearchQuery,
-      isSearchVisible,
-      handleServicePress,
-      handleToggleSearch,
-      handleSearchChange,
-    ]
-  )
-
 
   return (
     <View style={styles.container}>
       <StatusBar style="light" backgroundColor={Theme.colors.primary[500]} />
-     
+      
       <HomeHeader
         onMenuPress={handleMenuPress}
         referralReward={referralReward || '15'}
@@ -247,7 +233,18 @@ const HomeScreen: React.FC = () => {
           apiBaseUrl={API_BASE_URL}
         />
 
-      {servicesExplorerComponent}
+      <ServicesExplorer
+          categories={categories}
+          loading={loadingCategories}
+          error={errorCategories}
+          searchQuery={serviceSearchQuery}
+          isSearchVisible={isSearchVisible}
+          onServicePress={handleServicePress}
+          onToggleSearch={handleToggleSearch}
+          onSearchChange={handleSearchChange}
+          apiBaseUrl={API_BASE_URL}
+        />
+
       </ScrollView>
       </KeyboardAvoidingView>
 
