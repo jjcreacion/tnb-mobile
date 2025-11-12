@@ -10,6 +10,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Image,
   ImageBackground,
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
   StatusBar,
@@ -20,7 +21,6 @@ import * as Animatable from 'react-native-animatable';
 import * as Yup from 'yup';
 import ResetModal from './resetPassword';
 import SignUpModal from './signup';
-import { useReferralAttribution } from '../../hooks/useReferralAttribution' 
 
 const API_URL = Constants.expoConfig?.extra?.API_BASE_URL;
 
@@ -87,6 +87,11 @@ export default function LoginScreenMigrated() {
           AsyncStorage.setItem('accessToken', data.accessToken),
           AsyncStorage.setItem('userId', String(data.pkUser))
         ]);
+        
+        if (Platform.OS === 'android') {
+          Keyboard.dismiss();
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
         router.push('/(tabs)');
       } else {
         setErrorMessage(`Email or password incorrect.\nPlease try again.`);

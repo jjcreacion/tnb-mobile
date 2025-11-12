@@ -1,13 +1,13 @@
+import { Theme } from '@/constants/Theme';
+import { useAppSelector } from '@/store/hooks'; // Manteniendo solo useAppSelector, useAppDispatch no se usa
 import { FontAwesome } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 import Constants from 'expo-constants';
 import { useRouter } from 'expo-router';
-import { useAppSelector } from '@/store/hooks' // Manteniendo solo useAppSelector, useAppDispatch no se usa
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useState } from 'react';
-import { Alert, Image, Share, Text, TouchableOpacity, View, StyleSheet, ScrollView } from 'react-native'; 
+import { Alert, Image, ScrollView, Share, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import ReferralListModal from '../../components/referral/ReferralListModal';
-import { Theme } from '@/constants/Theme';
 
 const ShareAndEarnScreen = () => {
   
@@ -256,7 +256,7 @@ const styles = StyleSheet.create({
     fontSize: Theme.typography.fontSize.base,
     color: Theme.colors.text.secondary,
     textAlign: 'center',
-    marginBottom: Theme.spacing.none, 
+    marginBottom: Theme.spacing.xs, 
     paddingHorizontal: Theme.spacing.base,
   },
   invitationLinkContainer: {
