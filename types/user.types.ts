@@ -7,6 +7,8 @@ export interface User {
   createdAt?: string
   updatedAt?: string
   referralCode: string | null
+  allNotifications: boolean | null; 
+  smsNotifications: boolean | null;
 }
 
 export interface Person {

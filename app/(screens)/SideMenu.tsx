@@ -119,7 +119,7 @@ const SideMenu: React.FC<SideMenuProps> = ({ isVisible, onClose }) => {
       id: 'notifications',
       label: 'Notifications',
       icon: 'notifications',
-      badge: 3,
+      route: '/(screens)/Notifications',
       color: Theme.colors.info[500],
     },
     {

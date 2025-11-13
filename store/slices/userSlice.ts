@@ -21,6 +21,37 @@ const initialState: UserState = {
   error: null,
 }
 
+export const toggleSmsNotifications = createAsyncThunk(
+  'user/toggleSmsNotifications',
+  async (status: boolean, { getState, rejectWithValue }) => {
+    try {
+      // ... (Lógica para obtener userId se mantiene)
+      const state = getState() as { user: UserState };
+      let userId = state.user.userId;
+      
+      if (!userId) {
+        // Esto devuelve el mensaje "User ID no encontrado para el toggle."
+        return rejectWithValue('User ID no encontrado para el toggle.');
+      }
+
+      // 1. Llamada al servicio
+      const newStatus = await userService.toggleSmsNotifications(userId, status);
+      
+      return newStatus; 
+    } catch (error: any) {
+      // 2. Manejo Universal de Errores: 
+      // Si la API lanza un error, usamos su mensaje o proporcionamos uno genérico.
+      const errorMessage = error?.message || 'Error al conectar con el servidor.';
+      
+      console.error('Error al cambiar notificaciones SMS:', errorMessage); 
+      
+      // 3. Devolver el mensaje de error seguro
+      return rejectWithValue(errorMessage);
+    }
+  }
+);
+
+
 export const loadUserData = createAsyncThunk(
   'user/loadUserData',
   async (_, { rejectWithValue }) => {
@@ -31,6 +62,7 @@ export const loadUserData = createAsyncThunk(
       }
 
       const userData = await userService.getUserById(userId)
+      console.log(userData);
 
       let userName = 'User'
       if (userData?.person?.firstName && userData?.person?.lastName) {
@@ -87,6 +119,23 @@ const userSlice = createSlice({
         state.userName = 'User'
         state.userBalance = null
       })
+      .addCase(toggleSmsNotifications.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(toggleSmsNotifications.fulfilled, (state, action: PayloadAction<boolean>) => {
+        state.loading = false;
+        const numericStatus = action.payload ? 1 : 0;
+        
+        if (state.userData) {
+          state.userData.smsNotifications = numericStatus;
+        }
+      })
+      .addCase(toggleSmsNotifications.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+        console.error('Error al cambiar notificaciones SMS:', action.payload);
+      });
   },
 })
 

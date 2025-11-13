@@ -9,7 +9,7 @@ export default function RootLayout() {
         <Stack.Screen name="register" options={{ headerShown: false }} />
 
         <Stack.Screen name="RequestModal" options={{ headerShown: false }} />
-
+        <Stack.Screen name="Notifications" options={{ headerShown: false }} />
         <Stack.Screen name="ShareAndEarn" options={{ headerShown: false }} />
         <Stack.Screen name="TermsAndPolicies" options={{ headerShown: false }} />
         <Stack.Screen name="policies" options={{ headerShown: false }} />
