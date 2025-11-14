@@ -3,20 +3,18 @@ import { useAppSelector, useAppDispatch } from '@/store/hooks';
 import { toggleSmsNotifications } from '@/store/slices/userSlice'; 
 import { FontAwesome } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+// Importar React y los hooks necesarios
+import React, { useState, useEffect, useMemo } from 'react'; 
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View, Switch } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 
-// --- 1. Definición de la Interfaz y Componente de Toggle ---
 
 interface NotificationToggleProps {
   label: string;
   isEnabled: boolean;
   onToggle: (newValue: boolean) => void;
   iconName: keyof typeof FontAwesome.glyphMap;
-  // 💡 NUEVA PROPIEDAD: Deshabilita el Switch durante la carga de Redux/API.
-  isDisabled: boolean; 
 }
 
 const NotificationToggle: React.FC<NotificationToggleProps> = ({ 
@@ -24,7 +22,6 @@ const NotificationToggle: React.FC<NotificationToggleProps> = ({
   isEnabled, 
   onToggle, 
   iconName, 
-  isDisabled 
 }) => (
   <View style={notificationStyles.toggleRow}>
     <View style={notificationStyles.toggleIconText}>
@@ -36,8 +33,6 @@ const NotificationToggle: React.FC<NotificationToggleProps> = ({
       thumbColor={isEnabled ? Theme.colors.primary[500] : Theme.colors.neutral[500]}
       onValueChange={onToggle}
       value={isEnabled}
-      // 💡 Se aplica la propiedad 'disabled'
-      disabled={isDisabled} 
     />
   </View>
 );
@@ -51,23 +46,48 @@ const NotificationsScreen = () => {
   
   // Obtener el valor del Store y el estado de carga
   const smsNotificationsValue = useAppSelector((state) => state.user.userData?.smsNotifications);
-  const loadingToggle = useAppSelector((state) => state.user.loading); // <-- Estado de carga
+  const loadingToggle = useAppSelector((state) => state.user.loading); 
 
-  // Coerción a booleano: garantiza que el Switch reciba un valor booleano
+  // Coerción a booleano del valor de Redux (la verdad del servidor)
   const isEmailEnabledFromStore = !!smsNotificationsValue;
+
+  // ✨ 1. ESTADO LOCAL TEMPORAL/OPTIMISTA
+  // Usamos useMemo para obtener el valor inicial de Redux de forma segura
+  const initialSmsValue = useMemo(() => isEmailEnabledFromStore, []);
+  
+  // Usamos ese valor inicial de Redux para inicializar el estado local
+  const [isSmsEnabledOptimistic, setIsSmsEnabledOptimistic] = useState(initialSmsValue);
+  
+  // ✨ 2. EFECTO DE RESINCRONIZACIÓN POST-CARGA
+  // Esto es vital para revertir el estado local si la llamada falla
+  useEffect(() => {
+    // Si la carga ha terminado (loadingToggle es false)
+    // Y el valor optimista no coincide con la "verdad" de Redux
+    if (!loadingToggle && isSmsEnabledOptimistic !== isEmailEnabledFromStore) {
+        // Esto significa que la API falló o Redux se actualizó a un valor diferente
+        // Revertimos o sincronizamos el estado optimista con el valor de Redux
+        setIsSmsEnabledOptimistic(isEmailEnabledFromStore);
+    }
+    // Si el valor del store cambia externamente (ej: otro componente lo modificó)
+    // también sincronizamos el valor optimista.
+  }, [isEmailEnabledFromStore, loadingToggle]); 
+
 
   // Estado local para Push (si no está gestionado por Redux)
   const [isPushEnabled, setIsPushEnabled] = useState(true);
   
   const handlePushToggle = (newValue: boolean) => {
     setIsPushEnabled(newValue);
-    // Lógica para actualizar Push Notifications si fuera necesario
   };
   
   const handleEmailToggle = (newValue: boolean) => {
+    // 💡 Paso Optimista: El Switch se mueve al instante
+    setIsSmsEnabledOptimistic(newValue); 
+
     // Llama al Thunk para actualizar en la Base de Datos y Redux
     dispatch(toggleSmsNotifications(newValue)); 
   };
+
 
   return (
     <View style={styles.fullContainer}> 
@@ -99,8 +119,6 @@ const NotificationsScreen = () => {
             isEnabled={isPushEnabled}
             onToggle={handlePushToggle}
             iconName="bell"
-            // No deshabilitamos este si no usa el mismo thunk de carga
-            isDisabled={false} 
           />
           
           <View style={notificationStyles.separator} />
@@ -108,19 +126,15 @@ const NotificationsScreen = () => {
           {/* Email/SMS Notifications */}
           <NotificationToggle
             label="Email/SMS Notifications"
-            isEnabled={isEmailEnabledFromStore}
+            // 💡 Usamos el estado optimista para controlar el Switch
+            isEnabled={isSmsEnabledOptimistic} 
             onToggle={handleEmailToggle} 
             iconName="envelope"
-            // 💡 Se deshabilita mientras el thunk está pendiente (loadingToggle = true)
-            isDisabled={loadingToggle} 
-          />
+           />
           
         </View>
         
-        {/* Indicador de carga opcional */}
-        {loadingToggle && <Text style={{ marginTop: 10, color: Theme.colors.primary[500] }}>Actualizando...</Text>}
-        <Text style={{ marginTop: 10 }}>Estado actual: {String(smsNotificationsValue)}</Text>
-        
+         
       </ScrollView>
     </View>
   );
