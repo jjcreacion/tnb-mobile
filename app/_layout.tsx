@@ -10,10 +10,19 @@ import 'react-native-reanimated';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Provider } from 'react-redux';
 import { PersistGate } from 'redux-persist/integration/react';
-
+import * as Notifications from 'expo-notifications'; // Importación ya existente
 import { Theme } from '@/constants/Theme';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { persistor, store } from '@/store';
+
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowBanner: true, 
+    shouldShowList: true,   
+    shouldPlaySound: false,
+    shouldSetBadge: false,
+  }),
+});
 
 SplashScreen.preventAutoHideAsync();
 
@@ -29,10 +38,20 @@ export default function RootLayout() {
     }
   }, [loaded]);
 
-  // Configure Android Navigation Bar
   useEffect(() => {
     if (Platform.OS === 'android') {
       SystemUI.setBackgroundColorAsync(Theme.colors.navigation.bar);
+      
+      try {
+        Notifications.setNotificationChannelAsync('default', {
+            name: 'Default Notifications',
+            importance: Notifications.AndroidImportance.DEFAULT,
+            vibrationPattern: [0, 250, 250, 250],
+            lightColor: Theme.colors.primary[500],
+        });
+      } catch (error) {
+         console.warn("Could not set Android notification channel:", error);
+      }
     }
   }, []);
 
