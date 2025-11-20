@@ -4,6 +4,7 @@ import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 import type { ReadDeviceDto, CreateDeviceDto, UpdateDevicePreferencesDto } from '@/types/device.types'; 
 import { deviceService } from '@/services/api/deviceService'; 
+import Constants from 'expo-constants';
 
 interface DeviceState {
   token: string | null;           
@@ -26,6 +27,11 @@ export const registerDevice = createAsyncThunk<
 >(
   'device/registerDevice',
   async (_, { rejectWithValue }) => {
+    
+    if (Constants.appOwnership === 'expo' && Platform.OS === 'android') {
+      console.warn('Skipping push notification registration: Not supported in Expo Go on Android. Use a development build.');
+      return rejectWithValue('Push notifications are not supported in Expo Go on Android.');
+    }
     
     const userIdRaw = await AsyncStorage.getItem('userId');
 
@@ -69,7 +75,7 @@ export const registerDevice = createAsyncThunk<
         
         const response = await deviceService.registerDevice(payload);
         await AsyncStorage.setItem('deviceToken', expoToken); 
-        
+        console.log("Token = "+expoToken); 
         return response.data; 
     } catch (error) {
         return rejectWithValue('Error al registrar el dispositivo en el servidor.');

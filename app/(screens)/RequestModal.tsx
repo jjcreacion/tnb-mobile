@@ -303,23 +303,46 @@ const RequestMigrated: React.FC<ModalProps> = ({
     setImages((prevImages) => prevImages.filter((uri) => uri !== uriToRemove));
   };
 
-  // Obtener ubicación
   const getLocation = async () => {
     let { status } = await Location.requestForegroundPermissionsAsync();
+    
     if (status !== 'granted') {
-      console.log('Permission to access location was denied');
+      console.warn('Ubicación: Permiso denegado. Se usará la ubicación por defecto.');
+      setRegion({
+        latitude: 37.78825,
+        longitude: -122.4324,
+        latitudeDelta: 0.005,
+        longitudeDelta: 0.005,
+      });
+      setLatitude(null);
+      setLongitude(null);
       return;
     }
-
-    let location = await Location.getCurrentPositionAsync({});
-    setLatitude(location.coords.latitude);
-    setLongitude(location.coords.longitude);
-    setRegion({
-      latitude: location.coords.latitude,
-      longitude: location.coords.longitude,
-      latitudeDelta: 0.005,
-      longitudeDelta: 0.005,
-    });
+  
+    try {
+      let location = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced, // Propiedad válida
+      });
+  
+      setLatitude(location.coords.latitude);
+      setLongitude(location.coords.longitude);
+      setRegion({
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+        latitudeDelta: 0.005,
+        longitudeDelta: 0.005,
+      });
+    } catch (error) {
+      console.warn('Ubicación: Falló la solicitud de GPS (servicios del dispositivo insatisfactorios). Se usará la ubicación por defecto.');
+      setRegion({
+        latitude: 37.78825,
+        longitude: -122.4324,
+        latitudeDelta: 0.005,
+        longitudeDelta: 0.005,
+      });
+      setLatitude(null);
+      setLongitude(null);
+    }
   };
 
   // Subir imágenes

@@ -19,6 +19,7 @@ import {
   toggleSearch,
 } from '@/store/slices/uiSlice'
 import { loadUserData } from '@/store/slices/userSlice'
+import { registerDevice } from '@/store/slices/deviceSlice';
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import Constants from 'expo-constants'
 import { StatusBar } from 'expo-status-bar'
@@ -81,14 +82,21 @@ const HomeScreen: React.FC = () => {
   const isAddressModalVisible = useAppSelector((state) => state.ui.isAddressModalVisible)
   const referralReward = useAppSelector((state) => state.ui.referralReward)
 
-  // Load initial data
   useEffect(() => {
     dispatch(loadUserData())
-    dispatch(loadUserAddresses())
-    dispatch(loadCitiesAndStates())
-    dispatch(fetchCampaigns())
-    dispatch(fetchCategories())
-  }, [dispatch])
+      .unwrap() 
+      .then(() => {
+        dispatch(registerDevice()); 
+      })
+      .catch((error) => {
+        console.error('Error al cargar datos de usuario o registrar dispositivo:', error);
+      });
+      
+    dispatch(loadUserAddresses()); 
+    dispatch(loadCitiesAndStates());
+    dispatch(fetchCampaigns());
+    dispatch(fetchCategories());
+}, [dispatch]);
 
   const handleMenuPress = useCallback(() => {
     dispatch(setMenuVisible(true))
