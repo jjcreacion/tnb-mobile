@@ -2,22 +2,16 @@ import { apiClient } from './apiClient'
 import type { User } from '@/types'
 
 export const userService = {
-  async getUserById(userId: string): Promise<User> {
-    return apiClient.get<User>(`/user/findOne/${userId}`)
-  },
+    async getUserById(userId: string): Promise<User> {
+        return apiClient.get<User>(`/user/findOne/${userId}`)
+    },
 
-  async toggleSmsNotifications(pkUser: number, newValue: boolean): Promise<any> {
-    try {
-        const response = await apiClient.patch(
+    async toggleSmsNotifications(pkUser: number, newValue: boolean): Promise<User> {
+        const response = await apiClient.patch<User>(
             `/user/${pkUser}/toggle-sms-notifications`,
-            { status: newValue } 
+            { status: newValue }
         );
-        return response.data;
-    } catch (error) {
-       const errorMessage = error.message || 'Error desconocido al procesar la solicitud.';
-       console.error('ERROR al cambiar notificaciones SMS:', errorMessage);
-      
-      return rejectWithValue(errorMessage);
+        
+        return response.data; 
     }
-  }
 }

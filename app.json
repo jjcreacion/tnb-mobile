@@ -14,9 +14,10 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#ff4444"
       },
       "package": "com.thenationalbuilders.tnb",
+      "googleServicesFile": "./google-services.json",
       "softwareKeyboardLayoutMode": "resize"
     },
     "web": {

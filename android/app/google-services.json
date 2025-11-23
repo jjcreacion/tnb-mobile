@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "614565021791",
+    "project_id": "the-national-builders",
+    "storage_bucket": "the-national-builders.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:614565021791:android:9e6b2fd8aebb8168d833ea",
+        "android_client_info": {
+          "package_name": "com.thenationalbuilders.tnb"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCvmH_3HNKmqPrrHNd-JEXZhkqi9HSQx9g"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
