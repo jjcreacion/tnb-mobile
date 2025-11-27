@@ -130,17 +130,19 @@ export const updateDevicePreferences = createAsyncThunk<
     async (notificationsEnabled: boolean, { rejectWithValue }) => {
         
         const token = await AsyncStorage.getItem('deviceToken');
-
+        console.log("token ="+token);
         if (token === null) {
           return rejectWithValue('Token de dispositivo no encontrado. No se puede actualizar la preferencia.');
         }
-
+      console.log("notificationsEnabled ="+notificationsEnabled);
+       
         try {
             const payload: UpdateDevicePreferencesDto = {
                 expoPushToken: token,
                 notificationsEnabled: notificationsEnabled,
             };
-            
+
+            console.log("Payload ="+payload);
             const responseData = await deviceService.updatePreferences(payload);
             
             if (!responseData) {

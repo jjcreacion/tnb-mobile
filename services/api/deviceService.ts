@@ -4,7 +4,7 @@ import type { ReadDeviceDto, CreateDeviceDto, UpdateDevicePreferencesDto } from 
 export const deviceService = {
     async registerDevice(data: CreateDeviceDto): Promise<ReadDeviceDto> {
         const response = await apiClient.post<ReadDeviceDto>('/devices/register', data);
-        return response.data; 
+        return response; 
     },
     async updatePreferences(data: UpdateDevicePreferencesDto): Promise<ReadDeviceDto> {
         const response = await apiClient.patch<ReadDeviceDto>('/devices/preferences', data);
