@@ -27,7 +27,6 @@ export const toggleSmsNotifications = createAsyncThunk(
         try {
             const state = getState() as { user: UserState };
             const pkUser = state.user.userData?.pkUser || state.user.userId; 
-            console.log(pkUser)
             if (!pkUser) { 
                 return rejectWithValue('Datos de usuario no cargados o PK no encontrado.');
             }
@@ -127,7 +126,6 @@ const userSlice = createSlice({
             .addCase(toggleSmsNotifications.fulfilled, (state, action: PayloadAction<User>) => {
                 state.loading = false;
                 state.userData = action.payload;
-                console.log(action.payload)
             })
             .addCase(toggleSmsNotifications.rejected, (state, action) => {
                 state.loading = false;

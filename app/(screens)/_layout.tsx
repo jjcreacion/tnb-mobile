@@ -22,6 +22,7 @@ export default function RootLayout() {
         <Stack.Screen name="verificode" options={{ headerShown: false }} />
         <Stack.Screen name="verificodeReset" options={{ headerShown: false }} />
         <Stack.Screen name="SetNewPassword" options={{ headerShown: false }} />
+        <Stack.Screen name="NotificationDetail" options={{ headerShown: false }} />
     </Stack>   
   )
 }

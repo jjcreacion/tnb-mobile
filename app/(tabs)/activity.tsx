@@ -2,52 +2,54 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import Constants from 'expo-constants';
 import { StatusBar } from 'expo-status-bar';
+import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, Platform, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
-import { Card, StatusBadge } from '@/components/common';
-import { ActivityHeader } from '@/components/home';
+import { Card } from '@/components/common';
+import { HistoryHeader } from '@/components/home';
 import { Theme } from '@/constants/Theme';
 import SideMenu from '../(screens)/SideMenu';
 
-interface Service {
-  requestId: string;
-  serviceDescription: string;
-  address: string;
-  status: number;
+interface Notification {
+  id: number;
+  title: string;
+  body: string;
+  isRead: boolean;
   createdAt: string;
 }
 
-const ActivityScreen = () => {
+const NotificationScreen = () => {
   const insets = useSafeAreaInsets();
-  const [services, setServices] = useState<Service[]>([]);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
-  const API_URL = Constants.expoConfig?.extra?.API_BASE_URL;
+  
+  const API_URL = Constants.expoConfig?.extra?.API_BASE_URL; 
+
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isMenuVisible, setMenuVisible] = useState(false);
+  const router = useRouter();
 
-  const fetchServices = useCallback(async (currentUserId: string) => {
+  const fetchNotifications = useCallback(async (currentUserId: string) => {
     setIsRefreshing(true);
     setLoading(true);
     try {
-      const response = await axios.get(`${API_URL}/service_request/user/${currentUserId}`);
+      const ENDPOINT_URL = `${API_URL}/notifications/user/${currentUserId}`; 
+      const response = await axios.get<Notification[]>(ENDPOINT_URL);
 
       if (response.status === 200) {
-        setServices(response.data);
-      } else if (response.status === 404) {
-        if (response.data && response.data.message && response.data.message.includes('No requests found')) {
-          setServices([]);
-          console.log('No se encontraron solicitudes para este usuario.');
-        } else {
-          console.error('Error inesperado al obtener servicios:', response);
-        }
+        const sortedNotifications = response.data.sort((a, b) => {
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        });
+        setNotifications(sortedNotifications);
       } else {
-        console.error('Error al obtener servicios:', response);
+        setNotifications([]);
       }
-    } catch {
-      // Handle network or other errors silently for now, as per original logic
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
+      setNotifications([]);
     } finally {
       setLoading(false);
       setIsRefreshing(false);
@@ -55,103 +57,132 @@ const ActivityScreen = () => {
   }, [API_URL]);
 
   useEffect(() => {
-    const fetchUserIdAndInitialServices = async () => {
-      setLoading(true);
-      setIsRefreshing(true);
-      try {
-        const storedUserId = await AsyncStorage.getItem('userId');
-        if (storedUserId) {
-          setUserId(storedUserId);
-          fetchServices(storedUserId);
-        } else {
-          setLoading(false);
-          setIsRefreshing(false);
-        }
-      } catch {
+    const initialize = async () => {
+      const storedUserId = await AsyncStorage.getItem('userId');
+      if (storedUserId) {
+        setUserId(storedUserId);
+        const idToFetch = '21'; 
+        fetchNotifications(idToFetch);
+      } else {
         setLoading(false);
         setIsRefreshing(false);
       }
     };
-
-    fetchUserIdAndInitialServices();
-  }, [fetchServices]);
+    initialize();
+  }, [fetchNotifications]);
 
   const onRefresh = useCallback(async () => {
     const currentUserId = await AsyncStorage.getItem('userId');
     if (currentUserId) {
-      fetchServices(currentUserId);
+      const idToFetch = '21';
+      fetchNotifications(idToFetch);
     }
-  }, [fetchServices]);
+  }, [fetchNotifications]);
 
   const handleMenuPress = useCallback(() => {
     setMenuVisible(true);
   }, []);
 
-  const getStatusConfig = (status: number) => {
-    switch (status) {
-      case 1:
-        return { text: 'Finish', variant: 'warning' as const };
-      case 2:
-        return { text: 'Approved', variant: 'success' as const };
-      case 3:
-        return { text: 'In Progress', variant: 'info' as const };
-      case 4:
-        return { text: 'Closed', variant: 'neutral' as const };
-      default:
-        return { text: 'Pending', variant: 'warning' as const };
+  const markAsRead = useCallback(async (notificationId: number) => {
+    setNotifications(prev => {
+      const updatedList = prev.map(n => 
+        n.id === notificationId ? { ...n, isRead: true } : n
+      );
+      return updatedList.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    });
+
+    if (!API_URL) {
+        console.error("API_URL is not configured.");
+        return;
     }
+    
+    const readEndpoint = `${API_URL}/notifications/read/${notificationId}`;
+   
+    try {
+        await axios.patch(readEndpoint); 
+    } catch (error) {
+        console.error(`Error marking notification ${notificationId} as read:`, error);
+    }
+  }, [API_URL]);
+
+
+  const handleCardPress = (notification: Notification) => {
+    if (!notification.isRead) {
+        markAsRead(notification.id);
+    }
+
+    router.push({
+      pathname: '/(screens)/NotificationDetail',
+      params: { notification: JSON.stringify({ ...notification, isRead: true }) },
+    });
   };
 
-  const renderServiceCard = ({ item: service }: { item: Service }) => {
-    const statusConfig = getStatusConfig(service.status);
+  const renderNotificationCard = ({ item: notification }: { item: Notification }) => {
+    const isRead = notification.isRead;
 
+    const cardBackgroundColor = isRead ? Theme.colors.background.tertiary : Theme.colors.background.primary; 
+    const titleTextColor = isRead ? Theme.colors.text.primary : Theme.colors.text.secondary; 
+    const dateTextColor = isRead ? Theme.colors.text.secondary : Theme.colors.text.tertiary; 
+    const iconColor = isRead ? Theme.colors.primary[500] : Theme.colors.primary[300]; 
+    const titleFontWeight = isRead ? Theme.typography.fontWeight.regular : Theme.typography.fontWeight.bold; 
+    
     return (
-      <Card variant="elevated" padding="md" style={styles.card}>
-        <View style={styles.cardHeader}>
-          <View style={styles.cardHeaderLeft}>
-            <Text style={styles.cardTitle} numberOfLines={2}>
-              {service.serviceDescription || 'No Description'}
-            </Text>
+      <TouchableOpacity onPress={() => handleCardPress(notification)}>
+        <Card 
+          variant="elevated" 
+          padding="sm" 
+          style={[
+            styles.notificationCard, 
+            styles.cardShadow, 
+            { 
+              backgroundColor: cardBackgroundColor, 
+            }
+          ]}
+        >
+          <View style={styles.iconContainer}>
+            <Icon 
+              name={isRead ? "notifications-outline" : "notifications"} 
+              size={24} 
+              color={iconColor} 
+            />
           </View>
-          <TouchableOpacity
-            style={styles.chatButton}
-            onPress={() => console.log(`Open chat modal for request ${service.requestId}`)}
-          >
-            <Icon name="chatbubble-ellipses" size={22} color={Theme.colors.primary[500]} />
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.addressContainer}>
-          <Icon name="location" size={16} color={Theme.colors.text.tertiary} />
-          <Text style={styles.addressText} numberOfLines={2}>
-            {service.address || 'No Address'}
-          </Text>
-        </View>
-
-        <View style={styles.cardFooter}>
-          <StatusBadge label={statusConfig.text} variant={statusConfig.variant} />
-          <View style={styles.dateContainer}>
-            <Icon name="calendar-outline" size={14} color={Theme.colors.text.tertiary} />
-            <Text style={styles.dateText}>
-              {new Date(service.createdAt).toLocaleDateString()}
-            </Text>
+          
+          <View style={styles.cardContent}>
+            <View style={styles.notificationTitleContainer}>
+              <Text 
+                style={[
+                  styles.notificationTitle, 
+                  { 
+                    fontWeight: titleFontWeight,
+                    color: titleTextColor,
+                  } 
+                ]} 
+                numberOfLines={1}
+              >
+                {notification.title || 'No Title'}
+              </Text>
+            </View>
+            <View style={styles.dateContainerModified}>
+              <Text style={[
+                styles.dateTextModified,
+                { color: dateTextColor }
+              ]}>
+                {new Date(notification.createdAt).toLocaleDateString()}
+              </Text>
+            </View>
           </View>
-        </View>
-
-        <View style={styles.requestIdContainer}>
-          <Text style={styles.requestIdText}>Request #{service.requestId}</Text>
-        </View>
-      </Card>
+        </Card>
+      </TouchableOpacity>
     );
   };
-
+  
   const renderEmptyState = () => (
     <View style={styles.emptyContainer}>
       <View style={styles.emptyIconContainer}>
         <Icon name="notifications-off-outline" size={64} color={Theme.colors.text.tertiary} />
       </View>
-      <Text style={styles.emptyTitle}>No Activity Yet</Text>
-      <Text style={styles.emptySubtitle}>Your service requests will appear here</Text>
+      <Text style={styles.emptyTitle}>You have no Notifications</Text>
+      <Text style={styles.emptySubtitle}>Check back later.</Text>
     </View>
   );
 
@@ -161,31 +192,30 @@ const ActivityScreen = () => {
         <Icon name="alert-circle-outline" size={64} color={Theme.colors.error[500]} />
       </View>
       <Text style={styles.emptyTitle}>Unable to Load</Text>
-      <Text style={styles.emptySubtitle}>Could not load user information</Text>
+      <Text style={styles.emptySubtitle}>Could not load user data or notifications.</Text>
     </View>
   );
 
   return (
     <View style={styles.container}>
       <StatusBar style="light" backgroundColor={Theme.colors.primary[500]} />
-      <ActivityHeader onMenuPress={handleMenuPress} />
+      <HistoryHeader onMenuPress={handleMenuPress} />
 
-      {/* Content */}
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={Theme.colors.primary[500]} />
-          <Text style={styles.loadingText}>Loading your activity...</Text>
+          <Text style={styles.loadingText}>Loading your notifications...</Text>
         </View>
       ) : !userId ? (
         renderErrorState()
       ) : (
         <FlatList
-          data={services}
-          renderItem={renderServiceCard}
-          keyExtractor={(item) => item.requestId}
+          data={notifications}
+          renderItem={renderNotificationCard} 
+          keyExtractor={(item) => item.id.toString()}
           contentContainerStyle={[
             styles.listContent,
-            services.length === 0 && styles.listContentEmpty,
+            notifications.length === 0 && styles.listContentEmpty,
             Platform.OS === 'android' && {
               paddingBottom: 70 + insets.bottom + 20,
             },
@@ -212,172 +242,118 @@ const ActivityScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Theme.colors.background.secondary,
-  },
+    container: {
+        flex: 1,
+        backgroundColor: Theme.colors.background.secondary,
+      },
+    
+      listContent: {
+        paddingHorizontal: Theme.spacing.base,
+        paddingBottom: Theme.spacing.xl,
+      },
+    
+      listContentEmpty: {
+        flexGrow: 1,
+      },
 
-  header: {
-    paddingTop: Theme.spacing.lg,
-    paddingBottom: Theme.spacing.xl,
-    paddingHorizontal: Theme.spacing.base,
-    marginBottom: Theme.spacing.base,
-    ...Theme.shadows.md,
-  },
+      cardShadow: Platform.select({
+        ios: {
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 1 }, 
+          shadowOpacity: 0.1, 
+          shadowRadius: 1, 
+        },
+        android: {
+          elevation: 2, 
+        },
+      }),
+    
+      notificationCard: {
+        marginBottom: Theme.spacing.sm,
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: Theme.spacing.base, 
+        paddingHorizontal: Theme.spacing.base, 
+        borderRadius: Theme.borderRadius.sm, 
+      },
 
-  headerContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Theme.spacing.sm,
-    marginBottom: Theme.spacing.sm,
-  },
-
-  headerIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: Theme.borderRadius.full,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  headerTextContainer: {
-    flex: 1,
-    backgroundColor: Theme.colors.background.secondary,
-  },
-
-  listContent: {
-    paddingHorizontal: Theme.spacing.base,
-    paddingBottom: Theme.spacing.xl,
-  },
-
-  listContentEmpty: {
-    flexGrow: 1,
-  },
-
-  card: {
-    marginBottom: Theme.spacing.sm,
-  },
-
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: Theme.spacing.sm,
-    gap: Theme.spacing.sm,
-  },
-
-  cardHeaderLeft: {
-    flex: 1,
-  },
-
-  cardTitle: {
-    fontSize: Theme.typography.fontSize.lg,
-    fontWeight: Theme.typography.fontWeight.bold,
-    color: Theme.colors.text.primary,
-    lineHeight: Theme.typography.lineHeight.base,
-  },
-
-  chatButton: {
-    width: 36,
-    height: 36,
-    borderRadius: Theme.borderRadius.md,
-    backgroundColor: Theme.colors.primary[50],
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  addressContainer: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: Theme.spacing.xs,
-    marginBottom: Theme.spacing.sm,
-    paddingVertical: Theme.spacing.sm,
-    paddingHorizontal: Theme.spacing.sm,
-    backgroundColor: Theme.colors.background.secondary,
-    borderRadius: Theme.borderRadius.md,
-  },
-
-  addressText: {
-    flex: 1,
-    fontSize: Theme.typography.fontSize.sm,
-    color: Theme.colors.text.secondary,
-    lineHeight: Theme.typography.lineHeight.base,
-  },
-
-  cardFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: Theme.spacing.sm,
-    paddingTop: Theme.spacing.sm,
-    borderTopWidth: 1,
-    borderTopColor: Theme.colors.border.light,
-  },
-
-  dateContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Theme.spacing.xs,
-  },
-
-  dateText: {
-    fontSize: Theme.typography.fontSize.xs,
-    color: Theme.colors.text.tertiary,
-  },
-
-  requestIdContainer: {
-    marginTop: Theme.spacing.sm,
-  },
-
-  requestIdText: {
-    fontSize: Theme.typography.fontSize.xs,
-    color: Theme.colors.text.tertiary,
-    fontWeight: Theme.typography.fontWeight.medium,
-  },
-
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: Theme.spacing.sm,
-  },
-
-  loadingText: {
-    fontSize: Theme.typography.fontSize.base,
-    color: Theme.colors.text.secondary,
-  },
-
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: Theme.spacing.xl,
-    paddingVertical: Theme.spacing['5xl'],
-  },
-
-  emptyIconContainer: {
-    width: 120,
-    height: 120,
-    borderRadius: Theme.borderRadius.full,
-    backgroundColor: Theme.colors.background.secondary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: Theme.spacing.xl,
-  },
-
-  emptyTitle: {
-    fontSize: Theme.typography.fontSize.xl,
-    fontWeight: Theme.typography.fontWeight.bold,
-    color: Theme.colors.text.primary,
-    marginBottom: Theme.spacing.sm,
-  },
-
-  emptySubtitle: {
-    fontSize: Theme.typography.fontSize.base,
-    color: Theme.colors.text.secondary,
-    textAlign: 'center',
-  },
+      iconContainer: {
+        paddingRight: Theme.spacing.base,
+        justifyContent: 'center',
+        alignItems: 'center',
+      },
+    
+      cardContent: {
+        flex: 1,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+      },
+    
+      notificationTitleContainer: {
+        flex: 2, 
+        justifyContent: 'center',
+      },
+    
+      notificationTitle: {
+        fontSize: Theme.typography.fontSize.base, 
+        lineHeight: Theme.typography.lineHeight.base,
+      },
+    
+      dateContainerModified: {
+        flex: 1, 
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'flex-end',
+      },
+    
+      dateTextModified: {
+        fontSize: Theme.typography.fontSize.sm,
+        textAlign: 'right',
+      },
+      
+      loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        gap: Theme.spacing.sm,
+      },
+    
+      loadingText: {
+        fontSize: Theme.typography.fontSize.base,
+        color: Theme.colors.text.secondary,
+      },
+    
+      emptyContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: Theme.spacing.xl,
+        paddingVertical: Theme.spacing['5xl'],
+      },
+    
+      emptyIconContainer: {
+        width: 120,
+        height: 120,
+        borderRadius: Theme.borderRadius.full,
+        backgroundColor: Theme.colors.background.secondary,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: Theme.spacing.xl,
+      },
+    
+      emptyTitle: {
+        fontSize: Theme.typography.fontSize.xl,
+        fontWeight: Theme.typography.fontWeight.bold,
+        color: Theme.colors.text.primary,
+        marginBottom: Theme.spacing.sm,
+      },
+    
+      emptySubtitle: {
+        fontSize: Theme.typography.fontSize.base,
+        color: Theme.colors.text.secondary,
+        textAlign: 'center',
+      },
 });
 
-export default ActivityScreen;
+export default NotificationScreen;

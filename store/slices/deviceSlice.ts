@@ -35,7 +35,6 @@ export const registerDevice = createAsyncThunk<
         const userIdRaw = await AsyncStorage.getItem('userId');
 
         if (userIdRaw === null) {
-            console.log("LOG: Fallo - No se encontró el ID de usuario.");
             return rejectWithValue('No se encontró el ID de usuario. Inicie sesión.');
         }
 
@@ -94,8 +93,7 @@ export const registerDevice = createAsyncThunk<
         if (!expoToken) {
             return rejectWithValue('No se pudo obtener el Expo Push Token.');
         }
-        console.log(expoToken);
-
+     
         try {
             const payload: CreateDeviceDto = {
                 fkUser: userId,

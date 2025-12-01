@@ -74,11 +74,9 @@ const HistoryScreen = () => {
 
       if (response.status === 200) {
         setServices(response.data);
-        console.log('Datos del usuario cargados:', response.data);
       } else if (response.status === 404) {
         if (response.data && (response.data as any).message && (response.data as any).message.includes('No requests found')) {
           setServices([]);
-          console.log('No se encontraron solicitudes para este usuario.');
         } else {
           console.error('Error inesperado al obtener servicios:', response);
         }

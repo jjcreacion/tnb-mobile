@@ -19,6 +19,7 @@ import categoryReducer from './slices/categorySlice'
 import invoiceReducer from './slices/invoiceSlice'
 import uiReducer from './slices/uiSlice'
 import deviceReducer from './slices/deviceSlice'
+import notificationReducer from './slices/notificationSlice' 
 
 const rootReducer = combineReducers({
   user: userReducer,
@@ -28,6 +29,7 @@ const rootReducer = combineReducers({
   invoice: invoiceReducer,
   ui: uiReducer,
   device: deviceReducer,
+  notifications: notificationReducer,
 })
 
 const persistConfig = {

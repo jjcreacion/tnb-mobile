@@ -5,7 +5,7 @@ import {
   updatePrimaryAddress,
 } from '@/store/slices/addressSlice'
 import { expressInterest, fetchCampaigns } from '@/store/slices/campaignSlice'
-import { shallowEqual } from 'react-redux'; // Necesaria para la corrección
+import { shallowEqual } from 'react-redux'; 
 import { fetchCategories } from '@/store/slices/categorySlice'
 import {
   closeAddressModal,
