@@ -8,14 +8,14 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { Formik } from 'formik';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  Image,
-  ImageBackground,
-  Keyboard,
-  KeyboardAvoidingView,
-  Platform,
-  StatusBar,
-  TextInput,
-  View
+    Image,
+    ImageBackground,
+    Keyboard,
+    KeyboardAvoidingView,
+    Platform,
+    StatusBar,
+    TextInput,
+    View
 } from 'react-native';
 import * as Animatable from 'react-native-animatable';
 import * as Yup from 'yup';
@@ -183,6 +183,7 @@ export default function LoginScreenMigrated() {
                         keyboardType="email-address"
                         autoCapitalize="none"
                         autoComplete="email"
+                        textContentType="username"
                         returnKeyType='next'
                         onSubmitEditing={() => passwordInputRef.current?.focus()}
                         blurOnSubmit={false}
@@ -199,6 +200,7 @@ export default function LoginScreenMigrated() {
                         secureTextEntry={true}
                         autoCapitalize="none"
                         autoComplete="password"
+                        textContentType="password"
                         returnKeyType='go'
                         onSubmitEditing={() => handleSubmit() }
                       />
