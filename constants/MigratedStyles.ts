@@ -1649,7 +1649,7 @@ export const MigratedStyles = StyleSheet.create({
   },
 
   termsAndPoliciesTitle: {
-    fontSize: Theme.typography.fontSize['4xl'],
+    fontSize: Theme.typography.fontSize['3xl'],
     fontWeight: Theme.typography.fontWeight.bold,
     marginBottom: Theme.spacing['2xl'],
     color: Theme.colors.text.primary,
