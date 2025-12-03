@@ -1,22 +1,23 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
+import * as ImageManipulator from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
 import { Formik } from 'formik';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
-    Alert,
-    Animated,
-    Image,
-    KeyboardAvoidingView,
-    Modal as RNModal,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    TextInput,
-    TouchableOpacity,
-    View
+  Alert,
+  Animated,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  Modal as RNModal,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -24,13 +25,12 @@ import * as Yup from 'yup';
 
 // Import migrated components
 import {
-    ActionSheet,
-    BottomSheet,
-    Button,
-    Card,
-    Input,
-    Loading,
-    Typography
+  BottomSheet,
+  Button,
+  Card,
+  Input,
+  Loading,
+  Typography
 } from '@/components/common';
 import { Theme } from '@/constants/Theme';
 
@@ -130,7 +130,6 @@ const RequestMigrated: React.FC<ModalProps> = ({
   
   // Estados para modales/bottomsheets
   const [showSubCategorySheet, setShowSubCategorySheet] = useState(false);
-  const [showImageActionSheet, setShowImageActionSheet] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   
   // Estados para mapa interactivo
@@ -348,24 +347,58 @@ const RequestMigrated: React.FC<ModalProps> = ({
   // Subir imágenes
   const uploadImages = async (serviceRequestId: number) => {
     if (images.length === 0) {
+      console.log('No hay imágenes para subir.');
       return true;
     }
 
     const formData = new FormData();
     formData.append('serviceRequestId', serviceRequestId.toString());
 
-    images.forEach((imageUri, index) => {
-      const uriParts = imageUri.split('.');
-      const fileType = uriParts[uriParts.length - 1];
-      const fileName = `image_${index}.${fileType}`;
+    // Comprimir y agregar imágenes al FormData
+    console.log('Comprimiendo', images.length, 'imágenes antes de subir...');
+    
+    for (let index = 0; index < images.length; index++) {
+      const imageUri = images[index];
+      
+      try {
+        // Comprimir imagen para reducir tamaño (más agresivo para iOS)
+        const manipulatedImage = await ImageManipulator.manipulateAsync(
+          imageUri,
+          [{ resize: { width: 1280 } }], // Reducido de 1920 a 1280px
+          { 
+            compress: 0.7, // Reducido de 0.8 a 0.7 (70% de calidad)
+            format: ImageManipulator.SaveFormat.JPEG 
+          }
+        );
 
-      formData.append('images', {
-        uri: imageUri,
-        name: fileName,
-        type: `image/${fileType}`,
-      } as any);
-    });
+        const uriParts = manipulatedImage.uri.split('.');
+        const fileType = uriParts[uriParts.length - 1];
+        const fileName = `image_${index}.${fileType}`;
 
+        formData.append('images', {
+          uri: manipulatedImage.uri,
+          name: fileName,
+          type: `image/${fileType}`,
+        } as any);
+        
+        console.log(`Imagen ${index + 1}/${images.length} comprimida:`, fileName, 'URI:', manipulatedImage.uri.substring(0, 50) + '...');
+      } catch (compressionError) {
+        console.error('Error al comprimir imagen', index, ':', compressionError);
+        // Si falla la compresión, usar la imagen original
+        const uriParts = imageUri.split('.');
+        const fileType = uriParts[uriParts.length - 1];
+        const fileName = `image_${index}.${fileType}`;
+
+        formData.append('images', {
+          uri: imageUri,
+          name: fileName,
+          type: `image/${fileType}`,
+        } as any);
+      }
+    }
+
+    console.log('Intentando subir', images.length, 'imágenes para serviceRequestId:', serviceRequestId);
+    
     try {
       const response = await fetch(`${API_URL}/service_request/upload-images`, {
         method: 'POST',
@@ -376,19 +409,23 @@ const RequestMigrated: React.FC<ModalProps> = ({
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || `Upload failed with status ${response.status}`);
+        console.error('Error al subir las imágenes - Status:', response.status, response.statusText);
+        const errorText = await response.text();
+        console.error('Error response body:', errorText);
+        try {
+          const errorData = JSON.parse(errorText);
+          console.error('Error data parsed:', errorData);
+        } catch (e) {
+          console.error('Could not parse error as JSON');
+        }
+        return false;
       }
 
-      await response.json();
+      console.log('Imágenes subidas con éxito:', await response.json());
       return true;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      console.error('Error uploading images:', errorMessage);
-      // Inform user but don't block request - images can be added later
-      setError(`Image upload failed: ${errorMessage}. Request has been created but images were not uploaded.`);
-      // Return true so the service request still goes through
-      return true;
+      console.error('Error de conexión o al procesar la respuesta al subir imágenes:', error);
+      return false;
     }
   };
 
@@ -415,9 +452,14 @@ const RequestMigrated: React.FC<ModalProps> = ({
       longitude: longitude !== null ? longitude : 0,
     };
 
+    console.log('Datos a enviar:', serviceRequestData);
+    console.log('Imágenes seleccionadas:', images);
+
     setLoadingRequest(true);
     setError(null);
     setSuccess(false);
+
+    let serviceRequestId = null;
 
     try {
       const response = await fetch(`${API_URL}/service_request`, {
@@ -429,17 +471,31 @@ const RequestMigrated: React.FC<ModalProps> = ({
       });
 
       if (!response.ok) {
-        throw new Error('Failed to create service request');
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Error al guardar los datos:', errorData);
+        setLoadingRequest(false);
+        setError('Failed to create service request. Please try again.');
+        return;
       }
 
       const data = await response.json();
-      const serviceRequestId = data.requestId;
+      console.log('Éxito al guardar los datos:', data);
+      serviceRequestId = data.requestId;
+      console.log("data.requestId " + data.requestId);
+      console.log("serviceRequestId " + serviceRequestId);
 
       if (serviceRequestId && images.length > 0) {
-        await uploadImages(serviceRequestId);
-        // Continue regardless of image upload result - service request was created successfully
+        const imagesUploaded = await uploadImages(serviceRequestId);
+        if (!imagesUploaded) {
+          setError('Failed to upload images. Please try again.');
+          setLoadingRequest(false);
+          return;
+        }
+        // Limpiar imágenes después del upload exitoso para evitar warnings
+        setImages([]);
       }
 
+      setLoadingRequest(false);
       setSuccess(true);
       const timer = setTimeout(() => {
         setSuccess(false);
@@ -451,10 +507,9 @@ const RequestMigrated: React.FC<ModalProps> = ({
       pendingTimersRef.current.push(timer);
 
     } catch (error) {
-      console.error('Error creating service request:', error);
-      setError('Failed to create service request. Please try again.');
-    } finally {
+      console.error('Error de conexión o al procesar la respuesta:', error);
       setLoadingRequest(false);
+      setError('Failed to create service request. Please try again.');
     }
   };
 
@@ -506,7 +561,6 @@ const RequestMigrated: React.FC<ModalProps> = ({
       setSubCategories([]); 
       setSelectedSubCategory(null);
       setShowSubCategorySheet(false);
-      setShowImageActionSheet(false);
       setIsMapExpanded(false);
       setIsMapInteracting(false);
       setShouldPreventNextPress(false);
@@ -800,7 +854,7 @@ const RequestMigrated: React.FC<ModalProps> = ({
                 </Typography>
                 <TouchableOpacity
                   style={styles.imageUploadButton}
-                  onPress={() => setShowImageActionSheet(true)}
+                  onPress={handleImagePicker}
                 >
                   <MaterialIcons 
                     name="add-photo-alternate" 
@@ -989,32 +1043,7 @@ const RequestMigrated: React.FC<ModalProps> = ({
         </View>
       </BottomSheet>
 
-      {/* Action Sheet for Images */}
-      <ActionSheet
-        visible={showImageActionSheet}
-        onClose={() => setShowImageActionSheet(false)}
-        title="Add Photo"
-        options={[
-          {
-            id: 'camera',
-            title: 'Take Photo',
-            icon: 'camera-outline',
-            onPress: () => {
-              setShowImageActionSheet(false);
-              handleCameraCapture();
-            },
-          },
-          {
-            id: 'gallery',
-            title: 'Choose from Gallery',
-            icon: 'images-outline',
-            onPress: () => {
-              setShowImageActionSheet(false);
-              handleImagePicker();
-            },
-          },
-        ]}
-      />
+
       </KeyboardAvoidingView>
     </RNModal>
   );
