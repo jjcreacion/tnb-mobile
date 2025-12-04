@@ -4,10 +4,9 @@ import {
     Animated,
     BackHandler,
     Dimensions,
-    Platform,
     StyleSheet,
     TouchableOpacity,
-    View,
+    View
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
@@ -45,18 +44,17 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
   children,
   style,
 }) => {
-  const translateY = useRef(new Animated.Value(screenHeight)).current;
+  const sheetHeight = sizeMap[size];
+  const translateY = useRef(new Animated.Value(sheetHeight)).current;
   const backdropOpacity = useRef(new Animated.Value(0)).current;
   const insets = useSafeAreaInsets();
-
-  const sheetHeight = sizeMap[size];
 
   useEffect(() => {
     if (visible) {
       // Animate in
       Animated.parallel([
         Animated.timing(translateY, {
-          toValue: screenHeight - sheetHeight,
+          toValue: 0,
           duration: 300,
           useNativeDriver: true,
         }),
@@ -78,7 +76,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
       // Animate out
       Animated.parallel([
         Animated.timing(translateY, {
-          toValue: screenHeight,
+          toValue: sheetHeight,
           duration: 250,
           useNativeDriver: true,
         }),

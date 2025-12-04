@@ -25,9 +25,11 @@ import * as Yup from 'yup';
 
 // Import migrated components
 import {
+  ActionSheet,
   BottomSheet,
   Button,
   Card,
+  ImagePreviewModal,
   Input,
   Loading,
   Typography
@@ -130,6 +132,8 @@ const RequestMigrated: React.FC<ModalProps> = ({
   
   // Estados para modales/bottomsheets
   const [showSubCategorySheet, setShowSubCategorySheet] = useState(false);
+  const [showImageSourceSheet, setShowImageSourceSheet] = useState(false);
+  const [showImagePreview, setShowImagePreview] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   
   // Estados para mapa interactivo
@@ -257,9 +261,14 @@ const RequestMigrated: React.FC<ModalProps> = ({
     );
   };
 
-  // Manejar selección de imágenes
-  const handleImagePicker = async () => {
+  // Manejar selección de imágenes (Punto de entrada)
+  const handleAddPhotos = () => {
+    setShowImageSourceSheet(true);
+  };
 
+  // Opción Galería
+  const handleGallerySelect = async () => {
+    setShowImageSourceSheet(false);
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (permissionResult.granted === false) {
       Alert.alert('Permission Denied', 'We need access to your photo gallery to select images.');
@@ -273,14 +282,16 @@ const RequestMigrated: React.FC<ModalProps> = ({
     });
 
     if (!result.canceled && result.assets) {
-      setImages((prevImages) => [...prevImages, ...result.assets.map((asset) => asset.uri)]);
+      const newUris = result.assets.map((asset) => asset.uri);
+      // Append new images and open preview
+      setImages((prev) => [...prev, ...newUris]);
+      setShowImagePreview(true);
     }
   };
 
-  // Manejar tomar foto con cámara
+  // Opción Cámara
   const handleCameraCapture = async () => {
-
-    // Request permissions first
+    setShowImageSourceSheet(false);
     const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
     if (permissionResult.granted === false) {
       Alert.alert('Permission Denied', 'We need access to your camera to take a photo.');
@@ -289,13 +300,40 @@ const RequestMigrated: React.FC<ModalProps> = ({
     
     let result = await ImagePicker.launchCameraAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true, // Native editing for camera
+      quality: 1,
+    });
+
+    if (!result.canceled && result.assets && result.assets.length > 0) {
+      const newUri = result.assets[0].uri;
+      setImages((prev) => [...prev, newUri]);
+      setShowImagePreview(true);
+    }
+  };
+
+  // Add more photos from Preview Modal
+  const handleAddMorePhotos = async () => {
+    // Directly open gallery for "Add More" flow usually, or ask again.
+    // For simplicity and standard UX, "Add More" usually implies Gallery in this context,
+    // but let's re-use the sheet logic if we want to allow camera too.
+    // However, we can't show the sheet *over* the modal easily without z-index issues or closing the modal.
+    // Let's just open Gallery for "Add More" to keep it simple and robust.
+    
+    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (permissionResult.granted === false) return;
+
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsMultipleSelection: true,
       quality: 1,
     });
 
     if (!result.canceled && result.assets) {
-      setImages((prevImages) => [...prevImages, ...result.assets.map((asset) => asset.uri)]);
+      const newUris = result.assets.map((asset) => asset.uri);
+      setImages((prev) => [...prev, ...newUris]);
     }
   };
+
 
   // Remover imagen
   const handleRemoveImage = (uriToRemove: string) => {
@@ -566,6 +604,8 @@ const RequestMigrated: React.FC<ModalProps> = ({
       setShouldPreventNextPress(false);
       setInitialScrollPosition(0);
       setSearchQuery('');
+      setShowImageSourceSheet(false);
+      setShowImagePreview(false);
       mapHeight.setValue(200);
     }
   }, [isVisible, mapHeight]);
@@ -854,7 +894,7 @@ const RequestMigrated: React.FC<ModalProps> = ({
                 </Typography>
                 <TouchableOpacity
                   style={styles.imageUploadButton}
-                  onPress={handleImagePicker}
+                  onPress={handleAddPhotos}
                 >
                   <MaterialIcons 
                     name="add-photo-alternate" 
@@ -872,21 +912,29 @@ const RequestMigrated: React.FC<ModalProps> = ({
                     {images.map((uri, index) => (
                       <View key={index} style={styles.imageItem}>
                         <Image source={{ uri }} style={styles.previewImage} />
-                        <TouchableOpacity
-                          style={styles.removeImageButton}
-                          onPress={() => handleRemoveImage(uri)}
-                        >
-                          <MaterialIcons 
-                            name="close" 
-                            size={16} 
-                            color={Theme.colors.text.secondary} 
-                          />
-                        </TouchableOpacity>
-                      </View>
-                    ))}
-                  </View>
-                )}
-              </View>
+                          <TouchableOpacity
+                            style={styles.removeImageButton}
+                            onPress={() => handleRemoveImage(uri)}
+                          >
+                            <MaterialIcons 
+                              name="close" 
+                              size={16} 
+                              color={Theme.colors.text.secondary} 
+                            />
+                          </TouchableOpacity>
+                        </View>
+                      ))}
+                      {/* Edit Button in Preview List */}
+                      <TouchableOpacity
+                        style={styles.editImagesButton}
+                        onPress={() => setShowImagePreview(true)}
+                      >
+                        <MaterialIcons name="edit" size={16} color={Theme.colors.primary[500]} />
+                        <Typography variant="caption" color="primary">Edit</Typography>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                </View>
 
               {/* Submit Buttons */}
               <View style={styles.buttonContainer}>
@@ -1042,6 +1090,45 @@ const RequestMigrated: React.FC<ModalProps> = ({
           </ScrollView>
         </View>
       </BottomSheet>
+
+      {/* Image Source Action Sheet */}
+      <ActionSheet
+        visible={showImageSourceSheet}
+        onClose={() => setShowImageSourceSheet(false)}
+        title="Add Photos"
+        options={[
+          {
+            title: 'Take Photo',
+            icon: 'camera',
+            onPress: handleCameraCapture,
+            id: 'camera',
+          },
+          {
+            title: 'Choose from Gallery',
+            icon: 'images',
+            onPress: handleGallerySelect,
+            id: 'gallery',
+          },
+        ]}
+      />
+
+      {/* Image Preview & Edit Modal */}
+      <ImagePreviewModal
+        visible={showImagePreview}
+        images={images}
+        onClose={() => {
+          // If user closes without confirming, we might want to keep images or revert?
+          // Current logic: images are already in state, so closing just hides modal.
+          // If we wanted "Cancel" behavior, we'd need a temp state in the modal.
+          // For now, "Done" and "Close" both just hide, but "Done" implies satisfaction.
+          setShowImagePreview(false);
+        }}
+        onConfirm={(finalImages) => {
+          setImages(finalImages);
+          setShowImagePreview(false);
+        }}
+        onAddMore={handleAddMorePhotos}
+      />
 
 
       </KeyboardAvoidingView>
@@ -1416,6 +1503,21 @@ const styles = StyleSheet.create({
   textAreaError: {
     borderColor: Theme.colors.error[500],
     borderWidth: 1.5,
+  },
+
+  editImagesButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: Theme.spacing.xs,
+    paddingHorizontal: Theme.spacing.sm,
+    backgroundColor: Theme.colors.primary[50],
+    borderRadius: Theme.borderRadius.full,
+    borderWidth: 1,
+    borderColor: Theme.colors.primary[200],
+    gap: 4,
+    alignSelf: 'center',
+    marginLeft: Theme.spacing.sm,
   },
 });
 

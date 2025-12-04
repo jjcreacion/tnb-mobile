@@ -157,6 +157,7 @@ const styles = StyleSheet.create({
 
   option: {
     paddingVertical: Theme.spacing.base,
+    paddingHorizontal: Theme.spacing.lg,
     borderBottomWidth: 1,
     borderBottomColor: Theme.colors.border.light,
   },
