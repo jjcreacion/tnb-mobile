@@ -7,17 +7,17 @@ import * as Location from 'expo-location';
 import { Formik } from 'formik';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Alert,
-  Animated,
-  Image,
-  KeyboardAvoidingView,
-  Platform,
-  Modal as RNModal,
-  ScrollView,
-  StyleSheet,
-  TextInput,
-  TouchableOpacity,
-  View
+    Alert,
+    Animated,
+    Image,
+    KeyboardAvoidingView,
+    Platform,
+    Modal as RNModal,
+    ScrollView,
+    StyleSheet,
+    TextInput,
+    TouchableOpacity,
+    View
 } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -25,14 +25,14 @@ import * as Yup from 'yup';
 
 // Import migrated components
 import {
-  ActionSheet,
-  BottomSheet,
-  Button,
-  Card,
-  ImagePreviewModal,
-  Input,
-  Loading,
-  Typography
+    ActionSheet,
+    BottomSheet,
+    Button,
+    Card,
+    ImagePreviewModal,
+    Input,
+    Loading,
+    Typography
 } from '@/components/common';
 import { Theme } from '@/constants/Theme';
 
@@ -337,7 +337,20 @@ const RequestMigrated: React.FC<ModalProps> = ({
 
   // Remover imagen
   const handleRemoveImage = (uriToRemove: string) => {
-    setImages((prevImages) => prevImages.filter((uri) => uri !== uriToRemove));
+    Alert.alert(
+      'Remove Photo',
+      'Are you sure you want to remove this photo?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: () => {
+            setImages((prevImages) => prevImages.filter((uri) => uri !== uriToRemove));
+          },
+        },
+      ]
+    );
   };
 
   const getLocation = async () => {

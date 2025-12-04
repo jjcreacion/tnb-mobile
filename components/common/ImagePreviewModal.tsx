@@ -289,6 +289,12 @@ export const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
     onConfirm(currentImages);
   };
 
+  const handleClose = () => {
+    // Update parent with current images before closing
+    onConfirm(currentImages);
+    onClose();
+  };
+
   if (!visible) return null;
 
   return (
@@ -302,7 +308,7 @@ export const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
         {/* Header - Dynamic based on mode */}
         <View style={styles.header}>
           <TouchableOpacity 
-            onPress={isCropMode ? handleCropCancel : onClose} 
+            onPress={isCropMode ? handleCropCancel : handleClose} 
             style={styles.iconButton}
           >
             <MaterialIcons name="close" size={24} color="white" />
