@@ -697,36 +697,7 @@ const RequestMigrated: React.FC<ModalProps> = ({
           </Typography>
         </View>
 
-        <ScrollView
-        ref={scrollViewRef}
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-        scrollEventThrottle={16}
-        onScroll={(event) => {
-          if (!isMapExpanded) {
-            const currentY = event.nativeEvent.contentOffset.y;
-            setInitialScrollPosition(currentY);
-          }
-        }}
-        onScrollBeginDrag={() => {
-          if (isMapExpanded && !isMapInteracting) {
-            collapseMap();
-          }
-        }}
-      >
-        {/* Error Message */}
-        {error && (
-          <View style={styles.errorContainer}>
-            <Typography variant="body2" color="error">
-              {error}
-            </Typography>
-          </View>
-        )}
-
-        {/* Main Form - Only show when conditions are met */}
-        {!success && !loadingRequest && !error && pkUser && (
+        {!success && !loadingRequest && !error && pkUser ? (
           <Formik
             initialValues={{
               description: '',
@@ -737,255 +708,277 @@ const RequestMigrated: React.FC<ModalProps> = ({
             enableReinitialize
           >
           {({ handleChange, handleBlur, handleSubmit, values, errors, touched, setFieldValue }) => (
-            <View style={styles.formContainer} pointerEvents="box-none">
-              {/* Service Category Card */}
-              <Card variant="elevated" style={styles.categoryCard}>
-                <View style={styles.categoryContent} pointerEvents="box-none">
-                  {selectedCategory?.imagePath && (
-                    <Image
-                      source={{ uri: `${API_URL}${selectedCategory.imagePath}` }}
-                      style={styles.categoryImage}
-                    />
-                  )}
-                  <Typography variant="h4" color="primary" style={styles.categoryTitle} pointerEvents="none">
-                    {selectedCategory?.name}
-                  </Typography>
-                  <Typography variant="body2" color="secondary" style={styles.categoryDescription} pointerEvents="none">
-                    {selectedCategory?.description}
-                  </Typography>
-                </View>
-              </Card>
+            <>
+              <ScrollView
+                ref={scrollViewRef}
+                style={styles.scrollView}
+                contentContainerStyle={styles.scrollContent}
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+                scrollEventThrottle={16}
+                onScroll={(event) => {
+                  if (!isMapExpanded) {
+                    const currentY = event.nativeEvent.contentOffset.y;
+                    setInitialScrollPosition(currentY);
+                  }
+                }}
+                onScrollBeginDrag={() => {
+                  if (isMapExpanded && !isMapInteracting) {
+                    collapseMap();
+                  }
+                }}
+              >
+                <View style={styles.formContainer} pointerEvents="box-none">
+                  {/* Service Category Card */}
+                  <Card variant="elevated" style={styles.categoryCard}>
+                    <View style={styles.categoryContent} pointerEvents="box-none">
+                      {selectedCategory?.imagePath && (
+                        <Image
+                          source={{ uri: `${API_URL}${selectedCategory.imagePath}` }}
+                          style={styles.categoryImage}
+                        />
+                      )}
+                      <Typography variant="h4" color="primary" style={styles.categoryTitle} pointerEvents="none">
+                        {selectedCategory?.name}
+                      </Typography>
+                      <Typography variant="body2" color="secondary" style={styles.categoryDescription} pointerEvents="none">
+                        {selectedCategory?.description}
+                      </Typography>
+                    </View>
+                  </Card>
 
-              {/* Service Type Selection */}
-              {subCategories.length > 0 && (
-                <View style={styles.fieldContainer} pointerEvents="box-none">
-                  <Typography variant="body1" color="primary" style={styles.fieldLabel} pointerEvents="none">
-                    Service Type *
-                  </Typography>
-                  <TouchableOpacity
-                    style={styles.selectorButton}
-                    onPress={() => setShowSubCategorySheet(true)}
-                  >
-                    <Typography
-                      variant="body1"
-                      color={selectedSubCategory ? "primary" : "tertiary"}
-                      pointerEvents="none"
-                    >
-                      {getSelectedSubCategoryName()}
-                    </Typography>
-                    <MaterialIcons
-                      name="keyboard-arrow-down"
-                      size={24}
-                      color={Theme.colors.text.tertiary}
-                    />
-                  </TouchableOpacity>
-                  {!selectedSubCategory && (
-                    <Typography variant="caption" color="error" style={styles.errorText} pointerEvents="none">
-                      Please select a service type
-                    </Typography>
-                  )}
-                </View>
-              )}
-
-              {/* Description Input */}
-              <View style={styles.fieldContainer} pointerEvents="box-none">
-                <Typography variant="body1" color="primary" style={styles.fieldLabel} pointerEvents="none">
-                  Description
-                </Typography>
-                <View style={[
-                  styles.textAreaContainer,
-                  touched.description && errors.description && styles.textAreaError
-                ]}>
-                  <TextInput
-                    style={styles.textAreaInput}
-                    placeholder="Describe the service you need (e.g., repair details, specific requirements...)"
-                    placeholderTextColor={Theme.colors.text.tertiary}
-                    value={values.description}
-                    onChangeText={handleChange('description')}
-                    onBlur={handleBlur('description')}
-                    multiline
-                    numberOfLines={4}
-                    textAlignVertical="top"
-                  />
-                </View>
-                {touched.description && errors.description && (
-                  <Typography variant="caption" color="error" style={styles.errorText}>
-                    {errors.description}
-                  </Typography>
-                )}
-              </View>
-
-              {/* Location Section */}
-              <Card variant="outlined" style={styles.locationCard}>
-                <Typography variant="h4" color="primary" style={styles.sectionTitle} pointerEvents="none">
-                  Service Location
-                </Typography>
-
-                {/* Service Address Field */}
-                <View style={styles.fieldContainer} pointerEvents="box-none">
-                  <Typography variant="body1" color="primary" style={styles.fieldLabel} pointerEvents="none">
-                    Service Address
-                  </Typography>
-                  <Input
-                    placeholder="Address"
-                    value={values.address}
-                    onChangeText={handleChange('address')}
-                    onBlur={handleBlur('address')}
-                    error={touched.address && errors.address ? errors.address : undefined}
-                    leftIcon="location-outline"
-                    editable={false}
-                    style={styles.readOnlyInput}
-                  />
-                </View>
-
-                {/* Location on Map */}
-                <View style={styles.fieldContainer} pointerEvents="box-none">
-                  <Typography variant="body1" color="primary" style={styles.fieldLabel} pointerEvents="none">
-                    Location on Map
-                  </Typography>
-                  <Typography variant="caption" color="secondary" style={styles.fieldHint} pointerEvents="none">
-                    {isMapExpanded
-                      ? 'Tap on the map to select your service location. The map will minimize after selection.'
-                      : 'Tap the map to expand and select your service location.'}
-                  </Typography>
-                </View>
-
-                {/* Map View */}
-                <Animated.View style={[styles.mapContainer, { height: mapHeight }]}>
-                  <MapView
-                    style={styles.map}
-                    region={region}
-                    onRegionChangeComplete={setRegion}
-                    scrollEnabled={isMapExpanded}
-                    zoomEnabled={isMapExpanded}
-                    pitchEnabled={isMapExpanded}
-                    rotateEnabled={isMapExpanded}
-                    onTouchStart={() => {
-                      if (!isMapExpanded) {
-                        setShouldPreventNextPress(true);
-                        expandMap();
-                      } else {
-                        setIsMapInteracting(true);
-                      }
-                    }}
-                    onTouchEnd={() => {
-                      if (isMapExpanded) {
-                        setIsMapInteracting(false);
-                      }
-                    }}
-                    onPress={(event) => {
-                      if (shouldPreventNextPress) {
-                        setShouldPreventNextPress(false);
-                        return;
-                      }
-
-                      if (isMapExpanded) {
-                        const { latitude: lat, longitude: lng } = event.nativeEvent.coordinate;
-                        setLatitude(lat);
-                        setLongitude(lng);
-                        const timer = setTimeout(() => {
-                          collapseMap();
-                        }, 300);
-                        pendingTimersRef.current.push(timer);
-                      }
-                    }}
-                  >
-                    {latitude && longitude && (
-                      <Marker
-                        coordinate={{ latitude, longitude }}
-                        title="Selected Location"
-                        description="Your service location"
-                      />
-                    )}
-                  </MapView>
-                  
-                  <TouchableOpacity
-                    style={styles.gpsButton}
-                    onPress={() => {
-                      getLocation();
-                      if (isMapExpanded) {
-                        const timer = setTimeout(() => {
-                          collapseMap();
-                        }, 300);
-                        pendingTimersRef.current.push(timer);
-                      }
-                    }}
-                  >
-                    <MaterialIcons 
-                      name="my-location" 
-                      size={20} 
-                      color={Theme.colors.text.inverse} 
-                    />
-                  </TouchableOpacity>
-                </Animated.View>
-
-                {/* Area para tap fuera del mapa */}
-                {isMapExpanded && (
-                  <TouchableOpacity
-                    activeOpacity={1}
-                    onPress={collapseMap}
-                    style={styles.outsideMapTouchArea}
-                  >
-                    <Typography variant="body2" color="primary">
-                      Tap here to minimize the map
-                    </Typography>
-                  </TouchableOpacity>
-                )}
-              </Card>
-
-              {/* Images Section */}
-              <View style={styles.fieldContainer} pointerEvents="box-none">
-                <Typography variant="body1" color="primary" style={styles.fieldLabel} pointerEvents="none">
-                  Photos (Optional)
-                </Typography>
-                <TouchableOpacity
-                  style={styles.imageUploadButton}
-                  onPress={handleAddPhotos}
-                >
-                  <MaterialIcons 
-                    name="add-photo-alternate" 
-                    size={24} 
-                    color={Theme.colors.primary[500]} 
-                  />
-                  <Typography variant="body2" color="primary">
-                    Add Photos
-                  </Typography>
-                </TouchableOpacity>
-
-                {/* Image Preview */}
-                {images.length > 0 && (
-                  <View style={styles.imagePreviewContainer}>
-                    {images.map((uri, index) => (
-                      <View key={index} style={styles.imageItem}>
-                        {uri ? (
-                          <Image source={{ uri }} style={styles.previewImage} />
-                        ) : null}
-                          <TouchableOpacity
-                            style={styles.removeImageButton}
-                            onPress={() => handleRemoveImage(uri)}
-                          >
-                            <MaterialIcons 
-                              name="close" 
-                              size={16} 
-                              color={Theme.colors.text.secondary} 
-                            />
-                          </TouchableOpacity>
-                        </View>
-                      ))}
-                      {/* Edit Button in Preview List */}
+                  {/* Service Type Selection */}
+                  {subCategories.length > 0 && (
+                    <View style={styles.fieldContainer} pointerEvents="box-none">
+                      <Typography variant="body1" color="primary" style={styles.fieldLabel} pointerEvents="none">
+                        Service Type *
+                      </Typography>
                       <TouchableOpacity
-                        style={styles.editImagesButton}
-                        onPress={() => setShowImagePreview(true)}
+                        style={styles.selectorButton}
+                        onPress={() => setShowSubCategorySheet(true)}
                       >
-                        <MaterialIcons name="edit" size={16} color={Theme.colors.primary[500]} />
-                        <Typography variant="caption" color="primary">Edit</Typography>
+                        <Typography
+                          variant="body1"
+                          color={selectedSubCategory ? "primary" : "tertiary"}
+                          pointerEvents="none"
+                        >
+                          {getSelectedSubCategoryName()}
+                        </Typography>
+                        <MaterialIcons
+                          name="keyboard-arrow-down"
+                          size={24}
+                          color={Theme.colors.text.tertiary}
+                        />
                       </TouchableOpacity>
+                      {!selectedSubCategory && (
+                        <Typography variant="caption" color="error" style={styles.errorText} pointerEvents="none">
+                          Please select a service type
+                        </Typography>
+                      )}
                     </View>
                   )}
-                </View>
 
-              {/* Submit Buttons */}
-              <View style={styles.buttonContainer}>
+                  {/* Description Input */}
+                  <View style={styles.fieldContainer} pointerEvents="box-none">
+                    <Typography variant="body1" color="primary" style={styles.fieldLabel} pointerEvents="none">
+                      Description
+                    </Typography>
+                    <View style={[
+                      styles.textAreaContainer,
+                      touched.description && errors.description && styles.textAreaError
+                    ]}>
+                      <TextInput
+                        style={styles.textAreaInput}
+                        placeholder="Describe the service you need (e.g., repair details, specific requirements...)"
+                        placeholderTextColor={Theme.colors.text.tertiary}
+                        value={values.description}
+                        onChangeText={handleChange('description')}
+                        onBlur={handleBlur('description')}
+                        multiline
+                        numberOfLines={4}
+                        textAlignVertical="top"
+                      />
+                    </View>
+                    {touched.description && errors.description && (
+                      <Typography variant="caption" color="error" style={styles.errorText}>
+                        {errors.description}
+                      </Typography>
+                    )}
+                  </View>
+
+                  {/* Location Section */}
+                  <Card variant="outlined" style={styles.locationCard}>
+                    <Typography variant="h4" color="primary" style={styles.sectionTitle} pointerEvents="none">
+                      Service Location
+                    </Typography>
+
+                    {/* Service Address Field */}
+                    <View style={styles.fieldContainer} pointerEvents="box-none">
+                      <Typography variant="body1" color="primary" style={styles.fieldLabel} pointerEvents="none">
+                        Service Address
+                      </Typography>
+                      <Input
+                        placeholder="Address"
+                        value={values.address}
+                        onChangeText={handleChange('address')}
+                        onBlur={handleBlur('address')}
+                        error={touched.address && errors.address ? errors.address : undefined}
+                        leftIcon="location-outline"
+                        editable={false}
+                        style={styles.readOnlyInput}
+                      />
+                    </View>
+
+                    {/* Location on Map */}
+                    <View style={styles.fieldContainer} pointerEvents="box-none">
+                      <Typography variant="body1" color="primary" style={styles.fieldLabel} pointerEvents="none">
+                        Location on Map
+                      </Typography>
+                      <Typography variant="caption" color="secondary" style={styles.fieldHint} pointerEvents="none">
+                        {isMapExpanded
+                          ? 'Tap on the map to select your service location. The map will minimize after selection.'
+                          : 'Tap the map to expand and select your service location.'}
+                      </Typography>
+                    </View>
+
+                    {/* Map View */}
+                    <Animated.View style={[styles.mapContainer, { height: mapHeight }]}>
+                      <MapView
+                        style={styles.map}
+                        region={region}
+                        onRegionChangeComplete={setRegion}
+                        scrollEnabled={isMapExpanded}
+                        zoomEnabled={isMapExpanded}
+                        pitchEnabled={isMapExpanded}
+                        rotateEnabled={isMapExpanded}
+                        onTouchStart={() => {
+                          if (!isMapExpanded) {
+                            setShouldPreventNextPress(true);
+                            expandMap();
+                          } else {
+                            setIsMapInteracting(true);
+                          }
+                        }}
+                        onTouchEnd={() => {
+                          if (isMapExpanded) {
+                            setIsMapInteracting(false);
+                          }
+                        }}
+                        onPress={(event) => {
+                          if (shouldPreventNextPress) {
+                            setShouldPreventNextPress(false);
+                            return;
+                          }
+
+                          if (isMapExpanded) {
+                            const { latitude: lat, longitude: lng } = event.nativeEvent.coordinate;
+                            setLatitude(lat);
+                            setLongitude(lng);
+                            const timer = setTimeout(() => {
+                              collapseMap();
+                            }, 300);
+                            pendingTimersRef.current.push(timer);
+                          }
+                        }}
+                      >
+                        {latitude && longitude && (
+                          <Marker
+                            coordinate={{ latitude, longitude }}
+                            title="Selected Location"
+                            description="Your service location"
+                          />
+                        )}
+                      </MapView>
+                      
+                      <TouchableOpacity
+                        style={styles.gpsButton}
+                        onPress={() => {
+                          getLocation();
+                          if (isMapExpanded) {
+                            const timer = setTimeout(() => {
+                              collapseMap();
+                            }, 300);
+                            pendingTimersRef.current.push(timer);
+                          }
+                        }}
+                      >
+                        <MaterialIcons 
+                          name="my-location" 
+                          size={20} 
+                          color={Theme.colors.text.inverse} 
+                        />
+                      </TouchableOpacity>
+                    </Animated.View>
+
+                    {/* Area para tap fuera del mapa */}
+                    {isMapExpanded && (
+                      <TouchableOpacity
+                        activeOpacity={1}
+                        onPress={collapseMap}
+                        style={styles.outsideMapTouchArea}
+                      >
+                        <Typography variant="body2" color="primary">
+                          Tap here to minimize the map
+                        </Typography>
+                      </TouchableOpacity>
+                    )}
+                  </Card>
+
+                  {/* Images Section */}
+                  <View style={styles.fieldContainer} pointerEvents="box-none">
+                    <Typography variant="body1" color="primary" style={styles.fieldLabel} pointerEvents="none">
+                      Photos (Optional)
+                    </Typography>
+                    <TouchableOpacity
+                      style={styles.imageUploadButton}
+                      onPress={handleAddPhotos}
+                    >
+                      <MaterialIcons 
+                        name="add-photo-alternate" 
+                        size={24} 
+                        color={Theme.colors.primary[500]} 
+                      />
+                      <Typography variant="body2" color="primary">
+                        Add Photos
+                      </Typography>
+                    </TouchableOpacity>
+
+                    {/* Image Preview */}
+                    {images.length > 0 && (
+                      <View style={styles.imagePreviewContainer}>
+                        {images.map((uri, index) => (
+                          <View key={index} style={styles.imageItem}>
+                            {uri ? (
+                              <Image source={{ uri }} style={styles.previewImage} />
+                            ) : null}
+                              <TouchableOpacity
+                                style={styles.removeImageButton}
+                                onPress={() => handleRemoveImage(uri)}
+                              >
+                                <MaterialIcons 
+                                  name="close" 
+                                  size={16} 
+                                  color={Theme.colors.text.secondary} 
+                                />
+                              </TouchableOpacity>
+                            </View>
+                          ))}
+                          {/* Edit Button in Preview List */}
+                          <TouchableOpacity
+                            style={styles.editImagesButton}
+                            onPress={() => setShowImagePreview(true)}
+                          >
+                            <MaterialIcons name="edit" size={16} color={Theme.colors.primary[500]} />
+                            <Typography variant="caption" color="primary">Edit</Typography>
+                          </TouchableOpacity>
+                        </View>
+                      )}
+                    </View>
+                </View>
+              </ScrollView>
+
+              {/* Fixed Footer Buttons */}
+              <View style={[styles.buttonContainer, styles.fixedFooter]}>
                 <Button
                   title="Cancel"
                   variant="outline"
@@ -1001,20 +994,33 @@ const RequestMigrated: React.FC<ModalProps> = ({
                   style={styles.submitButton}
                 />
               </View>
-            </View>
+            </>
           )}
           </Formik>
-        )}
+        ) : (
+          <ScrollView
+            style={styles.scrollView}
+            contentContainerStyle={styles.scrollContent}
+          >
+            {/* Error Message */}
+            {error && (
+              <View style={styles.errorContainer}>
+                <Typography variant="body2" color="error">
+                  {error}
+                </Typography>
+              </View>
+            )}
 
-        {/* Message when user info is not available */}
-        {!pkUser && !loadingRequest && (
-          <View style={styles.formContainer}>
-            <Typography variant="body1" color="secondary">
-              No se ha podido cargar la información del usuario.
-            </Typography>
-          </View>
+            {/* Message when user info is not available */}
+            {!pkUser && !loadingRequest && (
+              <View style={styles.formContainer}>
+                <Typography variant="body1" color="secondary">
+                  No se ha podido cargar la información del usuario.
+                </Typography>
+              </View>
+            )}
+          </ScrollView>
         )}
-      </ScrollView>
 
       {/* Loading Overlay */}
       <Loading
@@ -1231,7 +1237,7 @@ const styles = StyleSheet.create({
 
   scrollContent: {
     flexGrow: 1,
-    paddingBottom: Theme.spacing['2xl'],
+    paddingBottom: 120, // Ensure content is not hidden behind fixed footer
   },
 
   formContainer: {
@@ -1373,8 +1379,15 @@ const styles = StyleSheet.create({
   buttonContainer: {
     flexDirection: 'row',
     gap: Theme.spacing.sm,
-    marginTop: Theme.spacing['2xl'],
-    marginBottom: Theme.spacing.lg,
+  },
+
+  fixedFooter: {
+    padding: Theme.spacing.lg,
+    backgroundColor: Theme.colors.background.primary,
+    borderTopWidth: 1,
+    borderTopColor: Theme.colors.border.light,
+    paddingBottom: Platform.OS === 'ios' ? 34 : Theme.spacing.lg, // Handle safe area
+    ...Theme.shadows.md, // Add shadow for better separation
   },
 
   cancelButton: {
