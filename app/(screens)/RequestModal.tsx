@@ -140,8 +140,10 @@ const RequestMigrated: React.FC<ModalProps> = ({
   const [isMapExpanded, setIsMapExpanded] = useState(false);
   const [isMapInteracting, setIsMapInteracting] = useState(false);
   const [shouldPreventNextPress, setShouldPreventNextPress] = useState(false);
-  const [initialScrollPosition, setInitialScrollPosition] = useState(0);
+  const [initialScrollPosition, setInitialScrollPosition] = useState(0); // Animation values
   const mapHeight = useRef(new Animated.Value(200)).current;
+  const successOpacity = useRef(new Animated.Value(0)).current;
+  const successScale = useRef(new Animated.Value(0.8)).current;
   const scrollViewRef = useRef<ScrollView>(null);
   // Store pending timers for cleanup on unmount
   const pendingTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
@@ -298,16 +300,30 @@ const RequestMigrated: React.FC<ModalProps> = ({
       return;
     }
     
-    let result = await ImagePicker.launchCameraAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true, // Native editing for camera
-      quality: 1,
-    });
+    try {
+      let result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: false,
+        quality: 1,
+      });
 
-    if (!result.canceled && result.assets && result.assets.length > 0) {
-      const newUri = result.assets[0].uri;
-      setImages((prev) => [...prev, newUri]);
-      setShowImagePreview(true);
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const newUri = result.assets[0].uri;
+        setImages((prev) => [...prev, newUri]);
+        setShowImagePreview(true);
+      }
+    } catch (error: any) {
+      console.error('Camera error:', error);
+      // Handle simulator or camera not available error
+      if (error.message?.includes('Camera not available') || error.message?.includes('simulator')) {
+        Alert.alert(
+          'Camera Not Available',
+          'The camera is not available on this device. Please use "Choose from Gallery" instead.',
+          [{ text: 'OK' }]
+        );
+      } else {
+        Alert.alert('Error', 'Failed to open camera. Please try again.');
+      }
     }
   };
 
@@ -542,14 +558,14 @@ const RequestMigrated: React.FC<ModalProps> = ({
           setLoadingRequest(false);
           return;
         }
-        // Limpiar imágenes después del upload exitoso para evitar warnings
-        setImages([]);
       }
 
       setLoadingRequest(false);
       setSuccess(true);
       const timer = setTimeout(() => {
         setSuccess(false);
+        // Clear images after closing modal to prevent null URL errors
+        setImages([]);
         onClose();
         if (onServiceCreated) {
           onServiceCreated();
@@ -620,8 +636,32 @@ const RequestMigrated: React.FC<ModalProps> = ({
       setShowImageSourceSheet(false);
       setShowImagePreview(false);
       mapHeight.setValue(200);
+      successOpacity.setValue(0);
+      successScale.setValue(0.8);
     }
-  }, [isVisible, mapHeight]);
+  }, [isVisible, mapHeight, successOpacity, successScale]);
+
+  // Success Animation Effect
+  useEffect(() => {
+    if (success) {
+      Animated.parallel([
+        Animated.timing(successOpacity, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+        Animated.spring(successScale, {
+          toValue: 1,
+          friction: 8,
+          tension: 40,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    } else {
+      successOpacity.setValue(0);
+      successScale.setValue(0.8);
+    }
+  }, [success, successOpacity, successScale]);
 
   const validationSchema = Yup.object().shape({
     description: Yup.string().required('Description is required'),
@@ -676,15 +716,6 @@ const RequestMigrated: React.FC<ModalProps> = ({
           }
         }}
       >
-        {/* Success Message */}
-        {success && (
-          <View style={styles.successContainer}>
-            <Typography variant="body1" color="success" style={styles.successText}>
-              Service requested successfully!
-            </Typography>
-          </View>
-        )}
-
         {/* Error Message */}
         {error && (
           <View style={styles.errorContainer}>
@@ -710,10 +741,12 @@ const RequestMigrated: React.FC<ModalProps> = ({
               {/* Service Category Card */}
               <Card variant="elevated" style={styles.categoryCard}>
                 <View style={styles.categoryContent} pointerEvents="box-none">
-                  <Image
-                    source={{ uri: `${API_URL}${selectedCategory?.imagePath}` }}
-                    style={styles.categoryImage}
-                  />
+                  {selectedCategory?.imagePath && (
+                    <Image
+                      source={{ uri: `${API_URL}${selectedCategory.imagePath}` }}
+                      style={styles.categoryImage}
+                    />
+                  )}
                   <Typography variant="h4" color="primary" style={styles.categoryTitle} pointerEvents="none">
                     {selectedCategory?.name}
                   </Typography>
@@ -924,7 +957,9 @@ const RequestMigrated: React.FC<ModalProps> = ({
                   <View style={styles.imagePreviewContainer}>
                     {images.map((uri, index) => (
                       <View key={index} style={styles.imageItem}>
-                        <Image source={{ uri }} style={styles.previewImage} />
+                        {uri ? (
+                          <Image source={{ uri }} style={styles.previewImage} />
+                        ) : null}
                           <TouchableOpacity
                             style={styles.removeImageButton}
                             onPress={() => handleRemoveImage(uri)}
@@ -988,22 +1023,69 @@ const RequestMigrated: React.FC<ModalProps> = ({
         message={loadingRequest ? "Submitting request..." : "Loading services..."}
       />
 
-      {/* Success/Error Messages */}
+      {/* Success Overlay */}
       {success && (
-        <View style={styles.successContainer}>
-          <Typography variant="body1" color="success">
-            Service request submitted successfully!
-          </Typography>
-        </View>
+        <Animated.View 
+          style={[
+            styles.successOverlay,
+            {
+              opacity: successOpacity,
+              transform: [{ scale: successScale }]
+            }
+          ]}
+        >
+          <View style={styles.successContent}>
+            <View style={styles.successIconContainer}>
+              <MaterialIcons name="check" size={48} color="white" />
+            </View>
+            <Typography variant="h3" style={styles.successTitle}>
+              Success!
+            </Typography>
+            <Typography variant="body1" style={styles.successMessage}>
+              Service request submitted successfully
+            </Typography>
+          </View>
+        </Animated.View>
       )}
 
-      {error && (
-        <View style={styles.errorContainer}>
-          <Typography variant="body2" color="error">
-            {error}
-          </Typography>
-        </View>
-      )}
+      {/* Image Source Action Sheet */}
+      <ActionSheet
+        visible={showImageSourceSheet}
+        onClose={() => setShowImageSourceSheet(false)}
+        title="Add Photos"
+        options={[
+          {
+            title: 'Take Photo',
+            icon: 'camera',
+            onPress: handleCameraCapture,
+            id: 'camera',
+          },
+          {
+            title: 'Choose from Gallery',
+            icon: 'images',
+            onPress: handleGallerySelect,
+            id: 'gallery',
+          },
+        ]}
+      />
+
+      {/* Image Preview & Edit Modal */}
+      <ImagePreviewModal
+        visible={showImagePreview}
+        images={images}
+        onClose={() => {
+          // If user closes without confirming, we might want to keep images or revert?
+          // Current logic: images are already in state, so closing just hides modal.
+          // If we wanted "Cancel" behavior, we'd need a temp state in the modal.
+          // For now, "Done" and "Close" both just hide, but "Done" implies satisfaction.
+          setShowImagePreview(false);
+        }}
+        onConfirm={(finalImages) => {
+          setImages(finalImages);
+          setShowImagePreview(false);
+        }}
+        onAddMore={handleAddMorePhotos}
+      />
 
       {/* SubCategory Selection Bottom Sheet */}
       <BottomSheet
@@ -1103,45 +1185,6 @@ const RequestMigrated: React.FC<ModalProps> = ({
           </ScrollView>
         </View>
       </BottomSheet>
-
-      {/* Image Source Action Sheet */}
-      <ActionSheet
-        visible={showImageSourceSheet}
-        onClose={() => setShowImageSourceSheet(false)}
-        title="Add Photos"
-        options={[
-          {
-            title: 'Take Photo',
-            icon: 'camera',
-            onPress: handleCameraCapture,
-            id: 'camera',
-          },
-          {
-            title: 'Choose from Gallery',
-            icon: 'images',
-            onPress: handleGallerySelect,
-            id: 'gallery',
-          },
-        ]}
-      />
-
-      {/* Image Preview & Edit Modal */}
-      <ImagePreviewModal
-        visible={showImagePreview}
-        images={images}
-        onClose={() => {
-          // If user closes without confirming, we might want to keep images or revert?
-          // Current logic: images are already in state, so closing just hides modal.
-          // If we wanted "Cancel" behavior, we'd need a temp state in the modal.
-          // For now, "Done" and "Close" both just hide, but "Done" implies satisfaction.
-          setShowImagePreview(false);
-        }}
-        onConfirm={(finalImages) => {
-          setImages(finalImages);
-          setShowImagePreview(false);
-        }}
-        onAddMore={handleAddMorePhotos}
-      />
 
 
       </KeyboardAvoidingView>
@@ -1346,16 +1389,43 @@ const styles = StyleSheet.create({
     marginTop: Theme.spacing.xs,
   },
 
-  successContainer: {
+  successOverlay: {
     position: 'absolute',
-    top: Theme.spacing['4xl'],
-    left: Theme.spacing.lg,
-    right: Theme.spacing.lg,
-    backgroundColor: Theme.colors.success[50],
-    padding: Theme.spacing.base,
-    borderRadius: Theme.borderRadius.md,
-    borderLeftWidth: 4,
-    borderLeftColor: Theme.colors.success[500],
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 2000,
+  },
+  successContent: {
+    alignItems: 'center',
+    padding: 32,
+  },
+  successIconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: Theme.colors.success[500],
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 24,
+    shadowColor: Theme.colors.success[500],
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  successTitle: {
+    color: Theme.colors.text.primary,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  successMessage: {
+    color: Theme.colors.text.secondary,
+    textAlign: 'center',
   },
 
   errorContainer: {
@@ -1485,11 +1555,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 
-  // Estilos para mensajes de éxito
-  successText: {
-    fontWeight: Theme.typography.fontWeight.semiBold,
-    textAlign: 'center',
-  },
+
 
   // Estilos específicos para TextArea (Description field) usando Theme System
   textAreaContainer: {

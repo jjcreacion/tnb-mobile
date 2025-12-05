@@ -3,6 +3,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import * as FileSystem from 'expo-file-system';
 import * as FileSystemLegacy from 'expo-file-system/legacy';
 import * as ImageManipulator from 'expo-image-manipulator';
+import * as ImagePicker from 'expo-image-picker';
 import React, { useRef, useState } from 'react';
 import {
     Alert,
@@ -22,6 +23,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import WebView from 'react-native-webview';
+import { ActionSheet } from './ActionSheet';
 import { Button } from './Button';
 import { Loading } from './Loading';
 import { Typography } from './Typography';
@@ -32,7 +34,8 @@ interface ImagePreviewModalProps {
   images: string[];
   onClose: () => void;
   onConfirm: (finalImages: string[]) => void;
-  onAddMore: () => Promise<void>;
+  onAddMore?: () => Promise<void>; // Made optional since we handle it internally now
+  onAddMoreCamera?: () => Promise<void>;
 }
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -55,6 +58,9 @@ export const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
   const [isCropMode, setIsCropMode] = useState(false);
   const [cropImageBase64, setCropImageBase64] = useState<string>('');
   const [cropLoading, setCropLoading] = useState(false);
+
+  // ActionSheet state
+  const [showAddMoreSheet, setShowAddMoreSheet] = useState(false);
 
   // Animation values
   const footerOpacity = useSharedValue(1);
@@ -218,14 +224,12 @@ export const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
             }
             
             const fileUri = cacheDir + filename;
-            console.log('[Crop] Saving to:', fileUri);
 
             // Use legacy API to write base64 data
             await FileSystemLegacy.writeAsStringAsync(fileUri, base64Data, {
               encoding: FileSystemLegacy.EncodingType.Base64,
             });
 
-            console.log('[Crop] Saved cropped image to:', fileUri);
             const newImages = [...currentImages];
             newImages[selectedIndex] = fileUri;
             setCurrentImages(newImages);
@@ -293,6 +297,70 @@ export const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
     // Update parent with current images before closing
     onConfirm(currentImages);
     onClose();
+  };
+
+  // Handle Add More - Gallery
+  const handleAddMoreGallery = async () => {
+    setShowAddMoreSheet(false);
+    if (onAddMore) {
+      await onAddMore();
+    } else {
+      // Fallback: handle gallery selection internally
+      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permissionResult.granted) {
+        Alert.alert('Permission Denied', 'We need access to your photos to select images.');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsMultipleSelection: true,
+        quality: 1,
+      });
+
+      if (!result.canceled && result.assets) {
+        const newUris = result.assets.map((asset) => asset.uri);
+        setCurrentImages((prev) => [...prev, ...newUris]);
+        // Auto-select last added image
+        setSelectedIndex(currentImages.length + newUris.length - 1);
+      }
+    }
+  };
+
+  // Handle Add More - Camera
+  const handleAddMoreCamera = async () => {
+    setShowAddMoreSheet(false);
+    const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
+    if (!permissionResult.granted) {
+      Alert.alert('Permission Denied', 'We need access to your camera to take a photo.');
+      return;
+    }
+
+    try {
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: false,
+        quality: 1,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const newUri = result.assets[0].uri;
+        setCurrentImages((prev) => [...prev, newUri]);
+        // Auto-select the new image
+        setSelectedIndex(currentImages.length);
+      }
+    } catch (error: any) {
+      console.error('Camera error:', error);
+      if (error.message?.includes('Camera not available') || error.message?.includes('simulator')) {
+        Alert.alert(
+          'Camera Not Available',
+          'The camera is not available on this device. Please use "Choose from Gallery" instead.',
+          [{ text: 'OK' }]
+        );
+      } else {
+        Alert.alert('Error', 'Failed to open camera. Please try again.');
+      }
+    }
   };
 
   if (!visible) return null;
@@ -440,7 +508,7 @@ export const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
               
               <TouchableOpacity 
                 style={styles.addMoreButton}
-                onPress={onAddMore}
+                onPress={() => setShowAddMoreSheet(true)}
               >
                 <MaterialIcons name="add" size={24} color="white" />
               </TouchableOpacity>
@@ -459,6 +527,27 @@ export const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
         )}
 
         <Loading visible={loading} variant="overlay" message="Processing..." />
+
+        {/* ActionSheet for Add More options */}
+        <ActionSheet
+          visible={showAddMoreSheet}
+          onClose={() => setShowAddMoreSheet(false)}
+          title="Add Photos"
+          options={[
+            {
+              id: 'camera',
+              title: 'Take Photo',
+              icon: 'camera-outline',
+              onPress: handleAddMoreCamera,
+            },
+            {
+              id: 'gallery',
+              title: 'Choose from Gallery',
+              icon: 'images-outline',
+              onPress: handleAddMoreGallery,
+            },
+          ]}
+        />
       </View>
     </Modal>
   );

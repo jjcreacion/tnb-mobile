@@ -28,14 +28,19 @@ export const getCropperHtml = (imageBase64: string) => `
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 20px;
+      padding: 10px;
       overflow: hidden;
+      width: 100%;
+      height: 100%;
     }
     
     #image {
       max-width: 100%;
       max-height: 100%;
+      width: auto;
+      height: auto;
       display: block;
+      margin: 0 auto;
     }
     
     .loading {
@@ -103,10 +108,10 @@ export const getCropperHtml = (imageBase64: string) => `
     // Initialize cropper when image loads
     image.onload = function() {
       cropper = new Cropper(image, {
-        viewMode: 1,
+        viewMode: 2, // Restrict canvas to container
         dragMode: 'move',
         aspectRatio: NaN, // Free aspect ratio
-        autoCropArea: 0.9,
+        autoCropArea: 0.8,
         restore: false,
         guides: true,
         center: true,
@@ -116,8 +121,8 @@ export const getCropperHtml = (imageBase64: string) => `
         toggleDragModeOnDblclick: false,
         responsive: true,
         checkOrientation: true,
-        minContainerWidth: 200,
-        minContainerHeight: 200,
+        minContainerWidth: 100,
+        minContainerHeight: 100,
         ready: function() {
           // Notify React Native that cropper is ready
           window.ReactNativeWebView.postMessage(JSON.stringify({
