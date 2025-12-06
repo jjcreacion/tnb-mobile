@@ -7,31 +7,31 @@ import * as Location from 'expo-location';
 import { Formik } from 'formik';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Alert,
-  Animated,
-  Image,
-  KeyboardAvoidingView,
-  Platform,
-  Modal as RNModal,
-  ScrollView,
-  StyleSheet,
-  TextInput,
-  TouchableOpacity,
-  View
+    Alert,
+    Animated,
+    Image,
+    KeyboardAvoidingView,
+    Platform,
+    Modal as RNModal,
+    ScrollView,
+    StyleSheet,
+    TextInput,
+    TouchableOpacity,
+    View
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Yup from 'yup';
 
 // Import migrated components
 import {
-  ActionSheet,
-  BottomSheet,
-  Button,
-  Card,
-  ImagePreviewModal,
-  Input,
-  Loading,
-  Typography
+    ActionSheet,
+    BottomSheet,
+    Button,
+    Card,
+    ImagePreviewModal,
+    Input,
+    Loading,
+    Typography
 } from '@/components/common';
 import { Theme } from '@/constants/Theme';
 
@@ -780,7 +780,7 @@ const RequestMigrated: React.FC<ModalProps> = ({
                   {/* Description Input */}
                   <View style={styles.fieldContainer} pointerEvents="box-none">
                     <Typography variant="body1" color="primary" style={styles.fieldLabel} pointerEvents="none">
-                      Description
+                      Description *
                     </Typography>
                     <View style={[
                       styles.textAreaContainer,
@@ -898,7 +898,7 @@ const RequestMigrated: React.FC<ModalProps> = ({
                   variant="primary"
                   onPress={() => handleSubmit()}
                   loading={loadingRequest}
-                  disabled={!selectedSubCategory || loadingRequest}
+                  disabled={!selectedSubCategory || !values.description.trim() || !values.address || loadingRequest}
                   style={styles.submitButton}
                 />
               </View>
