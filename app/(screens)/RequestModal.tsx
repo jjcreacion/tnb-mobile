@@ -133,6 +133,7 @@ const RequestMigrated: React.FC<ModalProps> = ({
   const [showSubCategorySheet, setShowSubCategorySheet] = useState(false);
   const [showImageSourceSheet, setShowImageSourceSheet] = useState(false);
   const [showImagePreview, setShowImagePreview] = useState(false);
+  const [previewInitialIndex, setPreviewInitialIndex] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
   
   // Estados para mapa interactivo
@@ -267,6 +268,11 @@ const RequestMigrated: React.FC<ModalProps> = ({
     setShowImageSourceSheet(true);
   };
 
+  const handleEditImage = (index: number) => {
+    setPreviewInitialIndex(index);
+    setShowImagePreview(true);
+  };
+
   // Opción Galería
   const handleGallerySelect = async () => {
     setShowImageSourceSheet(false);
@@ -284,8 +290,10 @@ const RequestMigrated: React.FC<ModalProps> = ({
 
     if (!result.canceled && result.assets) {
       const newUris = result.assets.map((asset) => asset.uri);
+      const currentLength = images.length;
       // Append new images and open preview
       setImages((prev) => [...prev, ...newUris]);
+      setPreviewInitialIndex(currentLength);
       setShowImagePreview(true);
     }
   };
@@ -308,7 +316,9 @@ const RequestMigrated: React.FC<ModalProps> = ({
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
         const newUri = result.assets[0].uri;
+        const currentLength = images.length;
         setImages((prev) => [...prev, newUri]);
+        setPreviewInitialIndex(currentLength);
         setShowImagePreview(true);
       }
     } catch (error: any) {
@@ -706,7 +716,7 @@ const RequestMigrated: React.FC<ModalProps> = ({
             onSubmit={handleSave}
             enableReinitialize
           >
-          {({ handleChange, handleBlur, handleSubmit, values, errors, touched, setFieldValue }) => (
+          {({ handleChange, handleBlur, handleSubmit, values, errors, touched, setFieldValue, submitCount }) => (
             <>
               <ScrollView
                 ref={scrollViewRef}
@@ -769,7 +779,7 @@ const RequestMigrated: React.FC<ModalProps> = ({
                           color={Theme.colors.text.tertiary}
                         />
                       </TouchableOpacity>
-                      {!selectedSubCategory && (
+                      {!selectedSubCategory && submitCount > 0 && (
                         <Typography variant="caption" color="error" style={styles.errorText} pointerEvents="none">
                           Please select a service type
                         </Typography>
@@ -834,54 +844,71 @@ const RequestMigrated: React.FC<ModalProps> = ({
 
                   {/* Images Section */}
                   <View style={styles.fieldContainer} pointerEvents="box-none">
-                    <Typography variant="body1" color="primary" style={styles.fieldLabel} pointerEvents="none">
-                      Photos (Optional)
-                    </Typography>
-                    <TouchableOpacity
-                      style={styles.imageUploadButton}
-                      onPress={handleAddPhotos}
-                    >
-                      <MaterialIcons 
-                        name="add-photo-alternate" 
-                        size={24} 
-                        color={Theme.colors.primary[500]} 
-                      />
-                      <Typography variant="body2" color="primary">
-                        Add Photos
+                    <View style={styles.sectionHeader}>
+                      <Typography variant="body1" color="primary" style={styles.fieldLabel} pointerEvents="none">
+                        Photos
                       </Typography>
-                    </TouchableOpacity>
-
-                    {/* Image Preview */}
-                    {images.length > 0 && (
-                      <View style={styles.imagePreviewContainer}>
-                        {images.map((uri, index) => (
-                          <View key={index} style={styles.imageItem}>
-                            {uri ? (
-                              <Image source={{ uri }} style={styles.previewImage} />
-                            ) : null}
-                              <TouchableOpacity
-                                style={styles.removeImageButton}
-                                onPress={() => handleRemoveImage(uri)}
-                              >
-                                <MaterialIcons 
-                                  name="close" 
-                                  size={16} 
-                                  color={Theme.colors.text.secondary} 
-                                />
-                              </TouchableOpacity>
-                            </View>
-                          ))}
-                          {/* Edit Button in Preview List */}
-                          <TouchableOpacity
-                            style={styles.editImagesButton}
-                            onPress={() => setShowImagePreview(true)}
-                          >
-                            <MaterialIcons name="edit" size={16} color={Theme.colors.primary[500]} />
-                            <Typography variant="caption" color="primary">Edit</Typography>
-                          </TouchableOpacity>
-                        </View>
-                      )}
+                      <View style={styles.optionalBadge}>
+                        <Typography variant="caption" color="secondary" style={styles.optionalText}>
+                          Optional
+                        </Typography>
+                      </View>
                     </View>
+
+                    {images.length === 0 ? (
+                      <TouchableOpacity
+                        style={styles.emptyPhotoState}
+                        onPress={handleAddPhotos}
+                        activeOpacity={0.8}
+                      >
+                        <View style={styles.emptyPhotoIconContainer}>
+                          <MaterialIcons name="add-a-photo" size={32} color={Theme.colors.primary[500]} />
+                        </View>
+                        <Typography variant="body2" color="primary" style={styles.emptyPhotoText}>
+                          Tap to upload photos
+                        </Typography>
+                        <Typography variant="caption" color="tertiary">
+                          Help us understand the issue better
+                        </Typography>
+                      </TouchableOpacity>
+                    ) : (
+                      <ScrollView 
+                        horizontal 
+                        showsHorizontalScrollIndicator={false} 
+                        contentContainerStyle={styles.photoListContent}
+                        style={styles.photoList}
+                      >
+                        <TouchableOpacity
+                          style={styles.addMoreCard}
+                          onPress={handleAddPhotos}
+                          activeOpacity={0.7}
+                        >
+                          <MaterialIcons name="add" size={32} color={Theme.colors.primary[500]} />
+                          <Typography variant="caption" color="primary" style={{marginTop: 4}}>Add</Typography>
+                        </TouchableOpacity>
+                        
+                        {images.map((uri, index) => (
+                          <View key={index} style={styles.photoCard}>
+                            <Image source={{ uri }} style={styles.photoImage} />
+                            <TouchableOpacity
+                              style={styles.editPhotoButton}
+                              onPress={() => handleEditImage(index)}
+                              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                            >
+                              <MaterialIcons name="edit" size={14} color="white" />
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                              style={styles.deletePhotoButton}
+                              onPress={() => handleRemoveImage(uri)}
+                              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                            >
+                              <MaterialIcons name="close" size={14} color="white" />
+                            </TouchableOpacity>
+                          </View>
+                        ))}
+                      </ScrollView>
+                    )}
+                  </View>
                 </View>
               </ScrollView>
 
@@ -987,6 +1014,7 @@ const RequestMigrated: React.FC<ModalProps> = ({
       <ImagePreviewModal
         visible={showImagePreview}
         images={images}
+        initialIndex={previewInitialIndex}
         onClose={() => {
           // If user closes without confirming, we might want to keep images or revert?
           // Current logic: images are already in state, so closing just hides modal.
@@ -1235,53 +1263,105 @@ const styles = StyleSheet.create({
     ...Theme.shadows.md,
   },
 
-  imageUploadButton: {
+  sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: Theme.spacing.lg,
-    paddingHorizontal: Theme.spacing.xl,
-    backgroundColor: Theme.colors.background.primary,
+    justifyContent: 'space-between',
+    marginBottom: Theme.spacing.sm,
+  },
+  optionalBadge: {
+    backgroundColor: Theme.colors.background.tertiary,
+    paddingHorizontal: Theme.spacing.sm,
+    paddingVertical: 2,
+    borderRadius: Theme.borderRadius.sm,
+  },
+  optionalText: {
+    fontSize: 10,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+  },
+  emptyPhotoState: {
     borderWidth: 2,
-    borderColor: Theme.colors.primary[500],
+    borderColor: Theme.colors.border.default,
     borderStyle: 'dashed',
-    borderRadius: Theme.borderRadius.md,
-    gap: Theme.spacing.sm,
+    borderRadius: Theme.borderRadius.lg,
+    padding: Theme.spacing.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Theme.colors.background.primary,
+    minHeight: 140,
   },
-
-  imagePreviewContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginTop: Theme.spacing.sm,
-    gap: Theme.spacing.sm,
+  emptyPhotoIconContainer: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: Theme.colors.primary[50],
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: Theme.spacing.base,
   },
-
-  imageItem: {
-    width: 80,
-    height: 80,
+  emptyPhotoText: {
+    marginBottom: Theme.spacing.xs,
+    fontWeight: Theme.typography.fontWeight.medium,
+  },
+  photoList: {
+    marginTop: Theme.spacing.xs,
+  },
+  photoListContent: {
+    paddingRight: Theme.spacing.lg,
+    gap: Theme.spacing.base,
+    alignItems: 'center',
+  },
+  addMoreCard: {
+    width: 100,
+    height: 100,
     borderRadius: Theme.borderRadius.md,
-    position: 'relative',
+    borderWidth: 2,
+    borderColor: Theme.colors.border.default,
+    borderStyle: 'dashed',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Theme.colors.background.primary,
+  },
+  photoCard: {
+    width: 100,
+    height: 100,
+    borderRadius: Theme.borderRadius.md,
     overflow: 'hidden',
+    position: 'relative',
+    ...Theme.shadows.sm,
+    backgroundColor: Theme.colors.background.secondary,
   },
-
-  previewImage: {
+  photoImage: {
     width: '100%',
     height: '100%',
+    resizeMode: 'cover',
   },
-
-  removeImageButton: {
+  deletePhotoButton: {
     position: 'absolute',
-    top: -8,
-    right: -8,
-    backgroundColor: Theme.colors.background.primary,
-    borderRadius: Theme.borderRadius.full,
+    top: 6,
+    right: 6,
     width: 24,
     height: 24,
-    justifyContent: 'center',
+    borderRadius: 12,
+    backgroundColor: 'rgba(0,0,0,0.6)',
     alignItems: 'center',
+    justifyContent: 'center',
     borderWidth: 1,
-    borderColor: Theme.colors.border.default,
-    ...Theme.shadows.sm,
+    borderColor: 'rgba(255,255,255,0.3)',
+  },
+  editPhotoButton: {
+    position: 'absolute',
+    top: 6,
+    left: 6,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.3)',
   },
 
   buttonContainer: {

@@ -36,6 +36,7 @@ interface ImagePreviewModalProps {
   onConfirm: (finalImages: string[]) => void;
   onAddMore?: () => Promise<void>; // Made optional since we handle it internally now
   onAddMoreCamera?: () => Promise<void>;
+  initialIndex?: number;
 }
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -46,12 +47,13 @@ export const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
   onClose,
   onConfirm,
   onAddMore,
+  initialIndex = 0,
 }) => {
   const insets = useSafeAreaInsets();
   const webViewRef = useRef<WebView>(null);
   
   const [currentImages, setCurrentImages] = useState<string[]>(initialImages);
-  const [selectedIndex, setSelectedIndex] = useState(0);
+  const [selectedIndex, setSelectedIndex] = useState(initialIndex);
   const [loading, setLoading] = useState(false);
   
   // Crop mode state
@@ -72,14 +74,20 @@ export const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
     const previousLength = currentImages.length;
     setCurrentImages(initialImages);
     
-    // If new images were added, select the last one
-    if (initialImages.length > previousLength) {
+    // If visible became true, reset index to initialIndex
+    if (visible) {
+      setSelectedIndex(initialIndex);
+    }
+    
+    // If new images were added (and not just opening), select the last one
+    // We check visible to ensure we don't override initialIndex on open
+    if (visible && initialImages.length > previousLength && initialImages.length > currentImages.length) {
       setSelectedIndex(initialImages.length - 1);
     } else if (initialImages.length > 0 && selectedIndex >= initialImages.length) {
       // If images were removed and current index is out of bounds
       setSelectedIndex(Math.max(0, initialImages.length - 1));
     }
-  }, [initialImages]);
+  }, [initialImages, visible, initialIndex]);
 
   // Reset crop mode when modal closes
   React.useEffect(() => {
