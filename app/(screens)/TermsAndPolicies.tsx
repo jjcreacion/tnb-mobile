@@ -1,12 +1,10 @@
-import { MigratedStyles } from '@/constants/MigratedStyles'; // Asegúrate de que esta ruta sea correcta
-import { Theme } from '@/constants/Theme'; // Asegúrate de que esta ruta sea correcta
+import { MigratedStyles } from '@/constants/MigratedStyles'; 
+import { Theme } from '@/constants/Theme'; 
 import { FontAwesome } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useState } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
-
-// --- DEFINICIÓN DE TEXTOS DE TÉRMINOS Y CONDICIONES (EN) ---
 
 const termsAndConditions_EN = {
   title: 'Terms and Conditions of Use for THE NATIONAL BUILDERS Mobile App and Web Platform (U.S.)',
@@ -244,7 +242,6 @@ const termsAndPolicies_ES = {
   ],
 };
 
-// --- COMPONENTE PRINCIPAL ---
 
 const TermsAndPoliciesScreen = () => {
   const router = useRouter();
@@ -255,7 +252,6 @@ const TermsAndPoliciesScreen = () => {
     setLanguage(prevLang => (prevLang === 'en' ? 'es' : 'en'));
   };
 
-  // Color de botón claro/vibrante para destacar
   const languageButtonColor = Theme.colors.info[100] || '#FFC107'; 
   const languageButtonTextColor = Theme.colors.text.secondary || '#333333'; 
 
@@ -278,7 +274,6 @@ const TermsAndPoliciesScreen = () => {
           }
         }>
           
-          {/* Botón de Retroceso */}
           <TouchableOpacity style={MigratedStyles.termsAndPoliciesBackButton} onPress={() => router.back()}>
             <FontAwesome name="arrow-left" size={24} color={Theme.colors.text.primary} />
             <Text style={MigratedStyles.termsAndPoliciesBackButtonText}>
@@ -286,7 +281,6 @@ const TermsAndPoliciesScreen = () => {
             </Text>
           </TouchableOpacity>
 
-          {/* Botón de Cambio de Idioma (Color Claro) */}
           <TouchableOpacity 
             onPress={toggleLanguage} 
             style={{
@@ -305,26 +299,20 @@ const TermsAndPoliciesScreen = () => {
           </TouchableOpacity>
         </View>
 
-        {/* ScrollView para el contenido de los términos */}
         <ScrollView contentContainerStyle={[MigratedStyles.termsAndPoliciesContent, { paddingTop: 0 }]}>
           
-          {/* Título Principal */}
           <Text style={MigratedStyles.termsAndPoliciesTitle}>{currentTerms.title}</Text>
           
-          {/* Mapeo de las Secciones */}
           {currentTerms.sections.map((section, index) => {
             
-            // La justificación (textAlign: 'justify') se aplica a TODAS las secciones excepto al índice 0.
             const isJustified = index > 0;
             
             return (
               <View key={index} style={{ marginBottom: 15 }}>
-                {/* Título de la Sección en Negrita (aplica a todos los headings) */}
                 <Text style={[MigratedStyles.termsAndPoliciesPolicyText, { fontWeight: 'bold', marginTop: 10 }]}>
                   {section.heading}
                 </Text>
                 
-                {/* Cuerpo del texto: Justificado si index > 0, sino alineado a la izquierda (por defecto) */}
                 <Text style={[
                   MigratedStyles.termsAndPoliciesPolicyText, 
                   isJustified ? { textAlign: 'justify' } : { textAlign: 'left' } 
