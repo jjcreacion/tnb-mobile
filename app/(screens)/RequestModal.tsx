@@ -503,7 +503,7 @@ const RequestMigrated: React.FC<ModalProps> = ({
     }
 
     // Validación de subcategoría (crítica para funcionamiento)
-    if (!selectedSubCategory) {
+    if (subCategories.length > 0 && !selectedSubCategory) {
       setError('Please select a service type');
       return;
     }
@@ -898,7 +898,7 @@ const RequestMigrated: React.FC<ModalProps> = ({
                   variant="primary"
                   onPress={() => handleSubmit()}
                   loading={loadingRequest}
-                  disabled={!selectedSubCategory || !values.description.trim() || !values.address || loadingRequest}
+                  disabled={(subCategories.length > 0 && !selectedSubCategory) || !values.description.trim() || !values.address || loadingRequest}
                   style={styles.submitButton}
                 />
               </View>
