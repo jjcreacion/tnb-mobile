@@ -7,32 +7,31 @@ import * as Location from 'expo-location';
 import { Formik } from 'formik';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
-    Alert,
-    Animated,
-    Image,
-    KeyboardAvoidingView,
-    Platform,
-    Modal as RNModal,
-    ScrollView,
-    StyleSheet,
-    TextInput,
-    TouchableOpacity,
-    View
+  Alert,
+  Animated,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  Modal as RNModal,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
-import MapView, { Marker } from 'react-native-maps';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Yup from 'yup';
 
 // Import migrated components
 import {
-    ActionSheet,
-    BottomSheet,
-    Button,
-    Card,
-    ImagePreviewModal,
-    Input,
-    Loading,
-    Typography
+  ActionSheet,
+  BottomSheet,
+  Button,
+  Card,
+  ImagePreviewModal,
+  Input,
+  Loading,
+  Typography
 } from '@/components/common';
 import { Theme } from '@/constants/Theme';
 
@@ -826,102 +825,11 @@ const RequestMigrated: React.FC<ModalProps> = ({
                         leftIcon="location-outline"
                         editable={false}
                         style={styles.readOnlyInput}
+                        multiline={true}
                       />
                     </View>
 
-                    {/* Location on Map */}
-                    <View style={styles.fieldContainer} pointerEvents="box-none">
-                      <Typography variant="body1" color="primary" style={styles.fieldLabel} pointerEvents="none">
-                        Location on Map
-                      </Typography>
-                      <Typography variant="caption" color="secondary" style={styles.fieldHint} pointerEvents="none">
-                        {isMapExpanded
-                          ? 'Tap on the map to select your service location. The map will minimize after selection.'
-                          : 'Tap the map to expand and select your service location.'}
-                      </Typography>
-                    </View>
 
-                    {/* Map View */}
-                    <Animated.View style={[styles.mapContainer, { height: mapHeight }]}>
-                      <MapView
-                        style={styles.map}
-                        region={region}
-                        onRegionChangeComplete={setRegion}
-                        scrollEnabled={isMapExpanded}
-                        zoomEnabled={isMapExpanded}
-                        pitchEnabled={isMapExpanded}
-                        rotateEnabled={isMapExpanded}
-                        onTouchStart={() => {
-                          if (!isMapExpanded) {
-                            setShouldPreventNextPress(true);
-                            expandMap();
-                          } else {
-                            setIsMapInteracting(true);
-                          }
-                        }}
-                        onTouchEnd={() => {
-                          if (isMapExpanded) {
-                            setIsMapInteracting(false);
-                          }
-                        }}
-                        onPress={(event) => {
-                          if (shouldPreventNextPress) {
-                            setShouldPreventNextPress(false);
-                            return;
-                          }
-
-                          if (isMapExpanded) {
-                            const { latitude: lat, longitude: lng } = event.nativeEvent.coordinate;
-                            setLatitude(lat);
-                            setLongitude(lng);
-                            const timer = setTimeout(() => {
-                              collapseMap();
-                            }, 300);
-                            pendingTimersRef.current.push(timer);
-                          }
-                        }}
-                      >
-                        {latitude && longitude && (
-                          <Marker
-                            coordinate={{ latitude, longitude }}
-                            title="Selected Location"
-                            description="Your service location"
-                          />
-                        )}
-                      </MapView>
-                      
-                      <TouchableOpacity
-                        style={styles.gpsButton}
-                        onPress={() => {
-                          getLocation();
-                          if (isMapExpanded) {
-                            const timer = setTimeout(() => {
-                              collapseMap();
-                            }, 300);
-                            pendingTimersRef.current.push(timer);
-                          }
-                        }}
-                      >
-                        <MaterialIcons 
-                          name="my-location" 
-                          size={20} 
-                          color={Theme.colors.text.inverse} 
-                        />
-                      </TouchableOpacity>
-                    </Animated.View>
-
-                    {/* Area para tap fuera del mapa */}
-                    {isMapExpanded && (
-                      <TouchableOpacity
-                        activeOpacity={1}
-                        onPress={collapseMap}
-                        style={styles.outsideMapTouchArea}
-                      >
-                        <Typography variant="body2" color="primary">
-                          Tap here to minimize the map
-                        </Typography>
-                      </TouchableOpacity>
-                    )}
                   </Card>
 
                   {/* Images Section */}

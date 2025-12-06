@@ -1,17 +1,17 @@
 import { Theme } from '@/constants/Theme';
 import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import {
-  NativeSyntheticEvent,
-  Platform,
-  StyleProp,
-  StyleSheet,
-  Text,
-  TextInput,
-  TextInputFocusEventData,
-  TextInputProps,
-  TouchableOpacity,
-  View,
-  ViewStyle,
+    NativeSyntheticEvent,
+    Platform,
+    StyleProp,
+    StyleSheet,
+    Text,
+    TextInput,
+    TextInputFocusEventData,
+    TextInputProps,
+    TouchableOpacity,
+    View,
+    ViewStyle,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 
@@ -46,6 +46,8 @@ export const Input = forwardRef((
     secureTextEntry,
     onFocus,
     onBlur,
+    multiline,
+    numberOfLines,
     ...rest
   }: CustomInputProps,
   ref: React.Ref<TextInput>
@@ -147,7 +149,8 @@ export const Input = forwardRef((
 
   const inputContainerStyles = [
     styles.inputContainer,
-    styles[size],
+    !multiline && styles[size], // Only apply fixed height if not multiline
+    multiline && styles.multilineContainer,
     error && styles.error, // Error takes priority over focus
     isFocused && !error && styles.focused, // Focus only when no error
     disabled && styles.disabled,
@@ -157,6 +160,7 @@ export const Input = forwardRef((
     styles.input,
     leftIcon && styles.inputWithLeftIcon,
     (rightIcon || secureTextEntry) && styles.inputWithRightIcon,
+    multiline && styles.multilineInput,
     style,
   ];
 
@@ -181,7 +185,7 @@ export const Input = forwardRef((
                   ? Theme.colors.border.focus
                   : Theme.colors.text.tertiary
             }
-            style={styles.leftIcon}
+            style={[styles.leftIcon, multiline && styles.multilineIcon]}
           />
         )}
 
@@ -201,6 +205,9 @@ export const Input = forwardRef((
           textContentType={rest.textContentType as any}
           keyboardType={rest.keyboardType}
           submitBehavior={rest.returnKeyType === 'next' || rest.returnKeyType === 'done' ? 'submit' : 'blurAndSubmit'}
+          multiline={multiline}
+          numberOfLines={numberOfLines}
+          textAlignVertical={multiline ? 'top' : 'center'}
           {...(rest as any)}
         />
 
@@ -219,7 +226,7 @@ export const Input = forwardRef((
         )}
 
         {rightIcon && !secureTextEntry && (
-          <TouchableOpacity onPress={onRightIconPress} style={styles.rightIcon}>
+          <TouchableOpacity onPress={onRightIconPress} style={[styles.rightIcon, multiline && styles.multilineIcon]}>
             <Icon
               name={rightIcon}
               size={Theme.iconSize.sm}
@@ -289,6 +296,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: Theme.inputSizes.lg.paddingHorizontal,
   },
 
+  multilineContainer: {
+    minHeight: Theme.inputSizes.md.height,
+    paddingHorizontal: Theme.inputSizes.md.paddingHorizontal,
+    paddingVertical: Theme.spacing.sm,
+    alignItems: 'flex-start', // Align items to top for multiline
+  },
+
   focused: {
     borderColor: Theme.colors.border.focus, // Dark gray (neutral[600])
     borderWidth: 1.5,
@@ -311,6 +325,11 @@ const styles = StyleSheet.create({
     padding: 0,
   },
 
+  multilineInput: {
+    height: '100%',
+    textAlignVertical: 'top',
+  },
+
   inputWithLeftIcon: {
     marginLeft: Theme.spacing.xs,
   },
@@ -326,6 +345,10 @@ const styles = StyleSheet.create({
   rightIcon: {
     marginLeft: Theme.spacing.xs,
     padding: Theme.spacing.xs,
+  },
+
+  multilineIcon: {
+    marginTop: 2, // Align icon with first line of text
   },
 
   errorText: {
