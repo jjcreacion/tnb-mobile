@@ -20,6 +20,7 @@ import { Ionicons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
 import { validateEmail } from '../../scripts/validator';
 import VerifyCode from './verificode';
+import TermsAndPolices from './TermsAndPolices'; 
 
 interface ModalProps {
   isVisible: boolean;
@@ -39,7 +40,7 @@ const SignUp: React.FC<ModalProps> = ({ isVisible, onClose }) => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [referralCode, setReferralCode] = useState('');
   const [noReferralCode, setNoReferralCode] = useState(false);
-  
+
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [confirmPasswordError, setConfirmPasswordError] = useState('');
@@ -48,6 +49,7 @@ const SignUp: React.FC<ModalProps> = ({ isVisible, onClose }) => {
   const [loading, setLoading] = useState(false);
   const [showVerifyCode, setShowVerifyCode] = useState(false);
   const [verificationCode, setVerificationCode] = useState('');
+  const [showTermsModal, setShowTermsModal] = useState(false);
 
   const emailRef = useRef<TextInput>(null);
   const passwordRef = useRef<TextInput>(null);
@@ -70,6 +72,7 @@ const SignUp: React.FC<ModalProps> = ({ isVisible, onClose }) => {
       setReferralCodeError('');
       setShowVerifyCode(false);
       setExist(false);
+      setShowTermsModal(false); // Reiniciar estado del modal de términos
     }
   }, [isVisible]);
 
@@ -105,11 +108,11 @@ const SignUp: React.FC<ModalProps> = ({ isVisible, onClose }) => {
           'Content-Type': 'application/json',
         },
       });
-      
+
       if (!respuesta.ok) {
         throw new Error(`Error ${respuesta.status}`);
       }
-      
+
       const datos = await respuesta.json();
       return datos.exists;
     } catch (error) {
@@ -185,13 +188,13 @@ const SignUp: React.FC<ModalProps> = ({ isVisible, onClose }) => {
       refereeEmail: string;
       refereeFullName: string;
     } | null = null;
-    
+
     // 3. Si se proporciona un código, verificarlo
     if (!noReferralCode && referralCode.trim()) {
       try {
         const data = await verifyReferralCodeApi(referralCode.trim());
         const fullName = `${data.firstName} ${data.lastName}`;
-        
+
         referralDataToStore = {
           code: referralCode.trim(),
           refereeEmail: data.email,
@@ -224,7 +227,7 @@ const SignUp: React.FC<ModalProps> = ({ isVisible, onClose }) => {
         await AsyncStorage.removeItem('referreeEmail'); // Corregir si el nombre anterior era incorrecto
         await AsyncStorage.removeItem('refereeFullName');
         await AsyncStorage.removeItem('referralCodeForSignUp');
-        
+
         if (referralDataToStore) {
           // Si el código fue validado exitosamente
           await AsyncStorage.setItem('referralCodeForSignUp', referralDataToStore.code);
@@ -241,6 +244,15 @@ const SignUp: React.FC<ModalProps> = ({ isVisible, onClose }) => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleOpenTerms = () => {
+    dismissKeyboard();
+    setShowTermsModal(true);
+  };
+
+  const handleCloseTerms = () => {
+    setShowTermsModal(false);
   };
 
   // Handle back from verification
@@ -270,199 +282,222 @@ const SignUp: React.FC<ModalProps> = ({ isVisible, onClose }) => {
       statusBarTranslucent
     >
       <View style={styles.modalOverlay}>
-        {!showVerifyCode && (
+        {!showVerifyCode && !showTermsModal && (
           <TouchableWithoutFeedback onPress={handleBackdropPress}>
             <View style={styles.backdropArea} />
           </TouchableWithoutFeedback>
         )}
 
         <View style={styles.keyboardAvoidingView}>
-          {!showVerifyCode ? (
-                <KeyboardAvoidingView
-                  behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                  style={styles.innerContainer}
-                  keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+          {!showVerifyCode && !showTermsModal ? (
+            <KeyboardAvoidingView
+              behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+              style={styles.innerContainer}
+              keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+            >
+              <View style={styles.content}>
+                <ScrollView
+                  contentContainerStyle={styles.scrollContent}
+                  keyboardShouldPersistTaps="handled"
+                  showsVerticalScrollIndicator={false}
+                  bounces={true}
                 >
-                  <View style={styles.content}>
-                    <ScrollView
-                      contentContainerStyle={styles.scrollContent}
-                      keyboardShouldPersistTaps="handled"
-                      showsVerticalScrollIndicator={false}
-                      bounces={true}
-                    >
-                      <View style={styles.header} pointerEvents="box-none">
-                        <Text style={styles.title} pointerEvents="none">Create Your Account</Text>
-                        <Text style={styles.subtitle} pointerEvents="none">Let's get you started!</Text>
-                      </View>
-
-                      <TouchableOpacity
-                        onPress={handleClose}
-                        style={styles.closeButton}
-                        activeOpacity={0.7}
-                        disabled={loading}
-                      >
-                        <Ionicons
-                          name="close"
-                          size={24}
-                          color={Theme.colors.neutral[500]}
-                        />
-                      </TouchableOpacity>
-
-                      <View style={styles.form} pointerEvents="box-none">
-                        <Input
-                          ref={emailRef}
-                          label="Email Address"
-                          placeholder="you@example.com"
-                          value={email}
-                          onChangeText={(text) => {
-                            setEmail(text);
-                            setEmailError('');
-                            setExist(false);
-                          }}
-                          error={emailError}
-                          leftIcon="mail-outline"
-                          keyboardType="email-address"
-                          autoCapitalize="none"
-                          autoComplete="email"
-                          editable={!loading}
-                          returnKeyType="next"
-                          onSubmitEditing={() => passwordRef.current?.focus()}
-                        />
-
-                        <Input
-                          ref={passwordRef}
-                          label="Password"
-                          placeholder="Enter your password"
-                          value={password}
-                          onChangeText={(text) => {
-                            setPassword(text);
-                            setPasswordError('');
-                          }}
-                          error={passwordError}
-                          leftIcon="lock-closed-outline"
-                          secureTextEntry={true}
-                          autoCapitalize="none"
-                          autoCorrect={false}
-                          autoComplete="new-password"
-                          textContentType="newPassword"
-                          editable={!loading}
-                          returnKeyType="next"
-                          onSubmitEditing={() => confirmPasswordRef.current?.focus()}
-                        />
-
-                        <Input
-                          ref={confirmPasswordRef}
-                          label="Confirm Password"
-                          placeholder="Confirm your password"
-                          value={confirmPassword}
-                          onChangeText={(text) => {
-                            setConfirmPassword(text);
-                            setConfirmPasswordError('');
-                          }}
-                          error={confirmPasswordError}
-                          leftIcon="lock-closed-outline"
-                          secureTextEntry={true}
-                          autoCapitalize="none"
-                          autoCorrect={false}
-                          autoComplete="new-password"
-                          textContentType="newPassword"
-                          editable={!loading}
-                          returnKeyType="next"
-                          onSubmitEditing={() => referralCodeRef.current?.focus()}
-                        />
-                        
-                        <Input
-                          ref={referralCodeRef}
-                          label="Referral Code (Optional)"
-                          placeholder="Enter code"
-                          value={referralCode}
-                          onChangeText={(text) => {
-                            setReferralCode(text);
-                            setReferralCodeError('');
-                          }}
-                          error={referralCodeError}
-                          leftIcon="person-add-outline" 
-                          autoCapitalize="none"
-                          editable={!loading && !noReferralCode} 
-                          returnKeyType="go"
-                          onSubmitEditing={handleNext}
-                          containerStyle={styles.referralInput} 
-                        />
-
-                        <TouchableOpacity
-                          style={styles.checkboxContainer}
-                          onPress={() => {
-                            setNoReferralCode(!noReferralCode);
-                            if (!noReferralCode) {
-                              setReferralCode('');
-                              setReferralCodeError('');
-                            }
-                          }}
-                          activeOpacity={0.8}
-                          disabled={loading}
-                        >
-                          <View style={[
-                            styles.checkbox,
-                            noReferralCode && styles.checkedCheckbox,
-                          ]}>
-                            {noReferralCode && (
-                              <Ionicons
-                                name="checkmark"
-                                size={14}
-                                color={Theme.colors.text.inverse}
-                              />
-                            )}
-                          </View>
-                          <Text style={styles.checkboxLabel}>
-                            I don't have a referral code
-                          </Text>
-                        </TouchableOpacity>
-
-                        {exist && (
-                          <View style={styles.errorContainer} pointerEvents="none">
-                            <Ionicons
-                              name="alert-circle"
-                              size={20}
-                              color={Theme.colors.error[500]}
-                            />
-                            <Text style={styles.errorMessage}>
-                              This email is already in use.{'\n'}
-                              Please sign in or use a different email.
-                            </Text>
-                          </View>
-                        )}
-
-                        <Button
-                          title="Continue"
-                          onPress={handleNext}
-                          loading={loading}
-                          fullWidth
-                          size="lg"
-                          variant="primary"
-                          style={styles.continueButton}
-                        />
-
-                        <View style={styles.footer} pointerEvents="box-none">
-                          <Text style={styles.footerText} pointerEvents="none">Already have an account? </Text>
-                          <Button
-                            title="Sign In"
-                            variant="ghost"
-                            size="sm"
-                            onPress={handleClose}
-                            disabled={loading}
-                          />
-                        </View>
-                      </View>
-                    </ScrollView>
+                  <View style={styles.header} pointerEvents="box-none">
+                    <Text style={styles.title} pointerEvents="none">
+                      Create Your Account
+                    </Text>
+                    <Text style={styles.subtitle} pointerEvents="none">
+                      Let's get you started!
+                    </Text>
                   </View>
-                </KeyboardAvoidingView>
-              ) : (
-                <VerifyCode
-                  verificationCode={verificationCode}
-                  onBack={handleBack}
-                  email={email}
-                />
-              )}
+
+                  <TouchableOpacity
+                    onPress={handleClose}
+                    style={styles.closeButton}
+                    activeOpacity={0.7}
+                    disabled={loading}
+                  >
+                    <Ionicons
+                      name="close"
+                      size={24}
+                      color={Theme.colors.neutral[500]}
+                    />
+                  </TouchableOpacity>
+
+                  <View style={styles.form} pointerEvents="box-none">
+                    <Input
+                      ref={emailRef}
+                      label="Email Address"
+                      placeholder="you@example.com"
+                      value={email}
+                      onChangeText={(text) => {
+                        setEmail(text);
+                        setEmailError('');
+                        setExist(false);
+                      }}
+                      error={emailError}
+                      leftIcon="mail-outline"
+                      keyboardType="email-address"
+                      autoCapitalize="none"
+                      autoComplete="email"
+                      editable={!loading}
+                      returnKeyType="next"
+                      onSubmitEditing={() => passwordRef.current?.focus()}
+                    />
+
+                    <Input
+                      ref={passwordRef}
+                      label="Password"
+                      placeholder="Enter your password"
+                      value={password}
+                      onChangeText={(text) => {
+                        setPassword(text);
+                        setPasswordError('');
+                      }}
+                      error={passwordError}
+                      leftIcon="lock-closed-outline"
+                      secureTextEntry={true}
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      autoComplete="new-password"
+                      textContentType="newPassword"
+                      editable={!loading}
+                      returnKeyType="next"
+                      onSubmitEditing={() => confirmPasswordRef.current?.focus()}
+                    />
+
+                    <Input
+                      ref={confirmPasswordRef}
+                      label="Confirm Password"
+                      placeholder="Confirm your password"
+                      value={confirmPassword}
+                      onChangeText={(text) => {
+                        setConfirmPassword(text);
+                        setConfirmPasswordError('');
+                      }}
+                      error={confirmPasswordError}
+                      leftIcon="lock-closed-outline"
+                      secureTextEntry={true}
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      autoComplete="new-password"
+                      textContentType="newPassword"
+                      editable={!loading}
+                      returnKeyType="next"
+                      onSubmitEditing={() => referralCodeRef.current?.focus()}
+                    />
+
+                    <Input
+                      ref={referralCodeRef}
+                      label="Referral Code (Optional)"
+                      placeholder="Enter code"
+                      value={referralCode}
+                      onChangeText={(text) => {
+                        setReferralCode(text);
+                        setReferralCodeError('');
+                      }}
+                      error={referralCodeError}
+                      leftIcon="person-add-outline"
+                      autoCapitalize="none"
+                      editable={!loading && !noReferralCode}
+                      returnKeyType="go"
+                      onSubmitEditing={handleNext}
+                      containerStyle={styles.referralInput}
+                    />
+
+                    <TouchableOpacity
+                      style={styles.checkboxContainer}
+                      onPress={() => {
+                        setNoReferralCode(!noReferralCode);
+                        if (!noReferralCode) {
+                          setReferralCode('');
+                          setReferralCodeError('');
+                        }
+                      }}
+                      activeOpacity={0.8}
+                      disabled={loading}
+                    >
+                      <View
+                        style={[
+                          styles.checkbox,
+                          noReferralCode && styles.checkedCheckbox,
+                        ]}
+                      >
+                        {noReferralCode && (
+                          <Ionicons
+                            name="checkmark"
+                            size={14}
+                            color={Theme.colors.text.inverse}
+                          />
+                        )}
+                      </View>
+                      <Text style={styles.checkboxLabel}>
+                        I don't have a referral code
+                      </Text>
+                    </TouchableOpacity>
+
+                    <View style={styles.termsContainer}>
+                      <Text style={styles.termsText}>
+                        By creating an account on our app, you are accepting our{' '}
+                        <Text
+                          style={styles.termsLink}
+                          onPress={handleOpenTerms}
+                        >
+                          terms and conditions
+                        </Text>
+                        .
+                      </Text>
+                    </View>
+                  
+                    {exist && (
+                      <View style={styles.errorContainer} pointerEvents="none">
+                        <Ionicons
+                          name="alert-circle"
+                          size={20}
+                          color={Theme.colors.error[500]}
+                        />
+                        <Text style={styles.errorMessage}>
+                          This email is already in use.{'\n'}
+                          Please sign in or use a different email.
+                        </Text>
+                      </View>
+                    )}
+
+                    <Button
+                      title="Continue"
+                      onPress={handleNext}
+                      loading={loading}
+                      fullWidth
+                      size="lg"
+                      variant="primary"
+                      style={styles.continueButton}
+                    />
+
+                    <View style={styles.footer} pointerEvents="box-none">
+                      <Text style={styles.footerText} pointerEvents="none">
+                        Already have an account?{' '}
+                      </Text>
+                      <Button
+                        title="Sign In"
+                        variant="ghost"
+                        size="sm"
+                        onPress={handleClose}
+                        disabled={loading}
+                      />
+                    </View>
+                  </View>
+                </ScrollView>
+              </View>
+            </KeyboardAvoidingView>
+          ) : showVerifyCode ? (
+            <VerifyCode
+              verificationCode={verificationCode}
+              onBack={handleBack}
+              email={email}
+            />
+          ) : (
+            <TermsAndPolices isVisible={showTermsModal} onClose={handleCloseTerms} />
+          )}
         </View>
       </View>
     </Modal>
@@ -584,7 +619,7 @@ const styles = StyleSheet.create({
     fontSize: Theme.typography.fontSize.sm,
     color: Theme.colors.text.secondary,
   },
-  
+
   referralInput: {
     marginBottom: Theme.spacing.sm,
   },
@@ -613,6 +648,23 @@ const styles = StyleSheet.create({
     fontSize: Theme.typography.fontSize.sm,
     color: Theme.colors.text.secondary,
     fontWeight: Theme.typography.fontWeight.medium,
+  },
+  termsContainer: {
+    marginBottom: Theme.spacing.lg,
+    paddingHorizontal: Theme.spacing.xs,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  termsText: {
+    fontSize: Theme.typography.fontSize.sm,
+    color: Theme.colors.text.secondary,
+    textAlign: 'center',
+    lineHeight: Theme.typography.lineHeight.md,
+  },
+  termsLink: {
+    color: Theme.colors.primary[600],
+    fontWeight: Theme.typography.fontWeight.bold,
+    textDecorationLine: 'underline',
   },
 });
 
