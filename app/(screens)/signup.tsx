@@ -20,7 +20,7 @@ import { Ionicons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
 import { validateEmail } from '../../scripts/validator';
 import VerifyCode from './verificode';
-import TermsAndPolices from './TermsAndPolices'; 
+import TermsAndPolicies from './TermsAndPolicies'; 
 
 interface ModalProps {
   isVisible: boolean;
