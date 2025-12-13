@@ -496,7 +496,7 @@ const SignUp: React.FC<ModalProps> = ({ isVisible, onClose }) => {
               email={email}
             />
           ) : (
-            <TermsAndPolices isVisible={showTermsModal} onClose={handleCloseTerms} />
+            <TermsAndPolicies isVisible={showTermsModal} onClose={handleCloseTerms} />
           )}
         </View>
       </View>

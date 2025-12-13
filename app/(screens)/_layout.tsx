@@ -11,7 +11,14 @@ export default function RootLayout() {
         <Stack.Screen name="RequestModal" options={{ headerShown: false }} />
         <Stack.Screen name="Notifications" options={{ headerShown: false }} />
         <Stack.Screen name="ShareAndEarn" options={{ headerShown: false }} />
-        <Stack.Screen name="TermsAndPolicies" options={{ headerShown: false }} />
+        {/* <Stack.Screen name="TermsAndPolicies" options={{ headerShown: false }} /> */}
+        <Stack.Screen 
+            name="TermsAndPolicies" 
+            options={{ 
+                headerShown: false, 
+                presentation: 'modal' 
+            }} 
+        />
         <Stack.Screen name="policies" options={{ headerShown: false }} />
         <Stack.Screen name="profile" options={{ headerShown: false }} />
 

@@ -1,7 +1,7 @@
 import { MigratedStyles } from '@/constants/MigratedStyles'; 
 import { Theme } from '@/constants/Theme'; 
 import { FontAwesome } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useState } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
@@ -242,14 +242,26 @@ const termsAndPolicies_ES = {
   ],
 };
 
+interface TermsAndPoliciesProps {
+  onClose?: () => void; 
+}
 
-const TermsAndPoliciesScreen = () => {
+const TermsAndPoliciesScreen = ({ onClose }) => {
   const router = useRouter();
   const [language, setLanguage] = useState<'en' | 'es'>('en');
   const currentTerms = language === 'en' ? termsAndConditions_EN : termsAndPolicies_ES;
-  
+  const params = useLocalSearchParams();
+
   const toggleLanguage = () => {
     setLanguage(prevLang => (prevLang === 'en' ? 'es' : 'en'));
+  };
+
+  const handleGoBack = () => {
+    if (onClose) {
+      onClose();
+    } else {
+      router.back();
+    }
   };
 
   const languageButtonColor = Theme.colors.info[100] || '#FFC107'; 
@@ -274,7 +286,10 @@ const TermsAndPoliciesScreen = () => {
           }
         }>
           
-          <TouchableOpacity style={MigratedStyles.termsAndPoliciesBackButton} onPress={() => router.back()}>
+          <TouchableOpacity 
+            style={MigratedStyles.termsAndPoliciesBackButton} 
+            onPress={handleGoBack} 
+          >
             <FontAwesome name="arrow-left" size={24} color={Theme.colors.text.primary} />
             <Text style={MigratedStyles.termsAndPoliciesBackButtonText}>
               {language === 'en' ? 'Back' : 'Atrás'}

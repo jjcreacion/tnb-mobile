@@ -86,12 +86,16 @@ const SideMenu: React.FC<SideMenuProps> = ({ isVisible, onClose }) => {
   }, [isVisible, slideAnim, fadeAnim]);
 
   const handleItemPress = (item: MenuItem) => {
-    if (item.action) {
-      item.action();
-    } else if (item.route) {
-      router.push(item.route as any);
-    }
-    onClose();
+  onClose(); 
+    const timer = setTimeout(() => {
+      if (item.action) {
+        item.action();
+      } else if (item.route) {
+        router.push(item.route as any); 
+      }
+    }, 300); 
+    
+    pendingTimersRef.current.push(timer); 
   };
 
   const handleLogout = async () => {
