@@ -6,7 +6,7 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 import { Theme } from '@/constants/Theme';
 import { styles } from './styles';
 
-const tnbLogo = require('@/assets/images/icon-tnb.png');
+const tnbLogo = require('../../../assets/images/icon.png');
 
 interface HomeHeaderProps {
   onMenuPress: () => void;

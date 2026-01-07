@@ -144,7 +144,7 @@ export default function LoginScreenMigrated() {
                 duration={2000}
               >
                 <Image
-                  source={require('../../assets/images/icon-tnb.png')}
+                  source={require('../../assets/images/icon.png')}
                   style={MigratedStyles.loginLogo}
                 />
               </Animatable.View>
