@@ -60,7 +60,7 @@ export default function SupportScreen() {
     },
     {
       icon: 'globe',
-      url: 'https://www.thenationalbuilders.com/portal',
+      url: 'https://www.thenationalbuilders.com',
       IconComponent: FontAwesome,
       label: 'Website',
     },
@@ -79,7 +79,7 @@ export default function SupportScreen() {
     },
     {
       icon: 'call',
-      text: '(862) 401 2414',
+      text: '(862) 277 0131',
       type: 'phone',
     },
   ];
