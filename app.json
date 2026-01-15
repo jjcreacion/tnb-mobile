@@ -10,8 +10,12 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.thenationalbuilders.tnb",
+      "buildNumber": "1",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": "false",
+        "NSCameraUsageDescription": "TNB necesita acceso a tu cámara para que puedas tomar y subir fotos de los proyectos de construcción.",
+        "NSPhotoLibraryUsageDescription": "TNB necesita acceso a tu galería para que puedas seleccionar y compartir imágenes de tus obras.",
+        "NSPhotoLibraryAddUsageDescription": "TNB necesita permiso para guardar fotos de los reportes en tu galería."
       }
     },
     "android": {
