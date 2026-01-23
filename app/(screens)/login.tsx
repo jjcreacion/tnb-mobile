@@ -1,23 +1,25 @@
 import { Button, Input, Loading, Screen, Typography } from '@/components/common';
 import { MigratedStyles } from '@/constants/MigratedStyles';
+import { credentialsService } from '@/services/credentialsService';
 import { useAppDispatch } from '@/store/hooks';
 import { setAuthenticated } from '@/store/slices/authSlice';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect, useRouter } from 'expo-router';
-// import { StatusBar } from 'expo-status-bar';
 import { Formik } from 'formik';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-    Image,
-    ImageBackground,
-    Keyboard,
-    KeyboardAvoidingView,
-    Platform,
-    StatusBar,
-    TextInput,
-    View
+  Image,
+  ImageBackground,
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StatusBar,
+  Switch,
+  TextInput,
+  View
 } from 'react-native';
 import * as Animatable from 'react-native-animatable';
 import * as Yup from 'yup';
@@ -42,31 +44,48 @@ export default function LoginScreenMigrated() {
   const [errorMessage, setErrorMessage] = useState('');
   const [isSignUpModalVisible, setSignUpModalVisible] = useState(false);
   const [resetModalVisible, setResetModalVisible] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
+  const [initialEmail, setInitialEmail] = useState('');
+  const [initialPassword, setInitialPassword] = useState('');
 
-  // Referencias para navegación del teclado
+  // Reference for password input navigation
   const passwordInputRef = useRef<TextInput>(null);
 
-    useEffect(() => {
-      // Hide status bar only on Android for splash screen
+  // Load saved credentials on mount
+  useEffect(() => {
+    const loadSavedCredentials = async () => {
+      try {
+        const savedCredentials = await credentialsService.getCredentials();
+        if (savedCredentials) {
+          setInitialEmail(savedCredentials.email);
+          setInitialPassword(savedCredentials.password);
+          setRememberMe(true);
+        }
+      } catch (error) {
+        console.warn('Failed to load saved credentials:', error);
+      }
+    };
+
+    loadSavedCredentials();
+
+    // Hide status bar only on Android
+    if (Platform.OS === 'android') {
+      StatusBar.setHidden(false);
+    }
+
+    // Clean up: restore status bar visibility when component unmounts
+    return () => {
       if (Platform.OS === 'android') {
         StatusBar.setHidden(false);
       }
-  
-      // Clean up: restore status bar visibility when component unmounts (Android only)
-      return () => {
-        if (Platform.OS === 'android') {
-          StatusBar.setHidden(false);
-        }
-      };
-    }, []);
+    };
+  }, []);
 
-  // Configure StatusBar to be transparent only on this screen (Android)
+  // Configure StatusBar for this screen
   useFocusEffect(
     useCallback(() => {
-      // This will apply when the screen comes into focus
       return () => {
-        // This cleanup function runs when the screen loses focus
-        // The StatusBar will automatically reset to app default when navigating away
+        // Status bar resets to app default when navigating away
       };
     }, [])
   );
@@ -86,13 +105,21 @@ export default function LoginScreenMigrated() {
       const data = await response.json();
 
       if (response.ok && data.accessToken) {
-        // 1. Guardar tokens en AsyncStorage
+        // 1. Save tokens to AsyncStorage
         await Promise.all([
           AsyncStorage.setItem('accessToken', data.accessToken),
           AsyncStorage.setItem('userId', String(data.pkUser))
         ]);
 
-        // 2. Actualizar Redux auth slice
+        // 2. Save credentials securely if user opted in
+        if (rememberMe) {
+          await credentialsService.saveCredentials(values.email, values.password);
+        } else {
+          // Delete any previously saved credentials if unchecked
+          await credentialsService.deleteCredentials();
+        }
+
+        // 3. Update Redux auth slice
         dispatch(setAuthenticated({
           accessToken: data.accessToken,
           userId: String(data.pkUser),
@@ -103,15 +130,15 @@ export default function LoginScreenMigrated() {
           await new Promise(resolve => setTimeout(resolve, 100));
         }
 
-        // 3. Navegar a la pantalla principal
-        // La navegación se redirigirá automáticamente a (tabs) porque isAuthenticated = true
+        // 4. Navigate to main screen
+        // Navigation will automatically redirect to (tabs) because isAuthenticated = true
         router.replace('/(tabs)');
       } else {
-        setErrorMessage(`Email or password incorrect.\nPlease try again.`);
+        setErrorMessage('Email or password incorrect.\nPlease try again.');
       }
     } catch (error) {
       setErrorMessage('Connection failed. Please check your internet and try again.');
-      console.log('SERVER OFFLINE? Login error:', error);
+      console.log('Login error:', error);
     } finally {
       setLoading(false);
     }
@@ -143,129 +170,161 @@ export default function LoginScreenMigrated() {
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={MigratedStyles.loginKeyboardView}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : -100}
         >
-          <View style={MigratedStyles.loginContainer}>
-            {/* Logo Section */}
-            <Animatable.View
-              animation="fadeInDown"
-              duration={1000}
-              style={MigratedStyles.loginLogoContainer}
-            >
+          <ScrollView
+            style={{ flex: 1 }}
+            contentContainerStyle={{ flexGrow: 1 }}
+            keyboardShouldPersistTaps="handled"
+            scrollEnabled={true}
+            showsVerticalScrollIndicator={false}
+          >
+            <View style={MigratedStyles.loginContainer}>
+              {/* Logo Section */}
               <Animatable.View
-                animation="pulse"
-                iterationCount="infinite"
-                duration={2000}
+                animation="fadeInDown"
+                duration={1000}
+                style={MigratedStyles.loginLogoContainer}
               >
-                <Image
-                  source={require('../../assets/images/icon.png')}
-                  style={MigratedStyles.loginLogo}
-                />
-              </Animatable.View>
-              
-              <Typography variant="h2" color="inverse" style={MigratedStyles.loginWelcomeText}>
-                Welcome Back!
-              </Typography>
-              
-              <Typography variant="body1" color="inverse" style={MigratedStyles.loginSubtitle}>
-                Sign in to get started
-              </Typography>
-            </Animatable.View>
-
-            {/* Form Section */}
-            <Animatable.View
-              animation="fadeInUp"
-              duration={1000}
-              delay={300}
-              style={MigratedStyles.loginFormContainer}
-            >
-              <View style={MigratedStyles.loginCard}>
-                <Formik
-                  initialValues={{ email: '', password: '' }}
-                  validationSchema={validationSchema}
-                  onSubmit={handleLogin}
+                <Animatable.View
+                  animation="pulse"
+                  iterationCount="infinite"
+                  duration={2000}
                 >
-                  {({ handleChange, handleBlur, handleSubmit, values, errors, touched }) => (
-                    <>
-                      <Input
-                        placeholder="Email address"
-                        leftIcon="mail-outline"
-                        value={values.email}
-                        onChangeText={handleChange('email')}
-                        onBlur={handleBlur('email')}
-                        error={touched.email && errors.email ? errors.email : undefined}
-                        keyboardType="email-address"
-                        autoCapitalize="none"
-                        autoComplete="email"
-                        textContentType="username"
-                        returnKeyType='next'
-                        onSubmitEditing={() => passwordInputRef.current?.focus()}
-                        blurOnSubmit={false}
-                      />
+                  <Image
+                    source={require('../../assets/images/icon.png')}
+                    style={MigratedStyles.loginLogo}
+                  />
+                </Animatable.View>
+                
+                <Typography variant="h2" color="inverse" style={MigratedStyles.loginWelcomeText}>
+                  Welcome Back!
+                </Typography>
+                
+                <Typography variant="body1" color="inverse" style={MigratedStyles.loginSubtitle}>
+                  Sign in to get started
+                </Typography>
+              </Animatable.View>
 
-                      <Input
-                        ref={passwordInputRef}
-                        placeholder="Password"
-                        leftIcon="lock-closed-outline"
-                        value={values.password}
-                        onChangeText={handleChange('password')}
-                        onBlur={handleBlur('password')}
-                        error={touched.password && errors.password ? errors.password : undefined}
-                        secureTextEntry={true}
-                        autoCapitalize="none"
-                        autoComplete="password"
-                        textContentType="password"
-                        returnKeyType='go'
-                        onSubmitEditing={() => handleSubmit() }
-                      />
+              {/* Form Section */}
+              <Animatable.View
+                animation="fadeInUp"
+                duration={1000}
+                delay={300}
+                style={MigratedStyles.loginFormContainer}
+              >
+                <View style={MigratedStyles.loginCard}>
+                  <Formik
+                    initialValues={{ email: initialEmail, password: initialPassword }}
+                    validationSchema={validationSchema}
+                    onSubmit={handleLogin}
+                    enableReinitialize={true}
+                  >
+                    {({ handleChange, handleBlur, handleSubmit, values, errors, touched }) => (
+                      <>
+                        <Input
+                          placeholder="Email address"
+                          leftIcon="mail-outline"
+                          value={values.email}
+                          onChangeText={handleChange('email')}
+                          onBlur={handleBlur('email')}
+                          error={touched.email && errors.email ? errors.email : undefined}
+                          keyboardType="email-address"
+                          autoCapitalize="none"
+                          autoComplete="email"
+                          textContentType="username"
+                          returnKeyType='next'
+                          onSubmitEditing={() => passwordInputRef.current?.focus()}
+                          blurOnSubmit={false}
+                        />
 
-                      {errorMessage ? (
-                        <View style={MigratedStyles.loginErrorContainer}>
-                          <Typography variant="body2" color="error" style={MigratedStyles.loginErrorText}>
-                            {errorMessage}
+                        <Input
+                          ref={passwordInputRef}
+                          placeholder="Password"
+                          leftIcon="lock-closed-outline"
+                          value={values.password}
+                          onChangeText={handleChange('password')}
+                          onBlur={handleBlur('password')}
+                          error={touched.password && errors.password ? errors.password : undefined}
+                          secureTextEntry={true}
+                          autoCapitalize="none"
+                          autoComplete="password"
+                          textContentType="password"
+                          returnKeyType='go'
+                          onSubmitEditing={() => handleSubmit()}
+                        />
+
+                        {/* Remember Me Toggle */}
+                        <View style={{ 
+                          flexDirection: 'row', 
+                          alignItems: 'center', 
+                          justifyContent: 'space-between',
+                          marginVertical: 12,
+                          paddingHorizontal: 4
+                        }}>
+                          <Typography 
+                            variant="body2" 
+                            style={{ color: '#6B7280' }}
+                          >
+                            Remember my credentials
                           </Typography>
+                          <Switch
+                            value={rememberMe}
+                            onValueChange={setRememberMe}
+                            trackColor={{ false: '#ccc', true: '#E63946' }}
+                            thumbColor={rememberMe ? '#fff' : '#f4f3f4'}
+                          />
                         </View>
-                      ) : null}
 
-                      <Button
-                        title="Sign In"
-                        onPress={() => handleSubmit()}
-                        loading={loading}
-                        fullWidth
-                        size="lg"
-                        variant="primary"
-                        style={MigratedStyles.loginButton}
-                      />
+                        {errorMessage ? (
+                          <View style={MigratedStyles.loginErrorContainer}>
+                            <Typography variant="body2" color="error" style={MigratedStyles.loginErrorText}>
+                              {errorMessage}
+                            </Typography>
+                          </View>
+                        ) : null}
 
-                      <Button
-                        title="Forgot your password?"
-                        onPress={() => setResetModalVisible(true)}
-                        variant="ghost"
-                        size="sm"
-                        style={MigratedStyles.loginForgotButton}
-                      />
-                    </>
-                  )}
-                </Formik>
+                        <Button
+                          title="Sign In"
+                          onPress={() => handleSubmit()}
+                          loading={loading}
+                          fullWidth
+                          size="lg"
+                          variant="primary"
+                          style={MigratedStyles.loginButton}
+                        />
 
-                <View style={MigratedStyles.loginDivider}>
-                  <View style={MigratedStyles.loginDividerLine} />
-                  <Typography variant="body2" color="tertiary" style={MigratedStyles.loginDividerText}>
-                    OR
-                  </Typography>
-                  <View style={MigratedStyles.loginDividerLine} />
+                        <Button
+                          title="Forgot your password?"
+                          onPress={() => setResetModalVisible(true)}
+                          variant="ghost"
+                          size="sm"
+                          style={MigratedStyles.loginForgotButton}
+                        />
+                      </>
+                    )}
+                  </Formik>
+
+                  <View style={MigratedStyles.loginDivider}>
+                    <View style={MigratedStyles.loginDividerLine} />
+                    <Typography variant="body2" color="tertiary" style={MigratedStyles.loginDividerText}>
+                      OR
+                    </Typography>
+                    <View style={MigratedStyles.loginDividerLine} />
+                  </View>
+
+                  <Button
+                    title="Create Account"
+                    onPress={() => setSignUpModalVisible(true)}
+                    variant="outline"
+                    fullWidth
+                    size="lg"
+                    style={MigratedStyles.loginSignupButton}
+                  />
                 </View>
-
-                <Button
-                  title="Create Account"
-                  onPress={() => setSignUpModalVisible(true)}
-                  variant="outline"
-                  fullWidth
-                  size="lg"
-                  style={MigratedStyles.loginSignupButton}
-                />
-              </View>
-            </Animatable.View>
-          </View>
+              </Animatable.View>
+            </View>
+          </ScrollView>
         </KeyboardAvoidingView>
 
         {/* Loading Overlay */}

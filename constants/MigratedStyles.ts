@@ -770,13 +770,13 @@ export const MigratedStyles = StyleSheet.create({
 
   loginContainer: {
     flex: 1,
-    justifyContent: 'space-between',
-    paddingVertical: Theme.spacing['2xl'],
+    paddingVertical: Theme.spacing.lg,
   },
 
   loginLogoContainer: {
     alignItems: 'center',
-    marginTop: Theme.spacing['4xl'],
+    marginTop: Theme.spacing.lg,
+    marginBottom: Theme.spacing['2xl'],
   },
 
   loginLogo: {
@@ -796,9 +796,7 @@ export const MigratedStyles = StyleSheet.create({
   },
 
   loginFormContainer: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    marginBottom: Theme.spacing.xl,
+    marginBottom: Theme.spacing.lg,
   },
 
   loginCard: {
