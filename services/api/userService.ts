@@ -1,5 +1,5 @@
-import { apiClient } from './apiClient'
-import type { User } from '@/types'
+import type { User } from '@/types';
+import { apiClient } from './apiClient';
 
 export const userService = {
     async getUserById(userId: string): Promise<User> {
@@ -7,11 +7,9 @@ export const userService = {
     },
 
     async toggleSmsNotifications(pkUser: number, newValue: boolean): Promise<User> {
-        const response = await apiClient.patch<User>(
+        return apiClient.patch<User>(
             `/user/${pkUser}/toggle-sms-notifications`,
             { status: newValue }
         );
-        
-        return response.data; 
     }
 }

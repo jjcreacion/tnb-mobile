@@ -1,13 +1,14 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import * as FileSystem from 'expo-file-system';
-import React, { useRef, useState } from 'react';
+import * as FileSystemLegacy from 'expo-file-system/legacy';
+import React, { useCallback, useRef, useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    Modal,
-    StyleSheet,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  Alert,
+  Modal,
+  StyleSheet,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import WebView from 'react-native-webview';
@@ -34,14 +35,7 @@ export const ImageCropEditor: React.FC<ImageCropEditorProps> = ({
   const [processing, setProcessing] = useState(false);
   const [imageBase64, setImageBase64] = useState<string>('');
 
-  // Load image as base64 when modal opens
-  React.useEffect(() => {
-    if (visible && imageUri) {
-      loadImageAsBase64();
-    }
-  }, [visible, imageUri]);
-
-  const loadImageAsBase64 = async () => {
+  const loadImageAsBase64 = useCallback(async () => {
     try {
       setLoading(true);
       // Use new File API from expo-file-system v54
@@ -53,7 +47,14 @@ export const ImageCropEditor: React.FC<ImageCropEditorProps> = ({
       Alert.alert('Error', 'Failed to load image for cropping');
       onClose();
     }
-  };
+  }, [imageUri, onClose]);
+
+  // Load image as base64 when modal opens
+  React.useEffect(() => {
+    if (visible && imageUri) {
+      loadImageAsBase64();
+    }
+  }, [visible, imageUri, loadImageAsBase64]);
 
   const handleMessage = async (event: any) => {
     try {
@@ -70,7 +71,7 @@ export const ImageCropEditor: React.FC<ImageCropEditorProps> = ({
             // Convert base64 back to file using new API
             const base64Data = message.data.split(',')[1];
             const filename = `cropped_${Date.now()}.jpg`;
-            const fileUri = FileSystem.documentDirectory + filename;
+            const fileUri = FileSystemLegacy.documentDirectory + filename;
 
             // Use new File API to write
             const file = new FileSystem.File(fileUri);

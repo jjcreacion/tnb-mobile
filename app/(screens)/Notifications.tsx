@@ -1,13 +1,13 @@
 import { Theme } from '@/constants/Theme';
-import { useAppSelector, useAppDispatch } from '@/store/hooks';
-import { toggleSmsNotifications, setSmsNotificationsStatus, loadUserData } from '@/store/slices/userSlice';
-import { updateDevicePreferences, setNotificationsEnabledStatus } from '@/store/slices/deviceSlice'; // <-- ¡IMPORTACIÓN ACTUALIZADA!
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import { setNotificationsEnabledStatus, updateDevicePreferences } from '@/store/slices/deviceSlice'; // <-- ¡IMPORTACIÓN ACTUALIZADA!
+import { loadUserData, setSmsNotificationsStatus, toggleSmsNotifications } from '@/store/slices/userSlice';
 import { FontAwesome } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import React, { useState, useEffect } from 'react'; 
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View, Switch } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
+import React, { useEffect, useState } from 'react';
+import { ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 
 interface NotificationToggleProps {
@@ -113,7 +113,7 @@ const NotificationsScreen = () => {
 
           <NotificationToggle
             label="Email/SMS Notifications"
-            isEnabled={isEmailEnabled} 
+            isEnabled={isEmailEnabled ?? false} 
             onToggle={handleEmailToggle}
             iconName="envelope"
            />

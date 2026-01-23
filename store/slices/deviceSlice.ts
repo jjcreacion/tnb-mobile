@@ -1,10 +1,10 @@
-import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
-import AsyncStorage from '@react-native-async-storage/async-storage'
+import { deviceService } from '@/services/api/deviceService';
+import type { CreateDeviceDto, ReadDeviceDto, UpdateDevicePreferencesDto } from '@/types/device.types';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit';
+import Constants from 'expo-constants';
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
-import type { ReadDeviceDto, CreateDeviceDto, UpdateDevicePreferencesDto } from '@/types/device.types'; 
-import { deviceService } from '@/services/api/deviceService'; 
-import Constants from 'expo-constants';
 
 interface DeviceState {
   token: string | null;            

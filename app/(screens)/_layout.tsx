@@ -21,10 +21,6 @@ export default function ScreensLayout() {
           options={{ 
             headerShown: false,
             gestureEnabled: !isAuthenticated,
-            cardStyle: { 
-              // Esto es una capa adicional de seguridad
-              // para asegurar que no se puede deslizar hacia atrás
-            }
           }} 
         />
 

@@ -22,8 +22,6 @@ export default function TabsLayout() {
         headerShown: false,
         tabBarButton: HapticTab,
         tabBarHideOnKeyboard: Platform.OS === 'android' ? true : undefined,
-        // Deshabilitar gestos de retroceso cuando está autenticado
-        gestureEnabled: !isAuthenticated,
         tabBarStyle: Platform.select({
           ios: {
             backgroundColor: Theme.colors.primary[500],
@@ -79,7 +77,6 @@ export default function TabsLayout() {
         options={{
           title: 'Home',
           tabBarIcon: ({ color }) => <Icon name="home" size={30} color={color} />,
-          gestureEnabled: !isAuthenticated,
         }}
       />
       <Tabs.Screen
@@ -87,7 +84,6 @@ export default function TabsLayout() {
         options={{
           title: 'Activity',
           tabBarIcon: ({ color }) => <Icon name="notifications" size={30} color={color} />,
-          gestureEnabled: !isAuthenticated,
         }}
       />
 
@@ -96,7 +92,6 @@ export default function TabsLayout() {
         options={{
           title: 'Services',
           tabBarIcon: ({ color }) => <Icon name="event-note" size={30} color={color} />,
-          gestureEnabled: !isAuthenticated,
         }}
       />
       
@@ -106,7 +101,6 @@ export default function TabsLayout() {
         options={{
           title: 'Billing',
           tabBarIcon: ({ color }) => <Icon name="paid" size={30} color={color} />,
-          gestureEnabled: !isAuthenticated,
         }}
       />
 
@@ -115,7 +109,6 @@ export default function TabsLayout() {
         options={{
           title: 'Support',
           tabBarIcon: ({ color }) => <Icon name="support-agent" size={30} color={color} />,
-          gestureEnabled: !isAuthenticated,
         }}
       />
  

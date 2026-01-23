@@ -1,5 +1,5 @@
+import type { Notification } from '@/types/notification.types';
 import { apiClient } from './apiClient';
-import type { Notification } from '@/types/notification.types'; 
 
 export const notificationService = {
   
@@ -8,6 +8,6 @@ async getNotifications(userId: number): Promise<Notification[]> {
 },
 
   async markAsRead(notificationId: number): Promise<Notification> {
-    return apiClient.patch<Notification>(`/notifications/${notificationId}/read`);
+    return apiClient.patch<Notification>(`/notifications/${notificationId}/read`, {});
   },
 };

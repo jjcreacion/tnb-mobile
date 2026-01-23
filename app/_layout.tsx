@@ -66,7 +66,7 @@ function RootLayoutContent() {
   // Mientras se están cargando las fuentes o hidratando el estado, mostrar pantalla de carga
   if (!loaded || !isHydrated) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Theme.colors.background }}>
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Theme.colors.background.primary }}>
         <ActivityIndicator size="large" color={Theme.colors.primary[500]} />
       </View>
     );
