@@ -1,0 +1,2 @@
+1. Ya no se ve la ventana de login despues de autenticarse
+2. 

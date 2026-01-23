@@ -8,6 +8,7 @@ import { ActivityIndicator, FlatList, Platform, RefreshControl, StyleSheet, Text
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { Card } from '@/components/common';
+import { SwipeableTabScreen } from '@/components/common';
 import { HistoryHeader } from '@/components/home';
 import { Theme } from '@/constants/Theme';
 import SideMenu from '../(screens)/SideMenu';
@@ -197,9 +198,10 @@ const NotificationScreen = () => {
   );
 
   return (
-    <View style={styles.container}>
-      <StatusBar style="light" backgroundColor={Theme.colors.primary[500]} />
-      <HistoryHeader onMenuPress={handleMenuPress} />
+    <SwipeableTabScreen tabName="activity">
+      <View style={styles.container}>
+        <StatusBar style="light" backgroundColor={Theme.colors.primary[500]} />
+        <HistoryHeader onMenuPress={handleMenuPress} />
 
       {loading ? (
         <View style={styles.loadingContainer}>
@@ -238,6 +240,7 @@ const NotificationScreen = () => {
         onClose={() => setMenuVisible(false)}
       />
     </View>
+    </SwipeableTabScreen>
   );
 };
 

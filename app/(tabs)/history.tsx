@@ -8,6 +8,7 @@ import { ActivityIndicator, FlatList, Platform, RefreshControl, StyleSheet, Text
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { Card } from '@/components/common';
+import { SwipeableTabScreen } from '@/components/common';
 import { HistoryHeader } from '@/components/home';
 import { Theme } from '@/constants/Theme';
 import SideMenu from '../(screens)/SideMenu';
@@ -212,9 +213,10 @@ const HistoryScreen = () => {
   );
 
   return (
-    <View style={styles.container}>
-      <StatusBar style="light" backgroundColor={Theme.colors.primary[500]} />
-      <HistoryHeader onMenuPress={handleMenuPress} />
+    <SwipeableTabScreen tabName="history">
+      <View style={styles.container}>
+        <StatusBar style="light" backgroundColor={Theme.colors.primary[500]} />
+        <HistoryHeader onMenuPress={handleMenuPress} />
 
       {/* Content */}
       {loading ? (
@@ -254,6 +256,7 @@ const HistoryScreen = () => {
         onClose={() => setMenuVisible(false)}
       />
     </View>
+    </SwipeableTabScreen>
   );
 };
 
