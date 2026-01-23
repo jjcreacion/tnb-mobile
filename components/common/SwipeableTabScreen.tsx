@@ -24,34 +24,19 @@ export const SwipeableTabScreen: React.FC<SwipeableTabScreenProps> = ({
 
   const panResponderRef = useRef(
     PanResponder.create({
-      onStartShouldSetPanResponder: () => {
-        console.log(`🎯 [${tabName}] onStartShouldSetPanResponder`);
-        return true;
-      },
-      onMoveShouldSetPanResponder: (_, { dx }) => {
-        const shouldSet = Math.abs(dx) > 10;
-        if (shouldSet) {
-          console.log(`🎯 [${tabName}] onMoveShouldSetPanResponder - dx: ${dx}`);
-        }
-        return shouldSet;
-      },
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: (_, { dx }) => Math.abs(dx) > 10,
       onPanResponderRelease: (_, { dx, vx }) => {
         const minDistance = 50;
         const minVelocity = 0.1;
 
-        console.log(`🎯 [${tabName}] onPanResponderRelease - dx: ${dx}, vx: ${vx}, minDistance: ${minDistance}, minVelocity: ${minVelocity}`);
-
         // Swipe izquierda (dx negativo) -> siguiente tab
         if (dx < -minDistance && Math.abs(vx) > minVelocity) {
-          console.log(`✅ [${tabName}] SWIPE LEFT DETECTED - calling handleSwipeLeft()`);
           handleSwipeLeft();
         }
         // Swipe derecha (dx positivo) -> tab anterior
         else if (dx > minDistance && Math.abs(vx) > minVelocity) {
-          console.log(`✅ [${tabName}] SWIPE RIGHT DETECTED - calling handleSwipeRight()`);
           handleSwipeRight();
-        } else {
-          console.log(`❌ [${tabName}] Gesture detected but not a valid swipe`);
         }
       },
     })
