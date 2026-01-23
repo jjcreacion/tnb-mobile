@@ -89,7 +89,7 @@ const styles = StyleSheet.create({
   },
 
   lg: {
-    paddingHorizontal: Theme.spacing.md,
+    paddingHorizontal: Theme.spacing.sm,
     paddingVertical: Theme.spacing.sm,
     minHeight: 32,
   },

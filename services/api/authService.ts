@@ -6,7 +6,7 @@ export interface CreateUserDTO {
   // fkProfile: number // Ya no es necesario - el backend lo asigna automáticamente
   email: string
   password: string // El backend se encarga de hashear la contraseña
-  referred_by_code?: string
+  referred_by_code?: string,
   roles?: string[] // Opcional - ej: ['client']
   validateEmail?: number
   validatePhone?: number

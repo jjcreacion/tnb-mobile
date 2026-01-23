@@ -6,8 +6,9 @@ import {
     Dimensions,
     StyleSheet,
     TouchableOpacity,
-    View,
+    View
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { Typography } from './Typography';
 
@@ -43,17 +44,17 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
   children,
   style,
 }) => {
-  const translateY = useRef(new Animated.Value(screenHeight)).current;
-  const backdropOpacity = useRef(new Animated.Value(0)).current;
-
   const sheetHeight = sizeMap[size];
+  const translateY = useRef(new Animated.Value(sheetHeight)).current;
+  const backdropOpacity = useRef(new Animated.Value(0)).current;
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     if (visible) {
       // Animate in
       Animated.parallel([
         Animated.timing(translateY, {
-          toValue: screenHeight - sheetHeight,
+          toValue: 0,
           duration: 300,
           useNativeDriver: true,
         }),
@@ -75,7 +76,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
       // Animate out
       Animated.parallel([
         Animated.timing(translateY, {
-          toValue: screenHeight,
+          toValue: sheetHeight,
           duration: 250,
           useNativeDriver: true,
         }),
@@ -149,7 +150,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
         )}
 
         {/* Content */}
-        <View style={styles.content}>
+        <View style={[styles.content, { paddingBottom: Math.max(insets.bottom, Theme.spacing.lg) }]}>
           {children}
         </View>
       </Animated.View>
@@ -197,7 +198,7 @@ const styles = StyleSheet.create({
     backgroundColor: Theme.colors.neutral[300],
     borderRadius: Theme.borderRadius.full,
     alignSelf: 'center',
-    marginTop: Theme.spacing.md,
+    marginTop: Theme.spacing.sm,
     marginBottom: Theme.spacing.sm,
   },
 
@@ -206,7 +207,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: Theme.spacing.lg,
-    paddingBottom: Theme.spacing.md,
+    paddingBottom: Theme.spacing.sm,
     borderBottomWidth: 1,
     borderBottomColor: Theme.colors.border.light,
   },
@@ -230,7 +231,5 @@ const styles = StyleSheet.create({
 
   content: {
     flex: 1,
-    paddingHorizontal: Theme.spacing.lg,
-    paddingTop: Theme.spacing.md,
   },
 });

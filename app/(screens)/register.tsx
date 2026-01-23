@@ -75,7 +75,7 @@ const Register: React.FC = () => {
   const [stateSearchText, setStateSearchText] = useState('')
 
   // Form state (shared across screens)
-  const [formData, setFormData] = useState<any>({
+  const [formData, setFormData] = useState<RegistrationFormData>({
     firstName: '',
     lastName: '',
     birthDate: '',
@@ -91,6 +91,7 @@ const Register: React.FC = () => {
     latitude: undefined,
     longitude: undefined,
     isMapboxResult: false,
+    country: 'United States'
   })
 
 
@@ -101,6 +102,9 @@ const Register: React.FC = () => {
   const addressRef = useRef<TextInput>(null)
   const addressLine2Ref = useRef<TextInput>(null)
   const zipCodeRef = useRef<TextInput>(null)
+
+  // Focus states for TextInput fields
+  const [focusedField, setFocusedField] = useState<string | null>(null)
 
   // Address field state
   const [useManualEntry, setUseManualEntry] = useState(false)
@@ -128,6 +132,16 @@ const Register: React.FC = () => {
   const setFieldValueRef = useRef<any>(null)
   // Store current form values in a ref to preserve them during screen navigation
   const currentFormValuesRef = useRef<any>(null)
+  // Store pending timers for cleanup
+  const pendingTimersRef = useRef<ReturnType<typeof setTimeout>[]>([])
+
+  // Clean up all pending timers on unmount
+  useEffect(() => {
+    return () => {
+      pendingTimersRef.current.forEach(timer => clearTimeout(timer))
+      pendingTimersRef.current = []
+    }
+  }, [])
 
   // Configure StatusBar
   useEffect(() => {
@@ -146,6 +160,10 @@ const Register: React.FC = () => {
           authService.getAllCities(),
           authService.getAllStates(),
         ])
+
+        if (!citiesData || !statesData) {
+          throw new Error('Failed to load cities or states')
+        }
 
         const mappedCities = citiesData.map((c) => ({
           pkCity: c.pkCity,
@@ -171,6 +189,9 @@ const Register: React.FC = () => {
         setFilteredCities(mappedCities)
       } catch (error) {
         console.error('Error loading cities and states:', error)
+        // Keep existing state - don't show empty state
+        setCities([])
+        setStates([])
       } finally {
         setLoadingData(false)
       }
@@ -311,9 +332,10 @@ const Register: React.FC = () => {
     setCurrentScreen('form')
     setCitySearchText('')
 
-    setTimeout(() => {
+    const timer = setTimeout(() => {
       zipCodeRef.current?.focus()
     }, 300)
+    pendingTimersRef.current.push(timer)
   }
 
   const handleStateSelect = (state: State) => {
@@ -376,9 +398,10 @@ const Register: React.FC = () => {
 
   // Keyboard navigation helper - focus on next field
   const focusNextField = (nextRef: React.RefObject<TextInput | null>) => {
-    setTimeout(() => {
+    const timer = setTimeout(() => {
       nextRef.current?.focus()
     }, 100)
+    pendingTimersRef.current.push(timer)
   }
 
   // Handle back button with confirmation alert
@@ -581,7 +604,9 @@ const Register: React.FC = () => {
                     {/* Phone Section */}
                     <Text style={styles.sectionTitle} pointerEvents="none">Phone Number</Text>
 
-                    <Text style={styles.sectionLabel} pointerEvents="none">Phone *</Text>
+                    <Text style={styles.sectionLabel} pointerEvents="none">
+                      Phone <Text style={styles.requiredAsterisk}>*</Text>
+                    </Text>
                     <View style={styles.phoneContainer}>
                       <CountryCodeSelector
                         selectedCode={values.countryCode}
@@ -589,11 +614,20 @@ const Register: React.FC = () => {
                       />
                       <TextInput
                         ref={phoneNumberRef}
-                        style={[styles.formInput, styles.phoneInput]}
+                        style={[
+                          styles.formInput,
+                          styles.phoneInput,
+                          focusedField === 'phoneNumber' && !errors.phoneNumber && styles.formInputFocused,
+                          errors.phoneNumber && touched.phoneNumber && styles.formInputError,
+                        ]}
                         placeholder="Phone number"
                         value={values.phoneNumber}
                         onChangeText={handleChange('phoneNumber')}
-                        onBlur={handleBlur('phoneNumber')}
+                        onFocus={() => setFocusedField('phoneNumber')}
+                        onBlur={(e) => {
+                          setFocusedField(null)
+                          handleBlur('phoneNumber')(e)
+                        }}
                         keyboardType="phone-pad"
                         placeholderTextColor={Theme.colors.neutral[400]}
                         returnKeyType="next"
@@ -613,7 +647,9 @@ const Register: React.FC = () => {
                     {/* Address Section */}
                     <Text style={styles.sectionTitle} pointerEvents="none">Address Information</Text>
 
-                    <Text style={styles.sectionLabel} pointerEvents="none">Address *</Text>
+                    <Text style={styles.sectionLabel} pointerEvents="none">
+                      Address <Text style={styles.requiredAsterisk}>*</Text>
+                    </Text>
 
                     {mapboxAvailable && !useManualEntry ? (
                       <AddressAutocomplete
@@ -634,10 +670,19 @@ const Register: React.FC = () => {
                     ) : (
                       <TextInput
                         ref={addressRef}
-                        style={styles.formInput}
+                        style={[
+                          styles.formInput,
+                          focusedField === 'address' && !errors.address && styles.formInputFocused,
+                          errors.address && touched.address && styles.formInputError,
+                        ]}
                         placeholder="e.g 108 Jackson St"
                         value={values.address}
                         onChangeText={handleChange('address')}
+                        onFocus={() => setFocusedField('address')}
+                        onBlur={(e) => {
+                          setFocusedField(null)
+                          handleBlur('address')(e)
+                        }}
                         placeholderTextColor={Theme.colors.neutral[400]}
                         returnKeyType="next"
                         onSubmitEditing={() => focusNextField(addressLine2Ref)}
@@ -659,10 +704,15 @@ const Register: React.FC = () => {
                     <Text style={styles.sectionLabel} pointerEvents="none">Address Line 2 (Optional)</Text>
                     <TextInput
                       ref={addressLine2Ref}
-                      style={styles.formInput}
+                      style={[
+                        styles.formInput,
+                        focusedField === 'addressLine2' && styles.formInputFocused,
+                      ]}
                       placeholder="Apt, suite, unit, building, floor, PO BOX, etc."
                       value={values.addressLine2}
                       onChangeText={handleChange('addressLine2')}
+                      onFocus={() => setFocusedField('addressLine2')}
+                      onBlur={() => setFocusedField(null)}
                       placeholderTextColor={Theme.colors.neutral[400]}
                       returnKeyType="next"
                       onSubmitEditing={() => focusNextField(zipCodeRef)}
@@ -673,7 +723,9 @@ const Register: React.FC = () => {
 
                     <View style={styles.formRow} pointerEvents="box-none">
                       <View style={styles.formColumn} pointerEvents="box-none">
-                        <Text style={styles.sectionLabel} pointerEvents="none">State *</Text>
+                        <Text style={styles.sectionLabel} pointerEvents="none">
+                          State <Text style={styles.requiredAsterisk}>*</Text>
+                        </Text>
                         <Pressable
                           style={({ pressed }) => [
                             styles.formInput,
@@ -698,7 +750,9 @@ const Register: React.FC = () => {
                       </View>
 
                       <View style={styles.formColumn} pointerEvents="box-none">
-                        <Text style={styles.sectionLabel} pointerEvents="none">City *</Text>
+                        <Text style={styles.sectionLabel} pointerEvents="none">
+                          City <Text style={styles.requiredAsterisk}>*</Text>
+                        </Text>
                         <Pressable
                           style={({ pressed }) => [
                             styles.formInput,
@@ -723,13 +777,24 @@ const Register: React.FC = () => {
                       </View>
                     </View>
 
-                    <Text style={styles.sectionLabel} pointerEvents="none">Zip Code *</Text>
+                    <Text style={styles.sectionLabel} pointerEvents="none">
+                      Zip Code <Text style={styles.requiredAsterisk}>*</Text>
+                    </Text>
                     <TextInput
                       ref={zipCodeRef}
-                      style={styles.formInput}
+                      style={[
+                        styles.formInput,
+                        focusedField === 'zipCode' && !errors.zipCode && styles.formInputFocused,
+                        errors.zipCode && touched.zipCode && styles.formInputError,
+                      ]}
                       placeholder="e.g 12345"
                       value={values.zipCode}
                       onChangeText={handleChange('zipCode')}
+                      onFocus={() => setFocusedField('zipCode')}
+                      onBlur={(e) => {
+                        setFocusedField(null)
+                        handleBlur('zipCode')(e)
+                      }}
                       placeholderTextColor={Theme.colors.neutral[400]}
                       keyboardType="default"
                       maxLength={10}
@@ -817,9 +882,13 @@ const styles = StyleSheet.create({
     color: Theme.colors.neutral[700],
     marginBottom: 8,
   },
+  requiredAsterisk: {
+    color: Theme.colors.error[500],
+    marginLeft: 2,
+  },
   formInput: {
     borderWidth: 1,
-    borderColor: Theme.colors.neutral[300],
+    borderColor: Theme.colors.border.default, // Softer, more professional (#E5E7EB)
     borderRadius: 8,
     paddingHorizontal: 16,
     paddingVertical: 14,
@@ -827,6 +896,14 @@ const styles = StyleSheet.create({
     color: Theme.colors.neutral[900],
     backgroundColor: Theme.colors.background.primary,
     marginBottom: 16,
+  },
+  formInputFocused: {
+    borderColor: Theme.colors.border.focus, // Dark gray on focus
+    borderWidth: 1.5,
+  },
+  formInputError: {
+    borderColor: Theme.colors.border.error, // Red on error
+    borderWidth: 1.5,
   },
   formInputPressed: {
     opacity: 0.7,

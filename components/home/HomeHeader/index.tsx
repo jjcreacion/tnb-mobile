@@ -1,16 +1,16 @@
 import React, { memo } from 'react';
-import { View, Image, TouchableOpacity, Text, Platform } from 'react-native';
+import { View, Image, TouchableOpacity, Text } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { Theme } from '@/constants/Theme';
 import { styles } from './styles';
 
-const tnbLogo = require('@/assets/images/icon-tnb.png');
+const tnbLogo = require('../../../assets/images/icon.png');
 
 interface HomeHeaderProps {
   onMenuPress: () => void;
-  referralReward: string;
+  referralReward: string | null;
   userBalance: number | null;
 }
 

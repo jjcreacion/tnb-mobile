@@ -30,8 +30,8 @@ export const MigratedStyles = StyleSheet.create({
   modalContainer2: {
     flex: 1,
     backgroundColor: Theme.colors.background.primary,
-    padding: Theme.spacing.md,
-    paddingTop: Theme.spacing.md,
+    padding: Theme.spacing.sm,
+    paddingTop: Theme.spacing.sm,
   },
 
   // ===== GRADIENTS =====
@@ -233,8 +233,8 @@ export const MigratedStyles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: Theme.colors.neutral[50],
     borderRadius: Theme.borderRadius.sm,
-    paddingVertical: Theme.spacing.md,
-    paddingHorizontal: Theme.spacing.md,
+    paddingVertical: Theme.spacing.sm,
+    paddingHorizontal: Theme.spacing.sm,
     borderWidth: 1,
     borderColor: Theme.colors.border.light,
   },
@@ -261,7 +261,7 @@ export const MigratedStyles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: Theme.colors.success[500],
-    paddingVertical: Theme.spacing.md,
+    paddingVertical: Theme.spacing.sm,
     borderRadius: Theme.borderRadius.sm,
     ...Theme.shadows.md,
   },
@@ -295,7 +295,7 @@ export const MigratedStyles = StyleSheet.create({
     borderColor: Theme.colors.border.default,
     borderWidth: 1,
     marginBottom: Theme.spacing.base,
-    paddingHorizontal: Theme.spacing.md,
+    paddingHorizontal: Theme.spacing.sm,
     borderRadius: Theme.borderRadius.sm,
     backgroundColor: Theme.colors.background.primary,
     fontSize: Theme.typography.fontSize.base,
@@ -314,8 +314,8 @@ export const MigratedStyles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Theme.colors.border.default,
     borderRadius: Theme.borderRadius.sm,
-    marginBottom: Theme.spacing.md,
-    paddingRight: Theme.spacing.md,
+    marginBottom: Theme.spacing.sm,
+    paddingRight: Theme.spacing.sm,
     backgroundColor: Theme.colors.background.primary,
   },
 
@@ -323,8 +323,8 @@ export const MigratedStyles = StyleSheet.create({
     flex: 1,
     borderWidth: 0,
     marginBottom: 0,
-    paddingVertical: Theme.spacing.md,
-    paddingHorizontal: Theme.spacing.md,
+    paddingVertical: Theme.spacing.sm,
+    paddingHorizontal: Theme.spacing.sm,
     fontSize: Theme.typography.fontSize.base,
     color: Theme.colors.text.primary,
   },
@@ -334,7 +334,7 @@ export const MigratedStyles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
     borderColor: Theme.colors.border.default,
-    paddingHorizontal: Theme.spacing.md,
+    paddingHorizontal: Theme.spacing.sm,
     borderRadius: Theme.borderRadius.sm,
     backgroundColor: Theme.colors.background.primary,
   },
@@ -343,7 +343,7 @@ export const MigratedStyles = StyleSheet.create({
   buttonPhone: {
     flexDirection: 'row',
     backgroundColor: Theme.colors.background.primary,
-    padding: Theme.spacing.md,
+    padding: Theme.spacing.sm,
     borderRadius: Theme.borderRadius.sm,
     alignItems: 'center',
     marginVertical: Theme.spacing.xs,
@@ -358,7 +358,7 @@ export const MigratedStyles = StyleSheet.create({
   buttonEmail: {
     flexDirection: 'row',
     backgroundColor: Theme.colors.primary[500],
-    padding: Theme.spacing.md,
+    padding: Theme.spacing.sm,
     borderRadius: Theme.borderRadius.sm,
     alignItems: 'center',
     marginVertical: Theme.spacing.xs,
@@ -373,7 +373,7 @@ export const MigratedStyles = StyleSheet.create({
   buttonSignUp: {
     flexDirection: 'row',
     backgroundColor: Theme.colors.primary[400],
-    padding: Theme.spacing.md,
+    padding: Theme.spacing.sm,
     borderRadius: Theme.borderRadius.sm,
     alignItems: 'center',
     marginVertical: Theme.spacing.xs,
@@ -426,21 +426,21 @@ export const MigratedStyles = StyleSheet.create({
   buttonTextPhone: {
     fontSize: Theme.typography.fontSize.lg,
     color: Theme.colors.text.primary,
-    marginLeft: Theme.spacing.md,
+    marginLeft: Theme.spacing.sm,
     fontWeight: Theme.typography.fontWeight.medium,
   },
 
   buttonTextEmail: {
     fontSize: Theme.typography.fontSize.lg,
     color: Theme.colors.text.inverse,
-    marginLeft: Theme.spacing.md,
+    marginLeft: Theme.spacing.sm,
     fontWeight: Theme.typography.fontWeight.medium,
   },
 
   buttonTextSignUp: {
     fontSize: Theme.typography.fontSize.lg,
     color: Theme.colors.text.inverse,
-    marginLeft: Theme.spacing.md,
+    marginLeft: Theme.spacing.sm,
     fontWeight: Theme.typography.fontWeight.medium,
   },
 
@@ -462,14 +462,14 @@ export const MigratedStyles = StyleSheet.create({
     fontSize: Theme.typography.fontSize['2xl'],
     color: Theme.colors.text.primary,
     fontWeight: Theme.typography.fontWeight.semiBold,
-    marginTop: Theme.spacing.md,
+    marginTop: Theme.spacing.sm,
   },
 
   textH2Blue: {
     fontSize: Theme.typography.fontSize.xl,
     color: Theme.colors.secondary[500],
     fontWeight: Theme.typography.fontWeight.semiBold,
-    marginTop: Theme.spacing.md,
+    marginTop: Theme.spacing.sm,
   },
 
   label: {
@@ -503,7 +503,7 @@ export const MigratedStyles = StyleSheet.create({
     width: '100%',
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: Theme.spacing.md,
+    marginTop: Theme.spacing.sm,
   },
 
   formContainer: {
@@ -555,7 +555,7 @@ export const MigratedStyles = StyleSheet.create({
     borderColor: Theme.colors.border.default,
     borderWidth: 1,
     borderRadius: Theme.borderRadius.sm,
-    marginBottom: Theme.spacing.md,
+    marginBottom: Theme.spacing.sm,
     backgroundColor: Theme.colors.background.primary,
   },
 
@@ -566,15 +566,15 @@ export const MigratedStyles = StyleSheet.create({
 
   iconLeft: {
     position: 'absolute',
-    left: Theme.spacing.md,
+    left: Theme.spacing.sm,
   },
 
   mapStyle: {
     width: '100%',
     height: 200,
-    marginTop: Theme.spacing.md,
+    marginTop: Theme.spacing.sm,
     borderRadius: Theme.borderRadius.md,
-    marginBottom: Theme.spacing.md,
+    marginBottom: Theme.spacing.sm,
   },
 
   containerTermsofServices: {
@@ -595,7 +595,7 @@ export const MigratedStyles = StyleSheet.create({
     color: Theme.colors.secondary[400],
     fontSize: Theme.typography.fontSize['2xl'],
     fontWeight: Theme.typography.fontWeight.bold,
-    marginBottom: Theme.spacing.md,
+    marginBottom: Theme.spacing.sm,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -632,7 +632,7 @@ export const MigratedStyles = StyleSheet.create({
     marginBottom: Theme.spacing.lg,
     borderBottomWidth: 1,
     borderBottomColor: Theme.colors.border.light,
-    paddingBottom: Theme.spacing.md,
+    paddingBottom: Theme.spacing.sm,
   },
 
   sideMenuTitle: {
@@ -648,7 +648,7 @@ export const MigratedStyles = StyleSheet.create({
   sideMenuItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: Theme.spacing.md,
+    paddingVertical: Theme.spacing.sm,
     paddingHorizontal: Theme.spacing.lg,
     borderBottomWidth: 1,
     borderBottomColor: Theme.colors.border.light,
@@ -656,7 +656,7 @@ export const MigratedStyles = StyleSheet.create({
 
   sideMenuItemText: {
     fontSize: Theme.typography.fontSize.base,
-    marginLeft: Theme.spacing.md,
+    marginLeft: Theme.spacing.sm,
     color: Theme.colors.text.primary,
   },
 
@@ -700,7 +700,7 @@ export const MigratedStyles = StyleSheet.create({
     width: '100%',
     height: 200,
     borderRadius: Theme.borderRadius.md,
-    marginBottom: Theme.spacing.md,
+    marginBottom: Theme.spacing.sm,
     resizeMode: 'cover',
   },
 
@@ -809,7 +809,7 @@ export const MigratedStyles = StyleSheet.create({
   },
 
   loginButton: {
-    marginTop: Theme.spacing.md,
+    marginTop: Theme.spacing.sm,
   },
 
   loginForgotButton: {
@@ -818,9 +818,9 @@ export const MigratedStyles = StyleSheet.create({
 
   loginErrorContainer: {
     backgroundColor: Theme.colors.error[50],
-    padding: Theme.spacing.md,
+    padding: Theme.spacing.sm,
     borderRadius: Theme.borderRadius.base,
-    marginBottom: Theme.spacing.md,
+    marginBottom: Theme.spacing.sm,
   },
 
   loginErrorText: {
@@ -842,7 +842,7 @@ export const MigratedStyles = StyleSheet.create({
   },
 
   loginDividerText: {
-    marginHorizontal: Theme.spacing.md,
+    marginHorizontal: Theme.spacing.sm,
     color: Theme.colors.text.tertiary,
     fontSize: Theme.typography.fontSize.sm,
     fontWeight: Theme.typography.fontWeight.medium,
@@ -884,18 +884,18 @@ export const MigratedStyles = StyleSheet.create({
   },
 
   registerFormContainer: {
-    gap: Theme.spacing.md,
+    gap: Theme.spacing.sm,
   },
 
   registerSectionLabel: {
-    marginTop: Theme.spacing.md,
+    marginTop: Theme.spacing.sm,
     marginBottom: Theme.spacing.xs,
     fontWeight: Theme.typography.fontWeight.semiBold,
   },
 
   registerGpsButton: {
     marginTop: Theme.spacing.sm,
-    marginBottom: Theme.spacing.md,
+    marginBottom: Theme.spacing.sm,
   },
 
   registerPickerContainer: { 
@@ -1038,7 +1038,7 @@ export const MigratedStyles = StyleSheet.create({
   },
 
   profileFormCard: {
-    marginBottom: Theme.spacing.xl,
+    marginBottom: Theme.spacing.lg,
     padding: Theme.spacing.lg,
   },
 
@@ -1050,7 +1050,7 @@ export const MigratedStyles = StyleSheet.create({
   },
 
   profileFormSection: {
-    marginBottom: Theme.spacing.xl,
+    marginBottom: 0,
   },
 
   profileInputContainer: {
@@ -1062,6 +1062,27 @@ export const MigratedStyles = StyleSheet.create({
     paddingTop: Theme.spacing.lg,
     borderTopWidth: 1,
     borderTopColor: Theme.colors.border.light,
+  },
+
+  profileActionsContainer: {
+    gap: Theme.spacing.base,
+    marginTop: Theme.spacing.base,
+    paddingHorizontal: Theme.spacing.base,
+  },
+
+  profileActionButtonsContainer: {
+    flexDirection: 'row',
+    gap: Theme.spacing.sm,
+    marginTop: Theme.spacing.xl,
+    paddingHorizontal: Theme.spacing.base,
+  },
+
+  profileCancelButton: {
+    marginTop: Theme.spacing.sm,
+  },
+
+  profileSaveButton: {
+    flex: 1,
   },
 
   // ===== REQUEST MODAL SCREEN =====
@@ -1113,7 +1134,7 @@ export const MigratedStyles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: Theme.borderRadius.xl,
-    marginBottom: Theme.spacing.md,
+    marginBottom: Theme.spacing.sm,
   },
 
   requestModalCategoryTitle: {
@@ -1140,7 +1161,7 @@ export const MigratedStyles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: Theme.spacing.base,
-    paddingVertical: Theme.spacing.md,
+    paddingVertical: Theme.spacing.sm,
     backgroundColor: Theme.colors.background.primary,
     borderWidth: 1,
     borderColor: Theme.colors.border.default,
@@ -1172,8 +1193,8 @@ export const MigratedStyles = StyleSheet.create({
 
   requestModalGpsButton: {
     position: 'absolute',
-    bottom: Theme.spacing.md,
-    right: Theme.spacing.md,
+    bottom: Theme.spacing.sm,
+    right: Theme.spacing.sm,
     backgroundColor: Theme.colors.primary[500],
     borderRadius: Theme.borderRadius.full,
     width: 40,
@@ -1200,7 +1221,7 @@ export const MigratedStyles = StyleSheet.create({
   requestModalImagePreviewContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginTop: Theme.spacing.md,
+    marginTop: Theme.spacing.sm,
     gap: Theme.spacing.sm,
   },
 
@@ -1234,7 +1255,7 @@ export const MigratedStyles = StyleSheet.create({
 
   requestModalButtonContainer: {
     flexDirection: 'row',
-    gap: Theme.spacing.md,
+    gap: Theme.spacing.sm,
     marginTop: Theme.spacing['2xl'],
     marginBottom: Theme.spacing.lg,
   },
@@ -1287,8 +1308,8 @@ export const MigratedStyles = StyleSheet.create({
   },
 
   requestModalOutsideMapTouchArea: {
-    marginTop: Theme.spacing.md,
-    padding: Theme.spacing.md,
+    marginTop: Theme.spacing.sm,
+    padding: Theme.spacing.sm,
     backgroundColor: Theme.colors.primary[50],
     borderRadius: Theme.borderRadius.md,
     borderWidth: 1,
@@ -1306,8 +1327,8 @@ export const MigratedStyles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: Theme.colors.background.secondary,
     borderRadius: Theme.borderRadius.md,
-    marginBottom: Theme.spacing.md,
-    paddingHorizontal: Theme.spacing.md,
+    marginBottom: Theme.spacing.sm,
+    paddingHorizontal: Theme.spacing.sm,
     paddingVertical: Theme.spacing.sm,
     borderWidth: 1,
     borderColor: Theme.colors.border.light,
@@ -1358,7 +1379,7 @@ export const MigratedStyles = StyleSheet.create({
 
   requestModalSubCategoryInfo: {
     flex: 1,
-    marginRight: Theme.spacing.md,
+    marginRight: Theme.spacing.sm,
   },
 
   requestModalSubCategorySelectedText: {
@@ -1395,8 +1416,8 @@ export const MigratedStyles = StyleSheet.create({
     borderRadius: Theme.borderRadius.lg,
     minHeight: 100,
     maxHeight: 150,
-    paddingHorizontal: Theme.spacing.md,
-    paddingVertical: Theme.spacing.md,
+    paddingHorizontal: Theme.spacing.sm,
+    paddingVertical: Theme.spacing.sm,
     ...Theme.shadows.sm,
   },
 
@@ -1539,7 +1560,7 @@ export const MigratedStyles = StyleSheet.create({
 
   serviceDetailStatusBadge: {
     paddingVertical: Theme.spacing.xs,
-    paddingHorizontal: Theme.spacing.md,
+    paddingHorizontal: Theme.spacing.sm,
     borderRadius: Theme.borderRadius.full,
   },
 
@@ -1628,7 +1649,7 @@ export const MigratedStyles = StyleSheet.create({
   },
 
   termsAndPoliciesTitle: {
-    fontSize: Theme.typography.fontSize['4xl'],
+    fontSize: Theme.typography.fontSize['3xl'],
     fontWeight: Theme.typography.fontWeight.bold,
     marginBottom: Theme.spacing['2xl'],
     color: Theme.colors.text.primary,

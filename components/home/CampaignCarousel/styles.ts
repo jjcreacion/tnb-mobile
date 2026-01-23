@@ -1,4 +1,5 @@
-import { StyleSheet, Platform, Dimensions } from 'react-native'
+import { Theme } from '@/constants/Theme'
+import { Dimensions, Platform, StyleSheet } from 'react-native'
 
 const { width: screenWidth } = Dimensions.get('window')
 
@@ -13,11 +14,11 @@ export const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#7c1310',
+    color: Theme.colors.primary[800],
   },
   carouselContainer: {
     height: 200,
-    marginBottom: 5,
+    marginBottom: 0,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -54,21 +55,21 @@ export const styles = StyleSheet.create({
   recommendedCardTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#FFFFFF',
+    color: Theme.colors.text.inverse,
     marginTop: 5,
   },
   recommendedCardDescription: {
     fontSize: 13,
-    color: '#E0E0E0',
+    color: Theme.colors.neutral[200],
     marginTop: 2,
   },
   errorMessage: {
-    color: 'red',
+    color: Theme.colors.error[500],
     textAlign: 'center',
     padding: 20,
   },
   noCampaignsMessage: {
-    color: '#666',
+    color: Theme.colors.text.secondary,
     textAlign: 'center',
     padding: 20,
   },

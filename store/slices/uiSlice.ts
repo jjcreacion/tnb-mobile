@@ -10,7 +10,7 @@ interface UIState {
   isCampaignModalVisible: boolean
   selectedCampaignData: Campaign | null
   isAddressModalVisible: boolean
-  referralReward: string
+  referralReward: string | null
 }
 
 const initialState: UIState = {
@@ -22,7 +22,7 @@ const initialState: UIState = {
   isCampaignModalVisible: false,
   selectedCampaignData: null,
   isAddressModalVisible: false,
-  referralReward: '15',
+  referralReward: null,
 }
 
 const uiSlice = createSlice({

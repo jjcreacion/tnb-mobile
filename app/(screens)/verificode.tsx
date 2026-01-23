@@ -35,9 +35,11 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
   const [isProcessing, setIsProcessing] = useState(false);
   const [hasValidClipboard, setHasValidClipboard] = useState(false);
   const [storedPassword, setStoredPassword] = useState<string>('');
+  const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
   const inputsRef = useRef<(TextInput | null)[]>([]);
-  const timeoutsRef = useRef<number[]>([]);
-  const validationTimeoutRef = useRef<number | null>(null);
+  const timeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const validationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [refereeFullName, setRefereeFullName] = useState<string | null>(null);
   
   // Track recent input activity to prevent phantom backspaces (iOS)
   const recentInputRef = useRef<{
@@ -123,10 +125,12 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
   // Auto-focus first input on mount - Optimized approach
   useEffect(() => {
     // Use requestAnimationFrame for immediate, smooth focus
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
     const frame = requestAnimationFrame(() => {
       // Small delay only for iOS to ensure component is ready
       if (Platform.OS === 'ios') {
-        setTimeout(() => {
+        timeoutId = setTimeout(() => {
           inputsRef.current[0]?.focus();
         }, 100);
       } else {
@@ -134,7 +138,12 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
       }
     });
 
-    return () => cancelAnimationFrame(frame);
+    return () => {
+      cancelAnimationFrame(frame);
+      if (timeoutId !== null) {
+        clearTimeout(timeoutId);
+      }
+    };
   }, []);
 
   // Monitor code changes for debugging
@@ -164,8 +173,10 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
 
   // Timer countdown
   useEffect(() => {
+    let interval: ReturnType<typeof setInterval> | null = null;
+
     if (timer > 0 && validationState !== 'valid') {
-      const interval = setInterval(() => {
+      interval = setInterval(() => {
         setTimer(prevTimer => {
           const newTimer = prevTimer - 1;
           if (newTimer === 0) {
@@ -174,13 +185,18 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
           return newTimer;
         });
       }, 1000);
-      return () => clearInterval(interval);
     }
-  }, [timer, validationState]);
+
+    return () => {
+      if (interval !== null) {
+        clearInterval(interval);
+      }
+    };
+  }, [validationState]);
 
   // Helper function to add managed timeouts
   const addTimeout = useCallback((callback: () => void, delay: number) => {
-    const timeout = setTimeout(callback, delay) as unknown as number;
+    const timeout = setTimeout(callback, delay);
     timeoutsRef.current.push(timeout);
     return timeout;
   }, []);
@@ -221,13 +237,22 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
     }
   }, [logDebugEvent, verificationCode]);
 
+  //Load data Referred
+
+  const LoadReferred = async () => {
+    const name = await AsyncStorage.getItem('refereeFullName');
+    setRefereeFullName(name); 
+  }
+
   // Monitor clipboard changes periodically
   useEffect(() => {
     // Initial check
     checkClipboardForValidCode();
-
+    LoadReferred();
     // Check clipboard every 2 seconds when component is focused
-    const interval = setInterval(checkClipboardForValidCode, 2000);
+    const interval = setInterval(() => {
+      checkClipboardForValidCode();
+    }, 2000);
 
     return () => clearInterval(interval);
   }, [checkClipboardForValidCode]);
@@ -1338,6 +1363,8 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
     return <Register />;
   }
 
+ 
+
   return (
     <>
       <StatusBar 
@@ -1368,6 +1395,11 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
                   We sent a code to{' '}
                   <Text style={styles.emailText}>{email}</Text>
                 </Text>
+               {refereeFullName && (
+                    <Text style={styles.subtitle}>
+                        Referred by: {refereeFullName}
+                    </Text>
+                )}
               </View>
 
               {/* Code Input */}
@@ -1378,6 +1410,7 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
                     ref={(ref) => { inputsRef.current[index] = ref; }}
                     style={[
                       styles.codeInput,
+                      focusedIndex === index && validationState === 'idle' && styles.codeInputFocused,
                       validationState === 'invalid' && styles.codeInputError,
                       validationState === 'expired' && styles.codeInputError,
                       validationState === 'valid' && styles.codeInputSuccess,
@@ -1385,6 +1418,8 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
                     value={digit}
                     onChangeText={(value) => handleInputChange(value, index)}
                     onKeyPress={(e) => handleKeyPress(e, index)}
+                    onFocus={() => setFocusedIndex(index)}
+                    onBlur={() => setFocusedIndex(null)}
                     maxLength={6}
                     keyboardType="numeric"
                     textAlign="center"
@@ -1627,6 +1662,11 @@ const styles = StyleSheet.create({
     ...Theme.shadows.sm,
   },
 
+  codeInputFocused: {
+    borderColor: Theme.colors.border.focus, // Uses global focus color from Theme
+    borderWidth: 2.5,
+  },
+
   codeInputError: {
     borderColor: Theme.colors.error[500],
     backgroundColor: Theme.colors.error[50],
@@ -1713,7 +1753,7 @@ const styles = StyleSheet.create({
   // Debug styles - Solo para desarrollo iOS
   debugContainer: {
     backgroundColor: Theme.colors.background.secondary,
-    padding: Theme.spacing.md,
+    padding: Theme.spacing.sm,
     borderRadius: Theme.borderRadius.lg,
     marginVertical: Theme.spacing.lg,
     borderWidth: 1,

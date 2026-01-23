@@ -9,14 +9,22 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.thenationalbuilders.tnb"
+      "bundleIdentifier": "com.thenationalbuilders.tnb",
+      "buildNumber": "1",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": "false",
+        "NSCameraUsageDescription": "TNB necesita acceso a tu cámara para que puedas tomar y subir fotos de los proyectos de construcción.",
+        "NSPhotoLibraryUsageDescription": "TNB necesita acceso a tu galería para que puedas seleccionar y compartir imágenes de tus obras.",
+        "NSPhotoLibraryAddUsageDescription": "TNB necesita permiso para guardar fotos de los reportes en tu galería."
+      }
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "foregroundImage": "./assets/images/icon.png",
+        "backgroundColor": "#ff4444"
       },
-      "package": "com.thenationalbuilders.tnb"
+      "package": "com.thenationalbuilders.tnb",
+      "softwareKeyboardLayoutMode": "resize"
     },
     "web": {
       "bundler": "metro",
@@ -34,13 +42,14 @@
           "backgroundColor": "#ffffff"
         }
       ],
-      "expo-web-browser"
+      "expo-web-browser",
+      "@react-native-community/datetimepicker"
     ],
     "experiments": {
       "typedRoutes": true
     },
     "extra": {
-      "API_BASE_URL": "http://216.246.113.71:8080",
+      "API_BASE_URL": "https://backend-apis.thenationalbuilders.com",
       "URL_SHARE_AND_EARN": "http://localhost/redirect_tnb/",
       "GOOGLE_MAP_TOKEN": "pk.eyJ1IjoicnVkeS1yb2phcyIsImEiOiJjbWZ3cmRxczUwMmZ2MndwemU5Mmt6b2dhIn0.QL1xIOjXEgBUgJa9gtYS1g",
       "router": {},

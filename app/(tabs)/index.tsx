@@ -5,6 +5,7 @@ import {
   updatePrimaryAddress,
 } from '@/store/slices/addressSlice'
 import { expressInterest, fetchCampaigns } from '@/store/slices/campaignSlice'
+import { shallowEqual } from 'react-redux'; 
 import { fetchCategories } from '@/store/slices/categorySlice'
 import {
   closeAddressModal,
@@ -18,11 +19,13 @@ import {
   toggleSearch,
 } from '@/store/slices/uiSlice'
 import { loadUserData } from '@/store/slices/userSlice'
+import { registerDevice } from '@/store/slices/deviceSlice';
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import Constants from 'expo-constants'
 import { StatusBar } from 'expo-status-bar'
-import React, { useCallback, useEffect } from 'react'
-import { Alert, StyleSheet, View } from 'react-native'
+import React, { useCallback, useEffect, useMemo } from 'react'
+import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import {
   AddressSelector,
@@ -43,41 +46,58 @@ const API_BASE_URL = Constants.expoConfig?.extra?.API_BASE_URL || ''
 
 const HomeScreen: React.FC = () => {
   const dispatch = useAppDispatch()
+  const insets = useSafeAreaInsets()
 
   // Load referral reward
   useReferralReward()
 
-  // Redux selectors
-  const { userName, userBalance } = useAppSelector((state) => state.user)
-  const { addresses, primaryAddress, cities, states } = useAppSelector(
-    (state) => state.address
-  )
-  const { campaigns, loading: loadingCampaigns, error: errorCampaigns } =
-    useAppSelector((state) => state.campaign)
-  const { categories, loading: loadingCategories, error: errorCategories } =
-    useAppSelector((state) => state.category)
-  const {
-    isMenuVisible,
-    isSearchVisible,
-    serviceSearchQuery,
-    isRequestModalVisible,
-    selectedServiceData,
-    isCampaignModalVisible,
-    selectedCampaignData,
-    isAddressModalVisible,
-    referralReward,
-  } = useAppSelector((state) => state.ui)
+  // User
+  const userName = useAppSelector((state) => state.user.userName)
+  const userBalance = useAppSelector((state) => state.user.userBalance)
 
-  // Load initial data
+  // Address
+  const addresses = useAppSelector((state) => state.address.addresses, shallowEqual); 
+  const primaryAddress = useAppSelector((state) => state.address.primaryAddress, shallowEqual); 
+  const cities = useAppSelector((state) => state.address.cities, shallowEqual); 
+  const states = useAppSelector((state) => state.address.states, shallowEqual); 
+
+  // Campaign
+  const campaigns = useAppSelector((state) => state.campaign.campaigns, shallowEqual); 
+  const loadingCampaigns = useAppSelector((state) => state.campaign.loading);
+  const errorCampaigns = useAppSelector((state) => state.campaign.error);
+
+  // Category
+  const categories = useAppSelector((state) => state.category.categories, shallowEqual); 
+  const loadingCategories = useAppSelector((state) => state.category.loading);
+  const errorCategories = useAppSelector((state) => state.category.error);
+    
+  // UI
+  const isMenuVisible = useAppSelector((state) => state.ui.isMenuVisible)
+  const isSearchVisible = useAppSelector((state) => state.ui.isSearchVisible)
+  const serviceSearchQuery = useAppSelector((state) => state.ui.serviceSearchQuery)
+  const isRequestModalVisible = useAppSelector((state) => state.ui.isRequestModalVisible)
+  const selectedServiceData = useAppSelector((state) => state.ui.selectedServiceData)
+  const isCampaignModalVisible = useAppSelector((state) => state.ui.isCampaignModalVisible)
+  const selectedCampaignData = useAppSelector((state) => state.ui.selectedCampaignData)
+  const isAddressModalVisible = useAppSelector((state) => state.ui.isAddressModalVisible)
+  const referralReward = useAppSelector((state) => state.ui.referralReward)
+
   useEffect(() => {
     dispatch(loadUserData())
-    dispatch(loadUserAddresses())
-    dispatch(loadCitiesAndStates())
-    dispatch(fetchCampaigns())
-    dispatch(fetchCategories())
-  }, [dispatch])
+      .unwrap() 
+      .then(() => {
+        dispatch(registerDevice()); 
+      })
+      .catch((error) => {
+        console.error('Error al cargar datos de usuario o registrar dispositivo:', error);
+      });
+      
+    dispatch(loadUserAddresses()); 
+    dispatch(loadCitiesAndStates());
+    dispatch(fetchCampaigns());
+    dispatch(fetchCategories());
+}, [dispatch]);
 
-  // Handlers
   const handleMenuPress = useCallback(() => {
     dispatch(setMenuVisible(true))
   }, [dispatch])
@@ -176,40 +196,65 @@ const HomeScreen: React.FC = () => {
     dispatch(loadUserAddresses())
   }, [dispatch])
 
+
   return (
     <View style={styles.container}>
       <StatusBar style="light" backgroundColor={Theme.colors.primary[500]} />
+      
       <HomeHeader
         onMenuPress={handleMenuPress}
-        referralReward={referralReward}
+        referralReward={referralReward || '15'}
         userBalance={userBalance}
       />
 
-      <AddressSelector
-        primaryAddress={primaryAddress}
-        addressCount={addresses.length}
-        onPress={handleAddressPress}
-      />
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.keyboardAvoidingView}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+      >
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={[
+            styles.scrollContent,
+            Platform.OS === 'android' && {
+              paddingBottom: 70 + insets.bottom + 20,
+            },
+          ]}
+          showsVerticalScrollIndicator={true}
+          indicatorStyle="black"
+          scrollIndicatorInsets={{ right: 1 }}
+          bounces={true}
+          alwaysBounceVertical={false}
+          keyboardShouldPersistTaps="handled"
+        >
+        <AddressSelector
+          primaryAddress={primaryAddress}
+          addressCount={addresses.length}
+          onPress={handleAddressPress}
+        />
 
-      <CampaignCarousel
-        campaigns={campaigns}
-        loading={loadingCampaigns}
-        error={errorCampaigns}
-        onCampaignPress={handleCampaignPress}
-        apiBaseUrl={API_BASE_URL}
-      />
+        <CampaignCarousel
+          campaigns={campaigns}
+          loading={loadingCampaigns}
+          error={errorCampaigns}
+          onCampaignPress={handleCampaignPress}
+          apiBaseUrl={API_BASE_URL}
+        />
 
       <ServicesExplorer
-        categories={categories}
-        loading={loadingCategories}
-        error={errorCategories}
-        searchQuery={serviceSearchQuery}
-        isSearchVisible={isSearchVisible}
-        onServicePress={handleServicePress}
-        onToggleSearch={handleToggleSearch}
-        onSearchChange={handleSearchChange}
-        apiBaseUrl={API_BASE_URL}
-      />
+          categories={categories}
+          loading={loadingCategories}
+          error={errorCategories}
+          searchQuery={serviceSearchQuery}
+          isSearchVisible={isSearchVisible}
+          onServicePress={handleServicePress}
+          onToggleSearch={handleToggleSearch}
+          onSearchChange={handleSearchChange}
+          apiBaseUrl={API_BASE_URL}
+        />
+
+      </ScrollView>
+      </KeyboardAvoidingView>
 
       <RequestModal
         isVisible={isRequestModalVisible}
@@ -248,7 +293,18 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     width: '100%',
-    backgroundColor: '#f4f4f4',
+    backgroundColor: Theme.colors.neutral[200],
+  },
+  keyboardAvoidingView: {
+    flex: 1,
+  },
+  scrollView: {
+    flex: 1,
+    width: '100%',
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: 20,
   },
 })
 

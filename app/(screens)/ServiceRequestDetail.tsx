@@ -5,7 +5,6 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Dimensions, FlatList, Image, Modal, ScrollView, Text, TouchableOpacity, View } from 'react-native';
-import MapView, { Marker } from 'react-native-maps';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 
 interface ServiceRequest {
@@ -152,7 +151,8 @@ const ServiceRequestDetailScreen = () => {
           </View>
         </View>
 
-        {mapRegion ? (
+        {/* Service Location section hidden as requested */}
+        {/* {mapRegion ? (
           <View style={MigratedStyles.serviceDetailMapCard}>
             <Text style={MigratedStyles.serviceDetailMapTitle}>Service Location</Text>
             <View style={MigratedStyles.serviceDetailMapContainer}>
@@ -169,7 +169,7 @@ const ServiceRequestDetailScreen = () => {
                 <Text style={MigratedStyles.serviceDetailNoMapText}>Location data not available for this request.</Text>
              </View>
           </View>
-        )}
+        )} */}
 
         <View style={MigratedStyles.serviceDetailImageCard}>
           <Text style={MigratedStyles.serviceDetailMapTitle}>Request Images</Text>

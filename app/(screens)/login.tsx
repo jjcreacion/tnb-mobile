@@ -1,5 +1,7 @@
 import { Button, Input, Loading, Screen, Typography } from '@/components/common';
 import { MigratedStyles } from '@/constants/MigratedStyles';
+import { useAppDispatch } from '@/store/hooks';
+import { setAuthenticated } from '@/store/slices/authSlice';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -8,13 +10,14 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { Formik } from 'formik';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  Image,
-  ImageBackground,
-  KeyboardAvoidingView,
-  Platform,
-  StatusBar,
-  TextInput,
-  View
+    Image,
+    ImageBackground,
+    Keyboard,
+    KeyboardAvoidingView,
+    Platform,
+    StatusBar,
+    TextInput,
+    View
 } from 'react-native';
 import * as Animatable from 'react-native-animatable';
 import * as Yup from 'yup';
@@ -34,6 +37,7 @@ const validationSchema = Yup.object().shape({
 
 export default function LoginScreenMigrated() {
   const router = useRouter();
+  const dispatch = useAppDispatch();
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [isSignUpModalVisible, setSignUpModalVisible] = useState(false);
@@ -51,7 +55,6 @@ export default function LoginScreenMigrated() {
       // Clean up: restore status bar visibility when component unmounts (Android only)
       return () => {
         if (Platform.OS === 'android') {
-          console.log('entrooooo login')
           StatusBar.setHidden(false);
         }
       };
@@ -83,9 +86,26 @@ export default function LoginScreenMigrated() {
       const data = await response.json();
 
       if (response.ok && data.accessToken) {
-        AsyncStorage.setItem('accessToken', data.accessToken);
-        AsyncStorage.setItem('userId', String(data.pkUser));
-        router.push('/(tabs)');
+        // 1. Guardar tokens en AsyncStorage
+        await Promise.all([
+          AsyncStorage.setItem('accessToken', data.accessToken),
+          AsyncStorage.setItem('userId', String(data.pkUser))
+        ]);
+
+        // 2. Actualizar Redux auth slice
+        dispatch(setAuthenticated({
+          accessToken: data.accessToken,
+          userId: String(data.pkUser),
+        }));
+        
+        if (Platform.OS === 'android') {
+          Keyboard.dismiss();
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+
+        // 3. Navegar a la pantalla principal
+        // La navegación se redirigirá automáticamente a (tabs) porque isAuthenticated = true
+        router.replace('/(tabs)');
       } else {
         setErrorMessage(`Email or password incorrect.\nPlease try again.`);
       }
@@ -137,7 +157,7 @@ export default function LoginScreenMigrated() {
                 duration={2000}
               >
                 <Image
-                  source={require('../../assets/images/icon-tnb.png')}
+                  source={require('../../assets/images/icon.png')}
                   style={MigratedStyles.loginLogo}
                 />
               </Animatable.View>
@@ -176,6 +196,7 @@ export default function LoginScreenMigrated() {
                         keyboardType="email-address"
                         autoCapitalize="none"
                         autoComplete="email"
+                        textContentType="username"
                         returnKeyType='next'
                         onSubmitEditing={() => passwordInputRef.current?.focus()}
                         blurOnSubmit={false}
@@ -192,6 +213,7 @@ export default function LoginScreenMigrated() {
                         secureTextEntry={true}
                         autoCapitalize="none"
                         autoComplete="password"
+                        textContentType="password"
                         returnKeyType='go'
                         onSubmitEditing={() => handleSubmit() }
                       />

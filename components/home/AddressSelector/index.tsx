@@ -1,6 +1,7 @@
 import React, { memo } from 'react'
 import { View, Text, TouchableOpacity } from 'react-native'
 import Icon from 'react-native-vector-icons/MaterialIcons'
+import { Theme } from '@/constants/Theme'
 import type { Address } from '@/types'
 import { styles } from './styles'
 
@@ -38,12 +39,12 @@ export const AddressSelector = memo<AddressSelectorProps>(
           <Text style={styles.sectionTitle}>Service Address</Text>
         </View>
         <TouchableOpacity style={styles.addressSection} onPress={onPress}>
-          <Icon name="home" size={24} color="#ea0e08" />
+          <Icon name="home" size={24} color={Theme.colors.primary[500]} />
           <View style={styles.addressTextSection}>
             <Text style={styles.addressText}>{getAddressText()}</Text>
             <Text style={styles.addressSubText}>{getSubText()}</Text>
           </View>
-          <Icon name="keyboard-arrow-down" size={24} color="#666" />
+          <Icon name="keyboard-arrow-down" size={24} color={Theme.colors.text.secondary} />
         </TouchableOpacity>
       </>
     )

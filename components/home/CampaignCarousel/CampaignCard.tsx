@@ -1,6 +1,7 @@
 import React, { memo } from 'react'
 import { TouchableOpacity, Image, Text } from 'react-native'
 import { LinearGradient } from 'expo-linear-gradient'
+import { Theme } from '@/constants/Theme'
 import type { Campaign } from '@/types'
 import { styles } from './styles'
 
@@ -24,7 +25,7 @@ export const CampaignCard = memo<CampaignCardProps>(
           style={styles.recommendedCardImage}
         />
         <LinearGradient
-          colors={['rgba(0,0,0,0.4)', 'rgba(0,0,0,0.7)']}
+          colors={[Theme.colors.gradientOverlay.light, Theme.colors.gradientOverlay.dark]}
           style={styles.recommendedCardOverlay}
         >
           <Text style={styles.recommendedCardTitle}>{campaign.title}</Text>

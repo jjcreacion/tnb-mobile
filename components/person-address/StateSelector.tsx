@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { FlatList, Text, TextInput, TouchableOpacity, View } from 'react-native'
 import { AddressService } from './AddressService'
 import { addressStyles } from './styles'
@@ -17,15 +17,21 @@ export const StateSelector: React.FC<StateSelectorProps> = ({
   onSearchTextChange,
   onStateSelect,
 }) => {
+  const [isFocused, setIsFocused] = useState(false)
   const filteredStates = AddressService.filterStatesBySearch(states, searchText)
 
   return (
     <View style={addressStyles.selectorContainer}>
       <TextInput
-        style={addressStyles.searchInput}
+        style={[
+          addressStyles.searchInput,
+          isFocused && addressStyles.searchInputFocused,
+        ]}
         placeholder="Search for a state"
         value={searchText}
         onChangeText={onSearchTextChange}
+        onFocus={() => setIsFocused(true)}
+        onBlur={() => setIsFocused(false)}
         autoFocus={false}
       />
 

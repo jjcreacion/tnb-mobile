@@ -1,29 +1,36 @@
-import { configureStore } from '@reduxjs/toolkit'
-import {
-  persistStore,
-  persistReducer,
-  FLUSH,
-  REHYDRATE,
-  PAUSE,
-  PERSIST,
-  PURGE,
-  REGISTER,
-} from 'redux-persist'
 import AsyncStorage from '@react-native-async-storage/async-storage'
-import { combineReducers } from '@reduxjs/toolkit'
+import { combineReducers, configureStore } from '@reduxjs/toolkit'
+import {
+    FLUSH,
+    PAUSE,
+    PERSIST,
+    persistReducer,
+    persistStore,
+    PURGE,
+    REGISTER,
+    REHYDRATE,
+} from 'redux-persist'
 
-import userReducer from './slices/userSlice'
 import addressReducer from './slices/addressSlice'
+import authReducer from './slices/authSlice'
 import campaignReducer from './slices/campaignSlice'
 import categoryReducer from './slices/categorySlice'
+import deviceReducer from './slices/deviceSlice'
+import invoiceReducer from './slices/invoiceSlice'
+import notificationReducer from './slices/notificationSlice'
 import uiReducer from './slices/uiSlice'
+import userReducer from './slices/userSlice'
 
 const rootReducer = combineReducers({
+  auth: authReducer,
   user: userReducer,
   address: addressReducer,
   campaign: campaignReducer,
   category: categoryReducer,
+  invoice: invoiceReducer,
   ui: uiReducer,
+  device: deviceReducer,
+  notifications: notificationReducer,
 })
 
 const persistConfig = {

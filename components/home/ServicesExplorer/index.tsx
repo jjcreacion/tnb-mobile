@@ -9,6 +9,7 @@ import {
 } from 'react-native'
 import * as Animatable from 'react-native-animatable'
 import Icon from 'react-native-vector-icons/MaterialIcons'
+import { Theme } from '@/constants/Theme'
 import type { Category } from '@/types'
 import { ServiceCard } from './ServiceCard'
 import { styles } from './styles'
@@ -37,6 +38,8 @@ export const ServicesExplorer = memo<ServicesExplorerProps>(
     onSearchChange,
     apiBaseUrl,
   }) => {
+    const [isSearchFocused, setIsSearchFocused] = React.useState(false)
+
     const filteredCategories = useMemo(() => {
       if (!searchQuery) return categories
 
@@ -56,7 +59,7 @@ export const ServicesExplorer = memo<ServicesExplorerProps>(
             <Icon
               name={isSearchVisible ? 'close' : 'search'}
               size={24}
-              color="#7c1310"
+              color={Theme.colors.primary[800]}
             />
           </TouchableOpacity>
         </View>
@@ -68,19 +71,29 @@ export const ServicesExplorer = memo<ServicesExplorerProps>(
             style={styles.searchContainer}
           >
             <TextInput
-              style={styles.searchInput}
+              style={[
+                styles.searchInput,
+                isSearchFocused && styles.searchInputFocused,
+              ]}
               placeholder="Search for a service..."
               placeholderTextColor="#999"
               value={searchQuery}
               onChangeText={onSearchChange}
+              onFocus={() => setIsSearchFocused(true)}
+              onBlur={() => setIsSearchFocused(false)}
               autoFocus={true}
             />
           </Animatable.View>
         )}
 
-        <ScrollView contentContainerStyle={styles.allServicesContainer}>
+        <ScrollView
+          contentContainerStyle={styles.allServicesContainer}
+          showsVerticalScrollIndicator={true}
+          indicatorStyle="black"
+          scrollIndicatorInsets={{ right: 1 }}
+        >
           {loading ? (
-            <ActivityIndicator size="large" color="#ea0e08" />
+            <ActivityIndicator size="large" color={Theme.colors.primary[500]} />
           ) : error ? (
             <Text style={styles.errorMessage}>{error}</Text>
           ) : filteredCategories.length > 0 ? (

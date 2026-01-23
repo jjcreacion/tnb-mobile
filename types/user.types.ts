@@ -6,6 +6,9 @@ export interface User {
   person?: Person
   createdAt?: string
   updatedAt?: string
+  referralCode: string | null
+  allNotifications: boolean | null; 
+  smsNotifications: boolean | null;
 }
 
 export interface Person {

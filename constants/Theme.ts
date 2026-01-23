@@ -96,6 +96,12 @@ export const Colors = {
     elevated: '#FFFFFF',
   },
 
+  // Button States
+  button: {
+    disabledBackground: '#E5E5E5', // Neutral 200 - Light gray for disabled state
+    disabledText: '#9CA3AF', // Gray-400 - Readable text on disabled background
+  },
+
   // Navigation Colors
   navigation: {
     bar: '#050505', // Android navigation bar background
@@ -116,14 +122,44 @@ export const Colors = {
     light: '#F3F4F6',
     default: '#E5E7EB',
     dark: '#D1D5DB',
-    focus: '#E63946',
+    focus: '#B8B8B8', // Focus state - Change here to apply globally across all inputs
+    error: '#EF4444', // Red for error state (error[500])
   },
+
 
   // Overlay
   overlay: {
     light: 'rgba(0, 0, 0, 0.1)',
     medium: 'rgba(0, 0, 0, 0.3)',
     dark: 'rgba(0, 0, 0, 0.6)',
+  },
+
+  // White Overlay Variants (for elevated surfaces and transparent backgrounds)
+  whiteOverlay: {
+    light: 'rgba(255, 255, 255, 0.2)',
+    medium: 'rgba(255, 255, 255, 0.3)',
+    mediumPlus: 'rgba(255, 255, 255, 0.4)',
+    strong: 'rgba(255, 255, 255, 0.6)',
+    veryStrong: 'rgba(255, 255, 255, 0.8)',
+    almostOpaque: 'rgba(255, 255, 255, 0.9)',
+  },
+
+  // Primary Overlay Variants (for tinted overlays)
+  primaryOverlay: {
+    light: 'rgba(230, 57, 70, 0.2)',
+    medium: 'rgba(230, 57, 70, 0.3)',
+    strong: 'rgba(230, 57, 70, 0.6)',
+  },
+
+  // Gradient Overlay (for campaign cards and images)
+  gradientOverlay: {
+    light: 'rgba(0, 0, 0, 0.4)',
+    dark: 'rgba(0, 0, 0, 0.7)',
+  },
+
+  // Social Media Colors
+  social: {
+    whatsapp: '#25D366',
   },
 };
 
@@ -388,3 +424,6 @@ export const Theme = {
 };
 
 export type ThemeType = typeof Theme;
+
+// Type-safe border colors
+export type BorderColors = typeof Colors.border;

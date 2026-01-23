@@ -4,7 +4,8 @@ import Constants from 'expo-constants';
 import { StatusBar } from 'expo-status-bar';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, FlatList, Platform, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { Card } from '@/components/common';
 import { HistoryHeader } from '@/components/home';
@@ -44,6 +45,7 @@ interface Status {
 }
 
 const HistoryScreen = () => {
+  const insets = useSafeAreaInsets();
   const [services, setServices] = useState<ServiceRequest[]>([]);
   const [statusList, setStatusList] = useState<Status[]>([]);
   const [loading, setLoading] = useState(true);
@@ -72,11 +74,9 @@ const HistoryScreen = () => {
 
       if (response.status === 200) {
         setServices(response.data);
-        console.log('Datos del usuario cargados:', response.data);
       } else if (response.status === 404) {
         if (response.data && (response.data as any).message && (response.data as any).message.includes('No requests found')) {
           setServices([]);
-          console.log('No se encontraron solicitudes para este usuario.');
         } else {
           console.error('Error inesperado al obtener servicios:', response);
         }
@@ -84,7 +84,6 @@ const HistoryScreen = () => {
         console.error('Error al obtener servicios:', response);
       }
     } catch (error) {
-      console.error('Network or other error fetching services:', error);
       setServices([]);
     } finally {
       setLoading(false);
@@ -232,7 +231,10 @@ const HistoryScreen = () => {
           keyExtractor={(item) => item.requestId.toString()}
           contentContainerStyle={[
             styles.listContent,
-            services.length === 0 && styles.listContentEmpty
+            services.length === 0 && styles.listContentEmpty,
+            Platform.OS === 'android' && {
+              paddingBottom: 70 + insets.bottom + 20,
+            },
           ]}
           ListEmptyComponent={renderEmptyState}
           refreshControl={
@@ -261,6 +263,35 @@ const styles = StyleSheet.create({
     backgroundColor: Theme.colors.background.secondary,
   },
 
+  header: {
+    paddingTop: Theme.spacing.lg,
+    paddingBottom: Theme.spacing.xl,
+    paddingHorizontal: Theme.spacing.base,
+    marginBottom: Theme.spacing.base,
+    ...Theme.shadows.md,
+  },
+
+  headerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Theme.spacing.sm,
+    marginBottom: Theme.spacing.sm,
+  },
+
+  headerIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: Theme.borderRadius.full,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  headerTextContainer: {
+    flex: 1,
+    backgroundColor: Theme.colors.background.secondary,
+  },
+
   listContent: {
     paddingHorizontal: Theme.spacing.base,
     paddingBottom: Theme.spacing.xl,
@@ -271,14 +302,14 @@ const styles = StyleSheet.create({
   },
 
   card: {
-    marginBottom: Theme.spacing.md,
+    marginBottom: Theme.spacing.sm,
   },
 
   cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: Theme.spacing.md,
+    marginBottom: Theme.spacing.sm,
     gap: Theme.spacing.sm,
   },
 
@@ -290,16 +321,16 @@ const styles = StyleSheet.create({
     fontSize: Theme.typography.fontSize.lg,
     fontWeight: Theme.typography.fontWeight.bold,
     color: Theme.colors.text.primary,
-    lineHeight: Theme.typography.lineHeight.md,
+    lineHeight: Theme.typography.lineHeight.base,
   },
 
   addressContainer: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: Theme.spacing.xs,
-    marginBottom: Theme.spacing.md,
+    marginBottom: Theme.spacing.sm,
     paddingVertical: Theme.spacing.sm,
-    paddingHorizontal: Theme.spacing.md,
+    paddingHorizontal: Theme.spacing.sm,
     backgroundColor: Theme.colors.background.secondary,
     borderRadius: Theme.borderRadius.md,
   },
@@ -308,7 +339,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: Theme.typography.fontSize.sm,
     color: Theme.colors.text.secondary,
-    lineHeight: Theme.typography.lineHeight.md,
+    lineHeight: Theme.typography.lineHeight.base,
   },
 
   cardFooter: {
@@ -316,7 +347,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginTop: Theme.spacing.sm,
-    paddingTop: Theme.spacing.md,
+    paddingTop: Theme.spacing.sm,
     borderTopWidth: 1,
     borderTopColor: Theme.colors.border.light,
   },
@@ -366,7 +397,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    gap: Theme.spacing.md,
+    gap: Theme.spacing.sm,
   },
 
   loadingText: {

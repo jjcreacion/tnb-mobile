@@ -1,20 +1,25 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
+import * as ImageManipulator from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
 import { Formik } from 'formik';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
+    Alert,
     Animated,
     Image,
+    KeyboardAvoidingView,
+    Platform,
+    Modal as RNModal,
     ScrollView,
     StyleSheet,
     TextInput,
     TouchableOpacity,
     View
 } from 'react-native';
-import MapView, { Marker } from 'react-native-maps';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Yup from 'yup';
 
 // Import migrated components
@@ -23,9 +28,9 @@ import {
     BottomSheet,
     Button,
     Card,
+    ImagePreviewModal,
     Input,
     Loading,
-    Modal,
     Typography
 } from '@/components/common';
 import { Theme } from '@/constants/Theme';
@@ -90,15 +95,20 @@ interface ModalProps {
   states?: State[];
 }
 
-const RequestMigrated: React.FC<ModalProps> = ({ 
-  isVisible, 
-  onClose, 
-  selectedCategory, 
+const RequestMigrated: React.FC<ModalProps> = ({
+  isVisible,
+  onClose,
+  selectedCategory,
   onServiceCreated,
   primaryAddress,
-  cities = [],
-  states = []
+  cities: citiesProp,
+  states: statesProp
 }) => {
+  // Memoize default props to prevent unnecessary re-renders
+  const cities = useMemo(() => citiesProp || [], [citiesProp]);
+  const states = useMemo(() => statesProp || [], [statesProp]);
+  const insets = useSafeAreaInsets();
+
   // Estados utilizados en el componente
   const [images, setImages] = useState<string[]>([]);
   const [latitude, setLatitude] = useState<number | null>(null);
@@ -121,52 +131,67 @@ const RequestMigrated: React.FC<ModalProps> = ({
   
   // Estados para modales/bottomsheets
   const [showSubCategorySheet, setShowSubCategorySheet] = useState(false);
-  const [showImageActionSheet, setShowImageActionSheet] = useState(false);
+  const [showImageSourceSheet, setShowImageSourceSheet] = useState(false);
+  const [showImagePreview, setShowImagePreview] = useState(false);
+  const [previewInitialIndex, setPreviewInitialIndex] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
   
   // Estados para mapa interactivo
   const [isMapExpanded, setIsMapExpanded] = useState(false);
   const [isMapInteracting, setIsMapInteracting] = useState(false);
   const [shouldPreventNextPress, setShouldPreventNextPress] = useState(false);
-  const [initialScrollPosition, setInitialScrollPosition] = useState(0);
+  const [initialScrollPosition, setInitialScrollPosition] = useState(0); // Animation values
   const mapHeight = useRef(new Animated.Value(200)).current;
+  const successOpacity = useRef(new Animated.Value(0)).current;
+  const successScale = useRef(new Animated.Value(0.8)).current;
   const scrollViewRef = useRef<ScrollView>(null);
+  // Store pending timers for cleanup on unmount
+  const pendingTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  // Clean up all pending timers on unmount
+  useEffect(() => {
+    return () => {
+      pendingTimersRef.current.forEach(timer => clearTimeout(timer));
+      pendingTimersRef.current = [];
+    };
+  }, []);
 
   const API_URL = Constants.expoConfig?.extra?.API_BASE_URL;
 
   // Función para expandir el mapa
   const expandMap = () => {
     if (isMapExpanded) return;
-    
+
     setIsMapExpanded(true);
-    
+
     Animated.timing(mapHeight, {
       toValue: 450,
       duration: 400,
       useNativeDriver: false,
     }).start(() => {
-      setTimeout(() => {
+      const timer = setTimeout(() => {
         if (scrollViewRef.current) {
           scrollViewRef.current.scrollToEnd({ animated: true });
         }
       }, 100);
+      pendingTimersRef.current.push(timer);
     });
   };
 
   // Función para contraer el mapa
   const collapseMap = () => {
     if (!isMapExpanded) return;
-    
+
     setIsMapExpanded(false);
     setIsMapInteracting(false);
     setShouldPreventNextPress(false);
-    
+
     Animated.timing(mapHeight, {
       toValue: 200,
       duration: 400,
       useNativeDriver: false,
     }).start(() => {
-      setTimeout(() => {
+      const timer = setTimeout(() => {
         if (scrollViewRef.current) {
           scrollViewRef.current.scrollTo({
             y: initialScrollPosition,
@@ -174,6 +199,7 @@ const RequestMigrated: React.FC<ModalProps> = ({
           });
         }
       }, 100);
+      pendingTimersRef.current.push(timer);
     });
   };
 
@@ -237,8 +263,25 @@ const RequestMigrated: React.FC<ModalProps> = ({
     );
   };
 
-  // Manejar selección de imágenes
-  const handleImagePicker = async () => {
+  // Manejar selección de imágenes (Punto de entrada)
+  const handleAddPhotos = () => {
+    setShowImageSourceSheet(true);
+  };
+
+  const handleEditImage = (index: number) => {
+    setPreviewInitialIndex(index);
+    setShowImagePreview(true);
+  };
+
+  // Opción Galería
+  const handleGallerySelect = async () => {
+    setShowImageSourceSheet(false);
+    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (permissionResult.granted === false) {
+      Alert.alert('Permission Denied', 'We need access to your photo gallery to select images.');
+      return;
+    }
+
     let result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsMultipleSelection: true,
@@ -246,67 +289,192 @@ const RequestMigrated: React.FC<ModalProps> = ({
     });
 
     if (!result.canceled && result.assets) {
-      setImages((prevImages) => [...prevImages, ...result.assets.map((asset) => asset.uri)]);
+      const newUris = result.assets.map((asset) => asset.uri);
+      const currentLength = images.length;
+      // Append new images and open preview
+      setImages((prev) => [...prev, ...newUris]);
+      setPreviewInitialIndex(currentLength);
+      setShowImagePreview(true);
     }
   };
 
-  // Manejar tomar foto con cámara
+  // Opción Cámara
   const handleCameraCapture = async () => {
-    let result = await ImagePicker.launchCameraAsync({
+    setShowImageSourceSheet(false);
+    const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
+    if (permissionResult.granted === false) {
+      Alert.alert('Permission Denied', 'We need access to your camera to take a photo.');
+      return;
+    }
+    
+    try {
+      let result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: false,
+        quality: 1,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const newUri = result.assets[0].uri;
+        const currentLength = images.length;
+        setImages((prev) => [...prev, newUri]);
+        setPreviewInitialIndex(currentLength);
+        setShowImagePreview(true);
+      }
+    } catch (error: any) {
+      console.error('Camera error:', error);
+      // Handle simulator or camera not available error
+      if (error.message?.includes('Camera not available') || error.message?.includes('simulator')) {
+        Alert.alert(
+          'Camera Not Available',
+          'The camera is not available on this device. Please use "Choose from Gallery" instead.',
+          [{ text: 'OK' }]
+        );
+      } else {
+        Alert.alert('Error', 'Failed to open camera. Please try again.');
+      }
+    }
+  };
+
+  // Add more photos from Preview Modal
+  const handleAddMorePhotos = async () => {
+    // Directly open gallery for "Add More" flow usually, or ask again.
+    // For simplicity and standard UX, "Add More" usually implies Gallery in this context,
+    // but let's re-use the sheet logic if we want to allow camera too.
+    // However, we can't show the sheet *over* the modal easily without z-index issues or closing the modal.
+    // Let's just open Gallery for "Add More" to keep it simple and robust.
+    
+    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (permissionResult.granted === false) return;
+
+    let result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsMultipleSelection: true,
       quality: 1,
     });
 
     if (!result.canceled && result.assets) {
-      setImages((prevImages) => [...prevImages, ...result.assets.map((asset) => asset.uri)]);
+      const newUris = result.assets.map((asset) => asset.uri);
+      setImages((prev) => [...prev, ...newUris]);
     }
   };
+
 
   // Remover imagen
   const handleRemoveImage = (uriToRemove: string) => {
-    setImages((prevImages) => prevImages.filter((uri) => uri !== uriToRemove));
+    Alert.alert(
+      'Remove Photo',
+      'Are you sure you want to remove this photo?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: () => {
+            setImages((prevImages) => prevImages.filter((uri) => uri !== uriToRemove));
+          },
+        },
+      ]
+    );
   };
 
-  // Obtener ubicación
   const getLocation = async () => {
     let { status } = await Location.requestForegroundPermissionsAsync();
+    
     if (status !== 'granted') {
-      console.log('Permission to access location was denied');
+      console.warn('Ubicación: Permiso denegado. Se usará la ubicación por defecto.');
+      setRegion({
+        latitude: 37.78825,
+        longitude: -122.4324,
+        latitudeDelta: 0.005,
+        longitudeDelta: 0.005,
+      });
+      setLatitude(null);
+      setLongitude(null);
       return;
     }
-
-    let location = await Location.getCurrentPositionAsync({});
-    setLatitude(location.coords.latitude);
-    setLongitude(location.coords.longitude);
-    setRegion({
-      latitude: location.coords.latitude,
-      longitude: location.coords.longitude,
-      latitudeDelta: 0.005,
-      longitudeDelta: 0.005,
-    });
+  
+    try {
+      let location = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced, // Propiedad válida
+      });
+  
+      setLatitude(location.coords.latitude);
+      setLongitude(location.coords.longitude);
+      setRegion({
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+        latitudeDelta: 0.005,
+        longitudeDelta: 0.005,
+      });
+    } catch (error) {
+      console.warn('Ubicación: Falló la solicitud de GPS (servicios del dispositivo insatisfactorios). Se usará la ubicación por defecto.');
+      setRegion({
+        latitude: 37.78825,
+        longitude: -122.4324,
+        latitudeDelta: 0.005,
+        longitudeDelta: 0.005,
+      });
+      setLatitude(null);
+      setLongitude(null);
+    }
   };
 
   // Subir imágenes
   const uploadImages = async (serviceRequestId: number) => {
     if (images.length === 0) {
+      console.log('No hay imágenes para subir.');
       return true;
     }
 
     const formData = new FormData();
     formData.append('serviceRequestId', serviceRequestId.toString());
 
-    images.forEach((imageUri, index) => {
-      const uriParts = imageUri.split('.');
-      const fileType = uriParts[uriParts.length - 1];
-      const fileName = `image_${index}.${fileType}`;
+    // Comprimir y agregar imágenes al FormData
+    console.log('Comprimiendo', images.length, 'imágenes antes de subir...');
+    
+    for (let index = 0; index < images.length; index++) {
+      const imageUri = images[index];
+      
+      try {
+        // Comprimir imagen para reducir tamaño (más agresivo para iOS)
+        const manipulatedImage = await ImageManipulator.manipulateAsync(
+          imageUri,
+          [{ resize: { width: 1280 } }], // Reducido de 1920 a 1280px
+          { 
+            compress: 0.7, // Reducido de 0.8 a 0.7 (70% de calidad)
+            format: ImageManipulator.SaveFormat.JPEG 
+          }
+        );
 
-      formData.append('images', {
-        uri: imageUri,
-        name: fileName,
-        type: `image/${fileType}`,
-      } as any);
-    });
+        const uriParts = manipulatedImage.uri.split('.');
+        const fileType = uriParts[uriParts.length - 1];
+        const fileName = `image_${index}.${fileType}`;
 
+        formData.append('images', {
+          uri: manipulatedImage.uri,
+          name: fileName,
+          type: `image/${fileType}`,
+        } as any);
+        
+        console.log(`Imagen ${index + 1}/${images.length} comprimida:`, fileName, 'URI:', manipulatedImage.uri.substring(0, 50) + '...');
+      } catch (compressionError) {
+        console.error('Error al comprimir imagen', index, ':', compressionError);
+        // Si falla la compresión, usar la imagen original
+        const uriParts = imageUri.split('.');
+        const fileType = uriParts[uriParts.length - 1];
+        const fileName = `image_${index}.${fileType}`;
+
+        formData.append('images', {
+          uri: imageUri,
+          name: fileName,
+          type: `image/${fileType}`,
+        } as any);
+      }
+    }
+
+    console.log('Intentando subir', images.length, 'imágenes para serviceRequestId:', serviceRequestId);
+    
     try {
       const response = await fetch(`${API_URL}/service_request/upload-images`, {
         method: 'POST',
@@ -317,13 +485,22 @@ const RequestMigrated: React.FC<ModalProps> = ({
       });
 
       if (!response.ok) {
-        throw new Error('Failed to upload images');
+        console.error('Error al subir las imágenes - Status:', response.status, response.statusText);
+        const errorText = await response.text();
+        console.error('Error response body:', errorText);
+        try {
+          const errorData = JSON.parse(errorText);
+          console.error('Error data parsed:', errorData);
+        } catch (e) {
+          console.error('Could not parse error as JSON');
+        }
+        return false;
       }
 
+      console.log('Imágenes subidas con éxito:', await response.json());
       return true;
     } catch (error) {
-      console.error('Error uploading images:', error);
-      setError('Failed to upload images');
+      console.error('Error de conexión o al procesar la respuesta al subir imágenes:', error);
       return false;
     }
   };
@@ -336,7 +513,7 @@ const RequestMigrated: React.FC<ModalProps> = ({
     }
 
     // Validación de subcategoría (crítica para funcionamiento)
-    if (!selectedSubCategory) {
+    if (subCategories.length > 0 && !selectedSubCategory) {
       setError('Please select a service type');
       return;
     }
@@ -351,9 +528,14 @@ const RequestMigrated: React.FC<ModalProps> = ({
       longitude: longitude !== null ? longitude : 0,
     };
 
+    console.log('Datos a enviar:', serviceRequestData);
+    console.log('Imágenes seleccionadas:', images);
+
     setLoadingRequest(true);
     setError(null);
     setSuccess(false);
+
+    let serviceRequestId = null;
 
     try {
       const response = await fetch(`${API_URL}/service_request`, {
@@ -365,33 +547,45 @@ const RequestMigrated: React.FC<ModalProps> = ({
       });
 
       if (!response.ok) {
-        throw new Error('Failed to create service request');
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Error al guardar los datos:', errorData);
+        setLoadingRequest(false);
+        setError('Failed to create service request. Please try again.');
+        return;
       }
 
       const data = await response.json();
-      const serviceRequestId = data.requestId;
+      console.log('Éxito al guardar los datos:', data);
+      serviceRequestId = data.requestId;
+      console.log("data.requestId " + data.requestId);
+      console.log("serviceRequestId " + serviceRequestId);
 
       if (serviceRequestId && images.length > 0) {
         const imagesUploaded = await uploadImages(serviceRequestId);
         if (!imagesUploaded) {
+          setError('Failed to upload images. Please try again.');
+          setLoadingRequest(false);
           return;
         }
       }
 
+      setLoadingRequest(false);
       setSuccess(true);
-      setTimeout(() => {
+      const timer = setTimeout(() => {
         setSuccess(false);
+        // Clear images after closing modal to prevent null URL errors
+        setImages([]);
         onClose();
         if (onServiceCreated) {
           onServiceCreated();
         }
       }, 3000);
+      pendingTimersRef.current.push(timer);
 
     } catch (error) {
-      console.error('Error creating service request:', error);
-      setError('Failed to create service request. Please try again.');
-    } finally {
+      console.error('Error de conexión o al procesar la respuesta:', error);
       setLoadingRequest(false);
+      setError('Failed to create service request. Please try again.');
     }
   };
 
@@ -443,15 +637,40 @@ const RequestMigrated: React.FC<ModalProps> = ({
       setSubCategories([]); 
       setSelectedSubCategory(null);
       setShowSubCategorySheet(false);
-      setShowImageActionSheet(false);
       setIsMapExpanded(false);
       setIsMapInteracting(false);
       setShouldPreventNextPress(false);
       setInitialScrollPosition(0);
       setSearchQuery('');
+      setShowImageSourceSheet(false);
+      setShowImagePreview(false);
       mapHeight.setValue(200);
+      successOpacity.setValue(0);
+      successScale.setValue(0.8);
     }
-  }, [isVisible, mapHeight]);
+  }, [isVisible, mapHeight, successOpacity, successScale]);
+
+  // Success Animation Effect
+  useEffect(() => {
+    if (success) {
+      Animated.parallel([
+        Animated.timing(successOpacity, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+        Animated.spring(successScale, {
+          toValue: 1,
+          friction: 8,
+          tension: 40,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    } else {
+      successOpacity.setValue(0);
+      successScale.setValue(0.8);
+    }
+  }, [success, successOpacity, successScale]);
 
   const validationSchema = Yup.object().shape({
     description: Yup.string().required('Description is required'),
@@ -462,60 +681,32 @@ const RequestMigrated: React.FC<ModalProps> = ({
   // ... (copiada desde el archivo original)
 
   return (
-    <Modal
+    <RNModal
       visible={isVisible}
-      onClose={onClose}
-      size="full"
-      position="center"
-      showCloseButton={false}
-      dismissOnBackdrop={false}
+      animationType="slide"
+      transparent={false}
+      onRequestClose={onClose}
     >
-      <View style={styles.header}>
-        <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-          <MaterialIcons name="close" size={24} color={Theme.colors.text.secondary} />
-        </TouchableOpacity>
-        <Typography variant="h3" color="primary" style={styles.headerTitle}>
-          Request Service
-        </Typography>
-      </View>
-
-      <ScrollView 
-        ref={scrollViewRef}
-        style={styles.scrollView} 
-        showsVerticalScrollIndicator={false}
-        scrollEventThrottle={16}
-        onScroll={(event) => {
-          if (!isMapExpanded) {
-            const currentY = event.nativeEvent.contentOffset.y;
-            setInitialScrollPosition(currentY);
-          }
-        }}
-        onScrollBeginDrag={() => {
-          if (isMapExpanded && !isMapInteracting) {
-            collapseMap();
-          }
-        }}
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
       >
-        {/* Success Message */}
-        {success && (
-          <View style={styles.successContainer}>
-            <Typography variant="body1" color="success" style={styles.successText}>
-              Service requested successfully!
-            </Typography>
-          </View>
-        )}
+        <View style={[
+          styles.header,
+          {
+            paddingTop: Math.max(insets.top, Theme.spacing.base) + Theme.spacing.base,
+          }
+        ]}>
+          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+            <MaterialIcons name="close" size={24} color={Theme.colors.text.secondary} />
+          </TouchableOpacity>
+          <Typography variant="h3" color="primary" style={styles.headerTitle}>
+            Request Service
+          </Typography>
+        </View>
 
-        {/* Error Message */}
-        {error && (
-          <View style={styles.errorContainer}>
-            <Typography variant="body2" color="error">
-              {error}
-            </Typography>
-          </View>
-        )}
-
-        {/* Main Form - Only show when conditions are met */}
-        {!success && !loadingRequest && !error && pkUser && (
+        {!success && !loadingRequest && !error && pkUser ? (
           <Formik
             initialValues={{
               description: '',
@@ -525,241 +716,204 @@ const RequestMigrated: React.FC<ModalProps> = ({
             onSubmit={handleSave}
             enableReinitialize
           >
-          {({ handleChange, handleBlur, handleSubmit, values, errors, touched, setFieldValue }) => (
-            <View style={styles.formContainer}>
-              {/* Service Category Card */}
-              <Card variant="elevated" style={styles.categoryCard}>
-                <View style={styles.categoryContent}>
-                  <Image
-                    source={{ uri: `${API_URL}${selectedCategory?.imagePath}` }}
-                    style={styles.categoryImage}
-                  />
-                  <Typography variant="h4" color="primary" style={styles.categoryTitle}>
-                    {selectedCategory?.name}
-                  </Typography>
-                  <Typography variant="body2" color="secondary" style={styles.categoryDescription}>
-                    {selectedCategory?.description}
-                  </Typography>
-                </View>
-              </Card>
+          {({ handleChange, handleBlur, handleSubmit, values, errors, touched, setFieldValue, submitCount }) => (
+            <>
+              <ScrollView
+                ref={scrollViewRef}
+                style={styles.scrollView}
+                contentContainerStyle={styles.scrollContent}
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+                scrollEventThrottle={16}
+                onScroll={(event) => {
+                  if (!isMapExpanded) {
+                    const currentY = event.nativeEvent.contentOffset.y;
+                    setInitialScrollPosition(currentY);
+                  }
+                }}
+                onScrollBeginDrag={() => {
+                  if (isMapExpanded && !isMapInteracting) {
+                    collapseMap();
+                  }
+                }}
+              >
+                <View style={styles.formContainer} pointerEvents="box-none">
+                  {/* Service Category Card */}
+                  <Card variant="elevated" style={styles.categoryCard}>
+                    <View style={styles.categoryContent} pointerEvents="box-none">
+                      {selectedCategory?.imagePath && (
+                        <Image
+                          source={{ uri: `${API_URL}${selectedCategory.imagePath}` }}
+                          style={styles.categoryImage}
+                        />
+                      )}
+                      <Typography variant="h4" color="primary" style={styles.categoryTitle} pointerEvents="none">
+                        {selectedCategory?.name}
+                      </Typography>
+                      <Typography variant="body2" color="secondary" style={styles.categoryDescription} pointerEvents="none">
+                        {selectedCategory?.description}
+                      </Typography>
+                    </View>
+                  </Card>
 
-              {/* Service Type Selection */}
-              {subCategories.length > 0 && (
-                <View style={styles.fieldContainer}>
-                  <Typography variant="body1" color="primary" style={styles.fieldLabel}>
-                    Service Type *
-                  </Typography>
-                  <TouchableOpacity
-                    style={styles.selectorButton}
-                    onPress={() => setShowSubCategorySheet(true)}
-                  >
-                    <Typography 
-                      variant="body1" 
-                      color={selectedSubCategory ? "primary" : "tertiary"}
-                    >
-                      {getSelectedSubCategoryName()}
-                    </Typography>
-                    <MaterialIcons 
-                      name="keyboard-arrow-down" 
-                      size={24} 
-                      color={Theme.colors.text.tertiary} 
-                    />
-                  </TouchableOpacity>
-                  {!selectedSubCategory && (
-                    <Typography variant="caption" color="error" style={styles.errorText}>
-                      Please select a service type
-                    </Typography>
-                  )}
-                </View>
-              )}
-
-              {/* Description Input */}
-              <View style={styles.fieldContainer}>
-                <Typography variant="body1" color="primary" style={styles.fieldLabel}>
-                  Description
-                </Typography>
-                <View style={[
-                  styles.textAreaContainer,
-                  touched.description && errors.description && styles.textAreaError
-                ]}>
-                  <TextInput
-                    style={styles.textAreaInput}
-                    placeholder="Describe the service you need (e.g., repair details, specific requirements...)"
-                    placeholderTextColor={Theme.colors.text.tertiary}
-                    value={values.description}
-                    onChangeText={handleChange('description')}
-                    onBlur={handleBlur('description')}
-                    multiline
-                    numberOfLines={4}
-                    textAlignVertical="top"
-                  />
-                </View>
-                {touched.description && errors.description && (
-                  <Typography variant="caption" color="error" style={styles.errorText}>
-                    {errors.description}
-                  </Typography>
-                )}
-              </View>
-
-              {/* Location Section */}
-              <Card variant="outlined" style={styles.locationCard}>
-                <Typography variant="h4" color="primary" style={styles.sectionTitle}>
-                  Service Location
-                </Typography>
-
-                {/* Service Address Field */}
-                <View style={styles.fieldContainer}>
-                  <Typography variant="body1" color="primary" style={styles.fieldLabel}>
-                    Service Address
-                  </Typography>
-                  <Input
-                    placeholder="Address"
-                    value={values.address}
-                    onChangeText={handleChange('address')}
-                    onBlur={handleBlur('address')}
-                    error={touched.address && errors.address ? errors.address : undefined}
-                    leftIcon="location-outline"
-                    editable={false}
-                    style={styles.readOnlyInput}
-                  />
-                </View>
-
-                {/* Location on Map */}
-                <View style={styles.fieldContainer}>
-                  <Typography variant="body1" color="primary" style={styles.fieldLabel}>
-                    Location on Map
-                  </Typography>
-                  <Typography variant="caption" color="secondary" style={styles.fieldHint}>
-                    {isMapExpanded 
-                      ? 'Tap on the map to select your service location. The map will minimize after selection.' 
-                      : 'Tap the map to expand and select your service location.'}
-                  </Typography>
-                </View>
-
-                {/* Map View */}
-                <Animated.View style={[styles.mapContainer, { height: mapHeight }]}>
-                  <MapView
-                    style={styles.map}
-                    region={region}
-                    onRegionChangeComplete={setRegion}
-                    scrollEnabled={isMapExpanded}
-                    zoomEnabled={isMapExpanded}
-                    pitchEnabled={isMapExpanded}
-                    rotateEnabled={isMapExpanded}
-                    onTouchStart={() => {
-                      if (!isMapExpanded) {
-                        setShouldPreventNextPress(true);
-                        expandMap();
-                      } else {
-                        setIsMapInteracting(true);
-                      }
-                    }}
-                    onTouchEnd={() => {
-                      if (isMapExpanded) {
-                        setIsMapInteracting(false);
-                      }
-                    }}
-                    onPress={(event) => {
-                      if (shouldPreventNextPress) {
-                        setShouldPreventNextPress(false);
-                        return;
-                      }
-                      
-                      if (isMapExpanded) {
-                        const { latitude: lat, longitude: lng } = event.nativeEvent.coordinate;
-                        setLatitude(lat);
-                        setLongitude(lng);
-                        setTimeout(() => {
-                          collapseMap();
-                        }, 300);
-                      }
-                    }}
-                  >
-                    {latitude && longitude && (
-                      <Marker
-                        coordinate={{ latitude, longitude }}
-                        title="Selected Location"
-                        description="Your service location"
-                      />
-                    )}
-                  </MapView>
-                  
-                  <TouchableOpacity 
-                    style={styles.gpsButton}
-                    onPress={() => {
-                      getLocation();
-                      if (isMapExpanded) {
-                        setTimeout(() => {
-                          collapseMap();
-                        }, 300);
-                      }
-                    }}
-                  >
-                    <MaterialIcons 
-                      name="my-location" 
-                      size={20} 
-                      color={Theme.colors.text.inverse} 
-                    />
-                  </TouchableOpacity>
-                </Animated.View>
-
-                {/* Area para tap fuera del mapa */}
-                {isMapExpanded && (
-                  <TouchableOpacity
-                    activeOpacity={1}
-                    onPress={collapseMap}
-                    style={styles.outsideMapTouchArea}
-                  >
-                    <Typography variant="body2" color="primary">
-                      Tap here to minimize the map
-                    </Typography>
-                  </TouchableOpacity>
-                )}
-              </Card>
-
-              {/* Images Section */}
-              <View style={styles.fieldContainer}>
-                <Typography variant="body1" color="primary" style={styles.fieldLabel}>
-                  Photos (Optional)
-                </Typography>
-                <TouchableOpacity
-                  style={styles.imageUploadButton}
-                  onPress={() => setShowImageActionSheet(true)}
-                >
-                  <MaterialIcons 
-                    name="add-photo-alternate" 
-                    size={24} 
-                    color={Theme.colors.primary[500]} 
-                  />
-                  <Typography variant="body2" color="primary">
-                    Add Photos
-                  </Typography>
-                </TouchableOpacity>
-
-                {/* Image Preview */}
-                {images.length > 0 && (
-                  <View style={styles.imagePreviewContainer}>
-                    {images.map((uri, index) => (
-                      <View key={index} style={styles.imageItem}>
-                        <Image source={{ uri }} style={styles.previewImage} />
-                        <TouchableOpacity
-                          style={styles.removeImageButton}
-                          onPress={() => handleRemoveImage(uri)}
+                  {/* Service Type Selection */}
+                  {subCategories.length > 0 && (
+                    <View style={styles.fieldContainer} pointerEvents="box-none">
+                      <Typography variant="body1" color="primary" style={styles.fieldLabel} pointerEvents="none">
+                        Service Type *
+                      </Typography>
+                      <TouchableOpacity
+                        style={styles.selectorButton}
+                        onPress={() => setShowSubCategorySheet(true)}
+                      >
+                        <Typography
+                          variant="body1"
+                          color={selectedSubCategory ? "primary" : "tertiary"}
+                          pointerEvents="none"
                         >
-                          <MaterialIcons 
-                            name="close" 
-                            size={16} 
-                            color={Theme.colors.text.secondary} 
-                          />
-                        </TouchableOpacity>
-                      </View>
-                    ))}
-                  </View>
-                )}
-              </View>
+                          {getSelectedSubCategoryName()}
+                        </Typography>
+                        <MaterialIcons
+                          name="keyboard-arrow-down"
+                          size={24}
+                          color={Theme.colors.text.tertiary}
+                        />
+                      </TouchableOpacity>
+                      {!selectedSubCategory && submitCount > 0 && (
+                        <Typography variant="caption" color="error" style={styles.errorText} pointerEvents="none">
+                          Please select a service type
+                        </Typography>
+                      )}
+                    </View>
+                  )}
 
-              {/* Submit Buttons */}
-              <View style={styles.buttonContainer}>
+                  {/* Description Input */}
+                  <View style={styles.fieldContainer} pointerEvents="box-none">
+                    <Typography variant="body1" color="primary" style={styles.fieldLabel} pointerEvents="none">
+                      Description *
+                    </Typography>
+                    <View style={[
+                      styles.textAreaContainer,
+                      touched.description && errors.description && styles.textAreaError
+                    ]}>
+                      <TextInput
+                        style={styles.textAreaInput}
+                        placeholder="Describe the service you need (e.g., repair details, specific requirements...)"
+                        placeholderTextColor={Theme.colors.text.tertiary}
+                        value={values.description}
+                        onChangeText={handleChange('description')}
+                        onBlur={handleBlur('description')}
+                        multiline
+                        numberOfLines={4}
+                        textAlignVertical="top"
+                      />
+                    </View>
+                    {touched.description && errors.description && (
+                      <Typography variant="caption" color="error" style={styles.errorText}>
+                        {errors.description}
+                      </Typography>
+                    )}
+                  </View>
+
+                  {/* Location Section */}
+                  <Card variant="outlined" style={styles.locationCard}>
+                    <Typography variant="h4" color="primary" style={styles.sectionTitle} pointerEvents="none">
+                      Service Location
+                    </Typography>
+
+                    {/* Service Address Field */}
+                    <View style={styles.fieldContainer} pointerEvents="box-none">
+                      <Typography variant="body1" color="primary" style={styles.fieldLabel} pointerEvents="none">
+                        Service Address
+                      </Typography>
+                      <Input
+                        placeholder="Address"
+                        value={values.address}
+                        onChangeText={handleChange('address')}
+                        onBlur={handleBlur('address')}
+                        error={touched.address && errors.address ? errors.address : undefined}
+                        leftIcon="location-outline"
+                        editable={false}
+                        style={styles.readOnlyInput}
+                        multiline={true}
+                      />
+                    </View>
+
+
+                  </Card>
+
+                  {/* Images Section */}
+                  <View style={styles.fieldContainer} pointerEvents="box-none">
+                    <View style={styles.sectionHeader}>
+                      <Typography variant="body1" color="primary" style={styles.fieldLabel} pointerEvents="none">
+                        Photos
+                      </Typography>
+                      <View style={styles.optionalBadge}>
+                        <Typography variant="caption" color="secondary" style={styles.optionalText}>
+                          Optional
+                        </Typography>
+                      </View>
+                    </View>
+
+                    {images.length === 0 ? (
+                      <TouchableOpacity
+                        style={styles.emptyPhotoState}
+                        onPress={handleAddPhotos}
+                        activeOpacity={0.8}
+                      >
+                        <View style={styles.emptyPhotoIconContainer}>
+                          <MaterialIcons name="add-a-photo" size={32} color={Theme.colors.primary[500]} />
+                        </View>
+                        <Typography variant="body2" color="primary" style={styles.emptyPhotoText}>
+                          Tap to upload photos
+                        </Typography>
+                        <Typography variant="caption" color="tertiary">
+                          Help us understand the issue better
+                        </Typography>
+                      </TouchableOpacity>
+                    ) : (
+                      <ScrollView 
+                        horizontal 
+                        showsHorizontalScrollIndicator={false} 
+                        contentContainerStyle={styles.photoListContent}
+                        style={styles.photoList}
+                      >
+                        <TouchableOpacity
+                          style={styles.addMoreCard}
+                          onPress={handleAddPhotos}
+                          activeOpacity={0.7}
+                        >
+                          <MaterialIcons name="add" size={32} color={Theme.colors.primary[500]} />
+                          <Typography variant="caption" color="primary" style={{marginTop: 4}}>Add</Typography>
+                        </TouchableOpacity>
+                        
+                        {images.map((uri, index) => (
+                          <View key={index} style={styles.photoCard}>
+                            <Image source={{ uri }} style={styles.photoImage} />
+                            <TouchableOpacity
+                              style={styles.editPhotoButton}
+                              onPress={() => handleEditImage(index)}
+                              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                            >
+                              <MaterialIcons name="edit" size={14} color="white" />
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                              style={styles.deletePhotoButton}
+                              onPress={() => handleRemoveImage(uri)}
+                              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                            >
+                              <MaterialIcons name="close" size={14} color="white" />
+                            </TouchableOpacity>
+                          </View>
+                        ))}
+                      </ScrollView>
+                    )}
+                  </View>
+                </View>
+              </ScrollView>
+
+              {/* Fixed Footer Buttons */}
+              <View style={[styles.buttonContainer, styles.fixedFooter]}>
                 <Button
                   title="Cancel"
                   variant="outline"
@@ -771,24 +925,37 @@ const RequestMigrated: React.FC<ModalProps> = ({
                   variant="primary"
                   onPress={() => handleSubmit()}
                   loading={loadingRequest}
-                  disabled={!selectedSubCategory || loadingRequest}
+                  disabled={(subCategories.length > 0 && !selectedSubCategory) || !values.description.trim() || !values.address || loadingRequest}
                   style={styles.submitButton}
                 />
               </View>
-            </View>
+            </>
           )}
           </Formik>
-        )}
+        ) : (
+          <ScrollView
+            style={styles.scrollView}
+            contentContainerStyle={styles.scrollContent}
+          >
+            {/* Error Message */}
+            {error && (
+              <View style={styles.errorContainer}>
+                <Typography variant="body2" color="error">
+                  {error}
+                </Typography>
+              </View>
+            )}
 
-        {/* Message when user info is not available */}
-        {!pkUser && !loadingRequest && (
-          <View style={styles.formContainer}>
-            <Typography variant="body1" color="secondary">
-              No se ha podido cargar la información del usuario.
-            </Typography>
-          </View>
+            {/* Message when user info is not available */}
+            {!pkUser && !loadingRequest && (
+              <View style={styles.formContainer}>
+                <Typography variant="body1" color="secondary">
+                  No se ha podido cargar la información del usuario.
+                </Typography>
+              </View>
+            )}
+          </ScrollView>
         )}
-      </ScrollView>
 
       {/* Loading Overlay */}
       <Loading
@@ -797,22 +964,70 @@ const RequestMigrated: React.FC<ModalProps> = ({
         message={loadingRequest ? "Submitting request..." : "Loading services..."}
       />
 
-      {/* Success/Error Messages */}
+      {/* Success Overlay */}
       {success && (
-        <View style={styles.successContainer}>
-          <Typography variant="body1" color="success">
-            Service request submitted successfully!
-          </Typography>
-        </View>
+        <Animated.View 
+          style={[
+            styles.successOverlay,
+            {
+              opacity: successOpacity,
+              transform: [{ scale: successScale }]
+            }
+          ]}
+        >
+          <View style={styles.successContent}>
+            <View style={styles.successIconContainer}>
+              <MaterialIcons name="check" size={48} color="white" />
+            </View>
+            <Typography variant="h3" style={styles.successTitle}>
+              Success!
+            </Typography>
+            <Typography variant="body1" style={styles.successMessage}>
+              Service request submitted successfully
+            </Typography>
+          </View>
+        </Animated.View>
       )}
 
-      {error && (
-        <View style={styles.errorContainer}>
-          <Typography variant="body2" color="error">
-            {error}
-          </Typography>
-        </View>
-      )}
+      {/* Image Source Action Sheet */}
+      <ActionSheet
+        visible={showImageSourceSheet}
+        onClose={() => setShowImageSourceSheet(false)}
+        title="Add Photos"
+        options={[
+          {
+            title: 'Take Photo',
+            icon: 'camera',
+            onPress: handleCameraCapture,
+            id: 'camera',
+          },
+          {
+            title: 'Choose from Gallery',
+            icon: 'images',
+            onPress: handleGallerySelect,
+            id: 'gallery',
+          },
+        ]}
+      />
+
+      {/* Image Preview & Edit Modal */}
+      <ImagePreviewModal
+        visible={showImagePreview}
+        images={images}
+        initialIndex={previewInitialIndex}
+        onClose={() => {
+          // If user closes without confirming, we might want to keep images or revert?
+          // Current logic: images are already in state, so closing just hides modal.
+          // If we wanted "Cancel" behavior, we'd need a temp state in the modal.
+          // For now, "Done" and "Close" both just hide, but "Done" implies satisfaction.
+          setShowImagePreview(false);
+        }}
+        onConfirm={(finalImages) => {
+          setImages(finalImages);
+          setShowImagePreview(false);
+        }}
+        onAddMore={handleAddMorePhotos}
+      />
 
       {/* SubCategory Selection Bottom Sheet */}
       <BottomSheet
@@ -850,7 +1065,12 @@ const RequestMigrated: React.FC<ModalProps> = ({
           </Typography>
 
           {/* SubCategories List */}
-          <ScrollView style={styles.subCategoryList} showsVerticalScrollIndicator={true}>
+          <ScrollView
+            style={styles.subCategoryList}
+            contentContainerStyle={styles.subCategoryListContent}
+            showsVerticalScrollIndicator={true}
+            keyboardShouldPersistTaps="handled"
+          >
             {getFilteredSubCategories().length > 0 ? (
               getFilteredSubCategories().map((sub, index) => {
                 const isSelected = selectedSubCategory === sub.pkSubCategory;
@@ -908,43 +1128,24 @@ const RequestMigrated: React.FC<ModalProps> = ({
         </View>
       </BottomSheet>
 
-      {/* Action Sheet for Images */}
-      <ActionSheet
-        visible={showImageActionSheet}
-        onClose={() => setShowImageActionSheet(false)}
-        title="Add Photo"
-        options={[
-          {
-            id: 'camera',
-            title: 'Take Photo',
-            icon: 'camera-outline',
-            onPress: () => {
-              setShowImageActionSheet(false);
-              handleCameraCapture();
-            },
-          },
-          {
-            id: 'gallery',
-            title: 'Choose from Gallery',
-            icon: 'images-outline',
-            onPress: () => {
-              setShowImageActionSheet(false);
-              handleImagePicker();
-            },
-          },
-        ]}
-      />
-    </Modal>
+
+      </KeyboardAvoidingView>
+    </RNModal>
   );
 };
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: Theme.colors.background.secondary,
+  },
+
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: Theme.spacing.lg,
-    paddingVertical: Theme.spacing.base,
+    paddingBottom: Theme.spacing.base,
     borderBottomWidth: 1,
     borderBottomColor: Theme.colors.border.light,
     backgroundColor: Theme.colors.background.primary,
@@ -970,6 +1171,11 @@ const styles = StyleSheet.create({
     backgroundColor: Theme.colors.background.secondary,
   },
 
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: 120, // Ensure content is not hidden behind fixed footer
+  },
+
   formContainer: {
     padding: Theme.spacing.lg,
   },
@@ -987,7 +1193,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: Theme.borderRadius.xl,
-    marginBottom: Theme.spacing.md,
+    marginBottom: Theme.spacing.sm,
   },
 
   categoryTitle: {
@@ -1014,7 +1220,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: Theme.spacing.base,
-    paddingVertical: Theme.spacing.md,
+    paddingVertical: Theme.spacing.sm,
     backgroundColor: Theme.colors.background.primary,
     borderWidth: 1,
     borderColor: Theme.colors.border.default,
@@ -1046,8 +1252,8 @@ const styles = StyleSheet.create({
 
   gpsButton: {
     position: 'absolute',
-    bottom: Theme.spacing.md,
-    right: Theme.spacing.md,
+    bottom: Theme.spacing.sm,
+    right: Theme.spacing.sm,
     backgroundColor: Theme.colors.primary[500],
     borderRadius: Theme.borderRadius.full,
     width: 40,
@@ -1057,60 +1263,119 @@ const styles = StyleSheet.create({
     ...Theme.shadows.md,
   },
 
-  imageUploadButton: {
+  sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: Theme.spacing.lg,
-    paddingHorizontal: Theme.spacing.xl,
-    backgroundColor: Theme.colors.background.primary,
+    justifyContent: 'space-between',
+    marginBottom: Theme.spacing.sm,
+  },
+  optionalBadge: {
+    backgroundColor: Theme.colors.background.tertiary,
+    paddingHorizontal: Theme.spacing.sm,
+    paddingVertical: 2,
+    borderRadius: Theme.borderRadius.sm,
+  },
+  optionalText: {
+    fontSize: 10,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+  },
+  emptyPhotoState: {
     borderWidth: 2,
-    borderColor: Theme.colors.primary[500],
+    borderColor: Theme.colors.border.default,
     borderStyle: 'dashed',
-    borderRadius: Theme.borderRadius.md,
-    gap: Theme.spacing.sm,
+    borderRadius: Theme.borderRadius.lg,
+    padding: Theme.spacing.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Theme.colors.background.primary,
+    minHeight: 140,
   },
-
-  imagePreviewContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginTop: Theme.spacing.md,
-    gap: Theme.spacing.sm,
+  emptyPhotoIconContainer: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: Theme.colors.primary[50],
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: Theme.spacing.base,
   },
-
-  imageItem: {
-    width: 80,
-    height: 80,
+  emptyPhotoText: {
+    marginBottom: Theme.spacing.xs,
+    fontWeight: Theme.typography.fontWeight.medium,
+  },
+  photoList: {
+    marginTop: Theme.spacing.xs,
+  },
+  photoListContent: {
+    paddingRight: Theme.spacing.lg,
+    gap: Theme.spacing.base,
+    alignItems: 'center',
+  },
+  addMoreCard: {
+    width: 100,
+    height: 100,
     borderRadius: Theme.borderRadius.md,
-    position: 'relative',
+    borderWidth: 2,
+    borderColor: Theme.colors.border.default,
+    borderStyle: 'dashed',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Theme.colors.background.primary,
+  },
+  photoCard: {
+    width: 100,
+    height: 100,
+    borderRadius: Theme.borderRadius.md,
     overflow: 'hidden',
+    position: 'relative',
+    ...Theme.shadows.sm,
+    backgroundColor: Theme.colors.background.secondary,
   },
-
-  previewImage: {
+  photoImage: {
     width: '100%',
     height: '100%',
+    resizeMode: 'cover',
   },
-
-  removeImageButton: {
+  deletePhotoButton: {
     position: 'absolute',
-    top: -8,
-    right: -8,
-    backgroundColor: Theme.colors.background.primary,
-    borderRadius: Theme.borderRadius.full,
+    top: 6,
+    right: 6,
     width: 24,
     height: 24,
-    justifyContent: 'center',
+    borderRadius: 12,
+    backgroundColor: 'rgba(0,0,0,0.6)',
     alignItems: 'center',
+    justifyContent: 'center',
     borderWidth: 1,
-    borderColor: Theme.colors.border.default,
-    ...Theme.shadows.sm,
+    borderColor: 'rgba(255,255,255,0.3)',
+  },
+  editPhotoButton: {
+    position: 'absolute',
+    top: 6,
+    left: 6,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.3)',
   },
 
   buttonContainer: {
     flexDirection: 'row',
-    gap: Theme.spacing.md,
-    marginTop: Theme.spacing['2xl'],
-    marginBottom: Theme.spacing.lg,
+    gap: Theme.spacing.sm,
+  },
+
+  fixedFooter: {
+    padding: Theme.spacing.lg,
+    backgroundColor: Theme.colors.background.primary,
+    borderTopWidth: 1,
+    borderTopColor: Theme.colors.border.light,
+    paddingBottom: Platform.OS === 'ios' ? 34 : Theme.spacing.lg, // Handle safe area
+    ...Theme.shadows.md, // Add shadow for better separation
   },
 
   cancelButton: {
@@ -1125,16 +1390,43 @@ const styles = StyleSheet.create({
     marginTop: Theme.spacing.xs,
   },
 
-  successContainer: {
+  successOverlay: {
     position: 'absolute',
-    top: Theme.spacing['4xl'],
-    left: Theme.spacing.lg,
-    right: Theme.spacing.lg,
-    backgroundColor: Theme.colors.success[50],
-    padding: Theme.spacing.base,
-    borderRadius: Theme.borderRadius.md,
-    borderLeftWidth: 4,
-    borderLeftColor: Theme.colors.success[500],
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 2000,
+  },
+  successContent: {
+    alignItems: 'center',
+    padding: 32,
+  },
+  successIconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: Theme.colors.success[500],
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 24,
+    shadowColor: Theme.colors.success[500],
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  successTitle: {
+    color: Theme.colors.text.primary,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  successMessage: {
+    color: Theme.colors.text.secondary,
+    textAlign: 'center',
   },
 
   errorContainer: {
@@ -1162,8 +1454,8 @@ const styles = StyleSheet.create({
   },
 
   outsideMapTouchArea: {
-    marginTop: Theme.spacing.md,
-    padding: Theme.spacing.md,
+    marginTop: Theme.spacing.sm,
+    padding: Theme.spacing.sm,
     backgroundColor: Theme.colors.primary[50],
     borderRadius: Theme.borderRadius.md,
     borderWidth: 1,
@@ -1174,7 +1466,8 @@ const styles = StyleSheet.create({
 
   // Estilos para BottomSheet de subcategorías
   bottomSheetContent: {
-    padding: Theme.spacing.lg,
+    flex: 1,
+    paddingHorizontal: Theme.spacing.lg,
   },
 
   searchContainer: {
@@ -1182,8 +1475,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: Theme.colors.background.secondary,
     borderRadius: Theme.borderRadius.md,
-    marginBottom: Theme.spacing.md,
-    paddingHorizontal: Theme.spacing.md,
+    marginBottom: Theme.spacing.sm,
+    paddingHorizontal: Theme.spacing.sm,
     paddingVertical: Theme.spacing.sm,
     borderWidth: 1,
     borderColor: Theme.colors.border.light,
@@ -1206,11 +1499,15 @@ const styles = StyleSheet.create({
   },
 
   subCategoryList: {
-    maxHeight: 320,
+    flex: 1,
+  },
+
+  subCategoryListContent: {
+    flexGrow: 1,
+    paddingBottom: Theme.spacing.xl,
   },
 
   subCategoryItem: {
-    paddingHorizontal: Theme.spacing.lg,
     paddingVertical: Theme.spacing.lg,
     minHeight: 72,
     borderBottomWidth: 0.5,
@@ -1234,7 +1531,7 @@ const styles = StyleSheet.create({
 
   subCategoryInfo: {
     flex: 1,
-    marginRight: Theme.spacing.md,
+    marginRight: Theme.spacing.sm,
   },
 
   subCategorySelectedText: {
@@ -1259,11 +1556,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 
-  // Estilos para mensajes de éxito
-  successText: {
-    fontWeight: Theme.typography.fontWeight.semiBold,
-    textAlign: 'center',
-  },
+
 
   // Estilos específicos para TextArea (Description field) usando Theme System
   textAreaContainer: {
@@ -1273,8 +1566,8 @@ const styles = StyleSheet.create({
     borderRadius: Theme.borderRadius.lg,
     minHeight: 100,
     maxHeight: 150,
-    paddingHorizontal: Theme.spacing.md,
-    paddingVertical: Theme.spacing.md,
+    paddingHorizontal: Theme.spacing.sm,
+    paddingVertical: Theme.spacing.sm,
     ...Theme.shadows.sm,
   },
 
@@ -1290,6 +1583,21 @@ const styles = StyleSheet.create({
   textAreaError: {
     borderColor: Theme.colors.error[500],
     borderWidth: 1.5,
+  },
+
+  editImagesButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: Theme.spacing.xs,
+    paddingHorizontal: Theme.spacing.sm,
+    backgroundColor: Theme.colors.primary[50],
+    borderRadius: Theme.borderRadius.full,
+    borderWidth: 1,
+    borderColor: Theme.colors.primary[200],
+    gap: 4,
+    alignSelf: 'center',
+    marginLeft: Theme.spacing.sm,
   },
 });
 

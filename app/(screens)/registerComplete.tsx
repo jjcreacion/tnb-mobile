@@ -185,7 +185,7 @@ const styles = StyleSheet.create({
     marginBottom: Theme.spacing['3xl'],
   },
   title: {
-    marginBottom: Theme.spacing.md,
+    marginBottom: Theme.spacing.base,
     textAlign: 'center',
     fontSize: Theme.typography.fontSize['4xl'],
     fontWeight: Theme.typography.fontWeight.bold,

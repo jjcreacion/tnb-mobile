@@ -38,3 +38,7 @@ export type { BadgeSize, BadgeVariant } from './Badge';
 
 export { KeyboardDismissWrapper } from './KeyboardDismissWrapper';
 
+export { ImagePreviewModal } from './ImagePreviewModal';
+
+export { ImageCropEditor } from './ImageCropEditor';
+

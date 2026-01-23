@@ -144,7 +144,7 @@ export const StyleMigration = {
 
   // Espaciado común
   smallPadding: Theme.spacing.sm,
-  mediumPadding: Theme.spacing.md,
+  mediumPadding: Theme.spacing.sm,
   largePadding: Theme.spacing.lg,
   xlPadding: Theme.spacing.xl,
 

@@ -1,5 +1,6 @@
 import { HapticTab } from '@/components/HapticTab';
 import { Theme } from '@/constants/Theme';
+import { useAuth } from '@/hooks/useAuth';
 import { Tabs } from 'expo-router';
 import React from 'react';
 import { Platform } from 'react-native';
@@ -8,17 +9,21 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 
 export default function TabsLayout() {
   const insets = useSafeAreaInsets();
+  const { isAuthenticated } = useAuth();
 
   return (
     <Tabs
       screenOptions={{
         // tabBarActiveTintColor: Theme.colors.primary[800],
         // tabBarInactiveTintColor: 'rgba(255, 255, 255, 0.8)',
-        
+
         tabBarActiveTintColor: Theme.colors.primary[50],
         tabBarInactiveTintColor: 'rgba(255, 255, 255, 0.4)',
         headerShown: false,
         tabBarButton: HapticTab,
+        tabBarHideOnKeyboard: Platform.OS === 'android' ? true : undefined,
+        // Deshabilitar gestos de retroceso cuando está autenticado
+        gestureEnabled: !isAuthenticated,
         tabBarStyle: Platform.select({
           ios: {
             backgroundColor: Theme.colors.primary[500],
@@ -74,6 +79,7 @@ export default function TabsLayout() {
         options={{
           title: 'Home',
           tabBarIcon: ({ color }) => <Icon name="home" size={30} color={color} />,
+          gestureEnabled: !isAuthenticated,
         }}
       />
       <Tabs.Screen
@@ -81,6 +87,7 @@ export default function TabsLayout() {
         options={{
           title: 'Activity',
           tabBarIcon: ({ color }) => <Icon name="notifications" size={30} color={color} />,
+          gestureEnabled: !isAuthenticated,
         }}
       />
 
@@ -89,6 +96,7 @@ export default function TabsLayout() {
         options={{
           title: 'Services',
           tabBarIcon: ({ color }) => <Icon name="event-note" size={30} color={color} />,
+          gestureEnabled: !isAuthenticated,
         }}
       />
       
@@ -98,6 +106,7 @@ export default function TabsLayout() {
         options={{
           title: 'Billing',
           tabBarIcon: ({ color }) => <Icon name="paid" size={30} color={color} />,
+          gestureEnabled: !isAuthenticated,
         }}
       />
 
@@ -106,6 +115,7 @@ export default function TabsLayout() {
         options={{
           title: 'Support',
           tabBarIcon: ({ color }) => <Icon name="support-agent" size={30} color={color} />,
+          gestureEnabled: !isAuthenticated,
         }}
       />
  

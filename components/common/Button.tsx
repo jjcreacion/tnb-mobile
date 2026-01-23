@@ -70,11 +70,24 @@ export const Button: React.FC<ButtonProps> = ({
       );
     }
 
+    // Clone icon with proper color for disabled state
+    const renderIcon = (iconNode: React.ReactNode) => {
+      if (!iconNode || typeof iconNode !== 'object') return iconNode;
+
+      if (disabled && React.isValidElement(iconNode)) {
+        return React.cloneElement(iconNode as React.ReactElement<any>, {
+          color: Theme.colors.button.disabledText,
+        });
+      }
+
+      return iconNode;
+    };
+
     return (
       <View style={styles.content}>
-        {icon && iconPosition === 'left' && <View style={styles.iconLeft}>{icon}</View>}
+        {icon && iconPosition === 'left' && <View style={styles.iconLeft}>{renderIcon(icon)}</View>}
         {children || <Text style={textStyles}>{title}</Text>}
-        {icon && iconPosition === 'right' && <View style={styles.iconRight}>{icon}</View>}
+        {icon && iconPosition === 'right' && <View style={styles.iconRight}>{renderIcon(icon)}</View>}
       </View>
     );
   };
@@ -153,8 +166,13 @@ const styles = StyleSheet.create({
 
   // States
   disabled: {
-    opacity: 0.5,
-    backgroundColor: Theme.colors.neutral[300],
+    backgroundColor: Theme.colors.button.disabledBackground, // Light gray, readable
+    // Remove opacity to keep text readable
+    shadowColor: 'transparent',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    elevation: 0,
   },
 
   fullWidth: {
@@ -200,7 +218,7 @@ const styles = StyleSheet.create({
   },
 
   disabledText: {
-    color: Theme.colors.text.disabled,
+    color: Theme.colors.button.disabledText, // Readable gray on light background
   },
 
   // Icon positioning

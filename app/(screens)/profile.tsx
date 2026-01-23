@@ -270,8 +270,8 @@ export default function ProfileScreenMigrated() {
         style="light" 
         backgroundColor={Theme.colors.primary[500]}
       />
-      <Screen safeArea={true} scrollable>
-        <View style={MigratedStyles.profileContainer}>
+      <Screen safeArea={true} scrollable disableKeyboardDismiss={true}>
+        <View style={MigratedStyles.profileContainer} pointerEvents="box-none">
         {/* Header with Background Image */}
         <ImageBackground
           source={require('@/assets/images/roof-repair.jpg')}
@@ -305,41 +305,31 @@ export default function ProfileScreenMigrated() {
         </ImageBackground>
 
         {/* Profile Content */}
-        <View style={MigratedStyles.profileContentContainer}>
+        <View style={MigratedStyles.profileContentContainer} pointerEvents="box-none">
           {/* User ID and Join Date */}
           <Card variant="elevated" style={MigratedStyles.profileUserInfoCard}>
-            <Typography variant="h3" color="secondary" style={MigratedStyles.profileEmailText}>
-              {userData.email}
-            </Typography>
-            <Typography variant="h3" color="primary" style={MigratedStyles.profileUserIdText}>
-              Client ID: #{userData.pkUser || '000000'}
-            </Typography>
-            {userData.createdAt && (
-              <Typography variant="body2" color="secondary" style={MigratedStyles.profileJoinDateText}>
-                Member since {userData.createdAt}
+            <View pointerEvents="box-none">
+              <Typography variant="h3" color="secondary" style={MigratedStyles.profileEmailText} pointerEvents="none">
+                {userData.email}
               </Typography>
-            )}
+              <Typography variant="h3" color="primary" style={MigratedStyles.profileUserIdText} pointerEvents="none">
+                Client ID: #{userData.pkUser || '000000'}
+              </Typography>
+              {userData.createdAt && (
+                <Typography variant="body2" color="secondary" style={MigratedStyles.profileJoinDateText} pointerEvents="none">
+                  Member since {userData.createdAt}
+                </Typography>
+              )}
+            </View>
           </Card>
-
-          {/* Edit Button */}
-          <View style={MigratedStyles.profileEditButtonContainer}>
-            <Button
-              title={isEditing ? "Cancel" : "Edit Profile"}
-              variant={isEditing ? "outline" : "primary"}
-              size="md"
-              onPress={() => setIsEditing(!isEditing)}
-              icon={<Icon name="edit" size={20} color={isEditing ? Theme.colors.primary[500] : Theme.colors.text.inverse} />}
-              iconPosition="left"
-            />
-          </View>
 
           {/* Profile Form */}
           <Card variant="outlined" style={MigratedStyles.profileFormCard}>
-            <Typography variant="h4" color="primary" style={MigratedStyles.profileSectionTitle}>
+            <Typography variant="h4" color="primary" style={MigratedStyles.profileSectionTitle} pointerEvents="none">
               My Profile
             </Typography>
 
-            <View style={MigratedStyles.profileFormSection}>
+            <View style={MigratedStyles.profileFormSection} pointerEvents="box-none">
               <Input
                 label="First Name"
                 value={userData.firstName}
@@ -369,7 +359,7 @@ export default function ProfileScreenMigrated() {
               />
 
               <Input
-                label="Address" 
+                label="Address"
                 value={userData.address}
                 onChangeText={(value) => handleInputChange('address', value)}
                 disabled={!isEditing}
@@ -379,23 +369,42 @@ export default function ProfileScreenMigrated() {
                 containerStyle={MigratedStyles.profileInputContainer}
               />
             </View>
-
-            {/* Save Button */}
-            {isEditing && (
-              <View style={MigratedStyles.profileSaveButtonContainer}>
-                <Button
-                  title="Save Changes"
-                  variant="primary"
-                  size="lg"
-                  onPress={saveChanges}
-                  fullWidth
-                  loading={isLoading}
-                  icon={<Icon name="save" size={20} color={Theme.colors.text.inverse} />}
-                  iconPosition="left"
-                />
-              </View>
-            )}
           </Card>
+
+          {/* Action Buttons */}
+          <View style={MigratedStyles.profileActionsContainer}>
+            {/* Edit Profile / Save Changes Button */}
+            <Button
+              title={isEditing ? "Save Changes" : "Edit Profile"}
+              variant="primary"
+              size="lg"
+              onPress={isEditing ? saveChanges : () => setIsEditing(true)}
+              loading={isLoading}
+              icon={
+                <Icon
+                  name={isEditing ? "save" : "edit"}
+                  size={20}
+                  color={Theme.colors.text.inverse}
+                />
+              }
+              iconPosition="left"
+              fullWidth
+            />
+
+            {/* Cancel Button - Only visible when editing */}
+            {isEditing && (
+              <Button
+                title="Cancel"
+                variant="outline"
+                size="lg"
+                onPress={() => setIsEditing(false)}
+                icon={<Icon name="close" size={20} color={Theme.colors.primary[500]} />}
+                iconPosition="left"
+                fullWidth
+                style={MigratedStyles.profileCancelButton}
+              />
+            )}
+          </View>
         </View>
 
         {/* Loading Overlay */}

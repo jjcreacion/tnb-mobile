@@ -1,6 +1,7 @@
 import React, { memo, useRef, useEffect, useState } from 'react'
 import { View, Text, FlatList, ActivityIndicator, Dimensions } from 'react-native'
 import type { Campaign } from '@/types'
+import { Theme } from '@/constants/Theme'
 import { CampaignCard } from './CampaignCard'
 import { styles } from './styles'
 
@@ -20,15 +21,24 @@ export const CampaignCarousel = memo<CampaignCarouselProps>(
     const [currentIndex, setCurrentIndex] = useState(0)
 
     useEffect(() => {
+      let interval: ReturnType<typeof setInterval> | null = null
+
       if (campaigns.length > 0) {
-        const interval = setInterval(() => {
-          const nextIndex = (currentIndex + 1) % campaigns.length
-          setCurrentIndex(nextIndex)
-          flatListRef.current?.scrollToIndex({ animated: true, index: nextIndex })
+        interval = setInterval(() => {
+          setCurrentIndex(prevIndex => {
+            const nextIndex = (prevIndex + 1) % campaigns.length
+            flatListRef.current?.scrollToIndex({ animated: true, index: nextIndex })
+            return nextIndex
+          })
         }, 5000)
-        return () => clearInterval(interval)
       }
-    }, [currentIndex, campaigns])
+
+      return () => {
+        if (interval !== null) {
+          clearInterval(interval)
+        }
+      }
+    }, [campaigns.length])
 
     return (
       <>
@@ -38,7 +48,7 @@ export const CampaignCarousel = memo<CampaignCarouselProps>(
 
         <View style={styles.carouselContainer}>
           {loading ? (
-            <ActivityIndicator size="large" color="#ea0e08" />
+            <ActivityIndicator size="large" color={Theme.colors.primary[500]} />
           ) : error ? (
             <Text style={styles.errorMessage}>{error}</Text>
           ) : campaigns.length > 0 ? (

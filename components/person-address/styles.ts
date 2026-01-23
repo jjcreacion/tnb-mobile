@@ -1,4 +1,5 @@
 import { Platform, StyleSheet } from 'react-native'
+import { Theme } from '@/constants/Theme'
 
 export const addressStyles = StyleSheet.create({
   // Container styles
@@ -216,13 +217,21 @@ export const addressStyles = StyleSheet.create({
   },
   formInput: {
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: Theme.colors.border.default, // Soft, professional gray (#E5E7EB)
     borderRadius: 8,
     paddingHorizontal: 15,
     paddingVertical: 12,
     backgroundColor: '#fff',
     fontSize: 16,
     color: '#333',
+  },
+  formInputFocused: {
+    borderColor: Theme.colors.border.focus, // Dark gray on focus
+    borderWidth: 1.5,
+  },
+  formInputError: {
+    borderColor: Theme.colors.border.error, // Red on error
+    borderWidth: 1.5,
   },
   formInputSecondary: {
     marginTop: 10,
@@ -297,7 +306,7 @@ export const addressStyles = StyleSheet.create({
     paddingHorizontal: 15,
     paddingVertical: 12,
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: Theme.colors.border.default, // Soft, professional gray (#E5E7EB)
     borderRadius: 8,
     backgroundColor: '#f8f8f8',
     fontSize: 16,
@@ -312,6 +321,11 @@ export const addressStyles = StyleSheet.create({
         elevation: 1,
       },
     }),
+  },
+  searchInputFocused: {
+    borderColor: Theme.colors.border.focus, // Dark gray on focus
+    borderWidth: 1.5,
+    backgroundColor: '#fff',
   },
   selectorSubtitle: {
     fontSize: 14,

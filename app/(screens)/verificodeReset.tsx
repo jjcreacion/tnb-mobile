@@ -24,6 +24,7 @@ const VerifyPasswordResetCode: React.FC<VerifyPasswordResetCodeProps> = ({
   const [timer, setTimer] = useState(300);
   const [isCodeCorrect, setIsCodeCorrect] = useState(false);
   const [showSetNewPassword, setShowSetNewPassword] = useState(false);
+  const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
   const inputsRef = useRef<Array<TextInput | null>>([]);
 
   useEffect(() => {
@@ -44,7 +45,8 @@ const VerifyPasswordResetCode: React.FC<VerifyPasswordResetCodeProps> = ({
       setTimer(300);
       setIsCodeCorrect(false);
       setShowSetNewPassword(false);
-      setTimeout(() => inputsRef.current[0]?.focus(), 100);
+      const focusTimer = setTimeout(() => inputsRef.current[0]?.focus(), 100);
+      return () => clearTimeout(focusTimer);
     }
   }, [isVisible]);
 
@@ -141,12 +143,15 @@ const VerifyPasswordResetCode: React.FC<VerifyPasswordResetCodeProps> = ({
                     ref={(ref) => { inputsRef.current[index] = ref; }}
                     style={[
                       styles.codeInput,
+                      focusedIndex === index && codeValid && !isCodeCorrect && styles.codeInputFocused,
                       !codeValid && !isCodeCorrect && styles.codeInputError,
                       isCodeCorrect && styles.codeInputSuccess,
                     ]}
                     value={digit}
                     onChangeText={(value) => handleInputChange(value, index)}
                     onKeyPress={(e) => handleKeyPress(e, index)}
+                    onFocus={() => setFocusedIndex(index)}
+                    onBlur={() => setFocusedIndex(null)}
                     maxLength={1}
                     keyboardType="numeric"
                     textAlign="center"
@@ -300,6 +305,11 @@ const styles = StyleSheet.create({
     fontWeight: Theme.typography.fontWeight.bold,
     color: Theme.colors.text.primary,
     ...Theme.shadows.sm,
+  },
+
+  codeInputFocused: {
+    borderColor: Theme.colors.border.focus, // Uses global focus color from Theme
+    borderWidth: 2.5,
   },
 
   codeInputError: {

@@ -1,6 +1,6 @@
 
-
 import { StyleSheet } from 'react-native';
+import { Theme } from '@/constants/Theme';
 
 const styles = StyleSheet.create({
   containerSplash: {
@@ -10,13 +10,13 @@ const styles = StyleSheet.create({
     position: 'relative'
   },
   pickerStyle: {
-    height: 50, 
+    height: 50,
     width: '100%',
-    borderColor: '#ddd',
+    borderColor: Theme.colors.border.light,
     borderWidth: 1,
     borderRadius: 5,
     marginBottom: 10,
-    backgroundColor: '#fff',
+    backgroundColor: Theme.colors.background.primary,
   },
   containerTermsofServices: { 
     flexDirection: 'row', 
@@ -28,11 +28,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#ccc',
+    borderColor: Theme.colors.border.default,
     borderRadius: 5,
-    marginBottom: 10, 
-    paddingRight: 10, 
-    backgroundColor: '#fff', 
+    marginBottom: 10,
+    paddingRight: 10,
+    backgroundColor: Theme.colors.background.primary,
   },
   passwordInput: {
     flex: 1, 
@@ -44,16 +44,16 @@ const styles = StyleSheet.create({
   eyeIcon: {
     padding: 5,
   },
-  modalContainer: { 
-    flex: 1, 
-    backgroundColor: '#ffffff', 
-    padding: 20, 
+  modalContainer: {
+    flex: 1,
+    backgroundColor: Theme.colors.background.primary,
+    padding: 20,
     paddingTop: 60
   },
-  modalContainer2: { 
-    flex: 1, 
-    backgroundColor: '#ffffff', 
-    padding: 10, 
+  modalContainer2: {
+    flex: 1,
+    backgroundColor: Theme.colors.background.primary,
+    padding: 10,
     paddingTop: 10
   },
   gradientSplash: {
@@ -79,15 +79,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   activeTab: {
-    borderColor: 'red', // color del tab activo
+    borderColor: Theme.colors.error[500],
   },
   inputError: {
-    borderColor: 'red', // Borde rojo si hay error
+    borderColor: Theme.colors.error[500],
   },
   errorText: {
-    color: 'red', // Texto rojo para los mensajes de error
+    color: Theme.colors.error[500],
     fontSize: 12,
-    marginTop: 5, // Espacio entre el input y el mensaje
+    marginTop: 5,
   },
   mapStyle: {
     width: '100%',
@@ -101,50 +101,50 @@ const styles = StyleSheet.create({
     padding: 5, 
   },
   buttonGPS: {
-    backgroundColor: '#6c757d', 
+    backgroundColor: Theme.colors.neutral[500],
     padding: 12,
     borderRadius: 5,
     alignItems: 'center',
     marginBottom: 10,
   },
   buttonTextGPS: {
-    color: '#fff',
+    color: Theme.colors.text.inverse,
     fontSize: 16,
     fontWeight: 'bold',
   },
-  pickerContainer: { 
-    borderColor: '#ddd',
+  pickerContainer: {
+    borderColor: Theme.colors.border.light,
     borderWidth: 1,
     borderRadius: 5,
     marginBottom: 10,
-    overflow: 'hidden', 
-    backgroundColor: '#fff',
-    height: 40, 
-    justifyContent: 'center', 
+    overflow: 'hidden',
+    backgroundColor: Theme.colors.background.primary,
+    height: 40,
+    justifyContent: 'center',
   },
   picker: {
     width: '100%',
   },
   buttonDisabled: {
-      backgroundColor: 'gray'
+    backgroundColor: Theme.colors.neutral[400]
   },
   abstractShape1: {
-    position: 'absolute', 
-    top: '20%', 
-    right: '30%', 
-    width: 100, 
-    height: 100, 
-    borderRadius: 50, 
-    backgroundColor: 'rgba(255,255,255,0.2)'
+    position: 'absolute',
+    top: '20%',
+    right: '30%',
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: Theme.colors.whiteOverlay.light
   },
   abstractShape2: {
-    position: 'absolute', 
-    bottom: '10%', 
-    left: '40%', 
-    width: 150, 
-    height: 150, 
-    borderRadius: 75, 
-    backgroundColor: 'rgba(255,255,255,0.2)'
+    position: 'absolute',
+    bottom: '10%',
+    left: '40%',
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+    backgroundColor: Theme.colors.whiteOverlay.light
   },
   iconContainer: {
     position: 'absolute', 
@@ -181,34 +181,34 @@ const styles = StyleSheet.create({
     right: -20, 
   },
   textWelcome: {
-    fontSize: 25, 
-    color: '#ff0000', 
-    fontWeight: '600', 
+    fontSize: 25,
+    color: Theme.colors.primary[500],
+    fontWeight: '600',
     marginTop: -10,
     marginBottom: 30
   },
   textH1Red: {
-    fontSize: 26, 
-    color: '#ff0000', 
-    fontWeight: '600', 
+    fontSize: 26,
+    color: Theme.colors.primary[500],
+    fontWeight: '600',
     marginTop: 10
   },
   textH1: {
-    fontSize: 24, 
-    color: '#6090d5', 
-    fontWeight: '600', 
+    fontSize: 24,
+    color: Theme.colors.primary[500],
+    fontWeight: '600',
     marginTop: 10
   },
   textH2: {
-    fontSize: 20, 
-    color: '#6090d5', 
-    fontWeight: '600', 
+    fontSize: 20,
+    color: Theme.colors.primary[500],
+    fontWeight: '600',
     marginTop: 10
   },
   textH3: {
-    fontSize: 12, 
-    color: '#fff', 
-    fontWeight: '600', 
+    fontSize: 12,
+    color: Theme.colors.text.inverse,
+    fontWeight: '600',
     marginTop: 10
   },
   tabContainer: {
@@ -238,41 +238,41 @@ const styles = StyleSheet.create({
   },
   tabButtonText: {
     fontSize: 16,
-    color: 'gray',
+    color: Theme.colors.neutral[500],
   },
   activeTabText: {
-    color: 'blue',
+    color: Theme.colors.primary[500],
   },
   textH2Black: {
-    fontSize: 20, 
-    color: '#191919', 
-    fontWeight: '600', 
+    fontSize: 20,
+    color: Theme.colors.neutral[900],
+    fontWeight: '600',
     marginTop: 10
   },
   textH3Black: {
-    fontSize: 12, 
-    color: '#191919', 
-    fontWeight: '600', 
+    fontSize: 12,
+    color: Theme.colors.neutral[900],
+    fontWeight: '600',
     marginTop: 10
   },
   textH3Blue: {
-    fontSize: 16, 
-    color: '#0d47fc', 
-    fontWeight: '600', 
+    fontSize: 16,
+    color: Theme.colors.primary[600],
+    fontWeight: '600',
     marginTop: 10
   },
   
   TermsofServices: {
-    fontSize: 16, 
-    color: '#67696c', 
-    fontWeight: '600', 
+    fontSize: 16,
+    color: Theme.colors.neutral[600],
+    fontWeight: '600',
     marginTop: 10,
     textAlign: 'center',
   },
   textH2Blue: {
-    fontSize: 20, 
-    color: '#0d47fc', 
-    fontWeight: '600', 
+    fontSize: 20,
+    color: Theme.colors.primary[600],
+    fontWeight: '600',
     marginTop: 10
   },
   underlineText: { 
@@ -280,7 +280,7 @@ const styles = StyleSheet.create({
   },
   buttonPhone: {
     flexDirection: 'row',
-    backgroundColor: 'white',
+    backgroundColor: Theme.colors.background.primary,
     padding: 10,
     borderRadius: 5,
     alignItems: 'center',
@@ -291,7 +291,7 @@ const styles = StyleSheet.create({
   },
   buttonEmail: {
     flexDirection: 'row',
-    backgroundColor: '#ff0000',
+    backgroundColor: Theme.colors.primary[500],
     padding: 10,
     borderRadius: 5,
     alignItems: 'center',
@@ -300,11 +300,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     position: 'relative',
     borderWidth: 2,
-    borderColor: 'white',
+    borderColor: Theme.colors.background.primary,
   },
   buttonSignUp: {
     flexDirection: 'row',
-    backgroundColor: '#ff6a59',
+    backgroundColor: Theme.colors.primary[500],
     padding: 10,
     borderRadius: 5,
     alignItems: 'center',
@@ -319,26 +319,26 @@ const styles = StyleSheet.create({
   },
   buttonTextPhone: {
     fontSize: 18,
-    color: 'black',
+    color: Theme.colors.text.primary,
     marginLeft: 10,
   },
   buttonTextEmail: {
     fontSize: 18,
-    color: 'white',
+    color: Theme.colors.text.inverse,
     marginLeft: 10,
   },
   buttonTextSignUp: {
     fontSize: 18,
-    color: 'white',
+    color: Theme.colors.text.inverse,
     marginLeft: 10,
   },
   input: {
     height: 50,
-    borderColor: 'gray',
+    borderColor: Theme.colors.neutral[400],
     borderWidth: 1,
     width: '100%',
     paddingHorizontal: 10,
-    borderRadius: 5, 
+    borderRadius: 5,
   },
   buttonContainer: { 
     position: 'absolute',
@@ -362,46 +362,46 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   buttonLeft: {
-    backgroundColor: 'gray',
+    backgroundColor: Theme.colors.neutral[500],
   },
   buttonRight: {
-    backgroundColor: 'red',
+    backgroundColor: Theme.colors.primary[500],
     marginLeft: 0,
   },
   buttonRight2: {
-    backgroundColor: 'red',
+    backgroundColor: Theme.colors.primary[500],
     marginLeft: 20,
   },
   passwordContainer: {
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    borderWidth: 1, 
-    borderColor: '#ccc', 
-    paddingHorizontal: 10, 
- },
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: Theme.colors.border.default,
+    paddingHorizontal: 10,
+  },
   disabledButton: {
-    backgroundColor: 'gray',
+    backgroundColor: Theme.colors.neutral[400],
     opacity: 0.5,
     borderWidth: 1,
-    borderColor: 'gray',
+    borderColor: Theme.colors.neutral[400],
   },
   codeInput: {
     width: 46,
     height: 50,
     textAlign: 'center',
     fontSize: 24,
-    borderColor: 'gray',
+    borderColor: Theme.colors.neutral[400],
     borderWidth: 1,
     marginHorizontal: 4,
     borderRadius: 5,
   },
-  buttonText: { 
-    color: 'white',
+  buttonText: {
+    color: Theme.colors.text.inverse,
     fontWeight: 'bold',
   },
   container: {
     flex: 1,
-    backgroundColor: 'white',
+    backgroundColor: Theme.colors.background.primary,
   },
   banner: {
     height: 70,
@@ -409,10 +409,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   bannerText: {
-    color: '#6090d5',
+    color: Theme.colors.primary[500],
     fontSize: 24,
     fontWeight: 'bold',
-    marginBottom:10,
+    marginBottom: 10,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -425,21 +425,21 @@ const styles = StyleSheet.create({
   },
   inputRegister: {
     height: 40,
-    borderColor: 'gray',
+    borderColor: Theme.colors.neutral[400],
     borderWidth: 1,
     marginBottom: 15,
     paddingHorizontal: 10,
     borderRadius: 5,
   },
   buttonRegister: {
-    backgroundColor: 'blue',
+    backgroundColor: Theme.colors.primary[500],
     padding: 15,
     borderRadius: 5,
     alignItems: 'center',
     marginTop: 10
   },
   buttonTextRegister: {
-    color: 'white',
+    color: Theme.colors.text.inverse,
     fontSize: 18,
   },
 });
