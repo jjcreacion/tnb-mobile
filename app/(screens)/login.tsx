@@ -10,16 +10,19 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { Formik } from 'formik';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  Image,
-  ImageBackground,
-  Keyboard,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StatusBar,
-  Switch,
-  TextInput,
-  View
+    Dimensions,
+    findNodeHandle,
+    Image,
+    ImageBackground,
+    Keyboard,
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
+    StatusBar,
+    Switch,
+    TextInput,
+    UIManager,
+    View
 } from 'react-native';
 import * as Animatable from 'react-native-animatable';
 import * as Yup from 'yup';
@@ -50,6 +53,81 @@ export default function LoginScreenMigrated() {
 
   // Reference for password input navigation
   const passwordInputRef = useRef<TextInput>(null);
+  // Reference for ScrollView to handle auto-scroll
+  const scrollViewRef = useRef<ScrollView>(null);
+  // Reference for Sign In button to measure its position
+  const signInButtonRef = useRef<View>(null);
+  // Track ScrollView layout
+  const [scrollViewHeight, setScrollViewHeight] = useState(0);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const [isPasswordFocused, setIsPasswordFocused] = useState(false);
+
+  const scrollToButton = useCallback(() => {
+    if (!signInButtonRef.current || !scrollViewRef.current) return;
+
+    const buttonHandle = findNodeHandle(signInButtonRef.current);
+    const scrollViewHandle = findNodeHandle(scrollViewRef.current);
+
+    if (buttonHandle && scrollViewHandle) {
+      // 1. Measure ScrollView position in window
+      UIManager.measureInWindow(scrollViewHandle, (svX, svY, svW, svH) => {
+        // 2. Measure Button position relative to ScrollView
+        UIManager.measureLayout(
+          buttonHandle,
+          scrollViewHandle,
+          () => console.warn('measureLayout failed'),
+          (left, top, width, height) => {
+            const windowHeight = Dimensions.get('window').height;
+            
+            // 3. Calculate Target Scroll Y
+            // Formula: TargetScrollY = ScrollViewPageY + ButtonLayoutY + ButtonHeight - (WindowHeight - KeyboardHeight) + Margin
+            // We want the button bottom to be 15px above the keyboard.
+            // The visual bottom of the button on screen is: (svY + top - currentScrollY + height)
+            // We want: (svY + top - currentScrollY + height) = (windowHeight - keyboardHeight - 15)
+            // Solving for currentScrollY (which becomes our target):
+            // TargetScrollY = svY + top + height - (windowHeight - keyboardHeight - 15)
+            
+            const targetVisualBottom = windowHeight - keyboardHeight - 15;
+            const targetScrollY = svY + top + height - targetVisualBottom;
+
+            scrollViewRef.current?.scrollTo({
+              y: Math.max(0, targetScrollY),
+              animated: true,
+            });
+          }
+        );
+      });
+    }
+  }, [keyboardHeight]);
+
+  // Listen for keyboard events
+  useEffect(() => {
+    const showSubscription = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      (e: KeyboardEvent) => {
+        setKeyboardHeight(e.endCoordinates.height);
+      }
+    );
+    const hideSubscription = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => {
+        setKeyboardHeight(0);
+      }
+    );
+
+    return () => {
+      showSubscription.remove();
+      hideSubscription.remove();
+    };
+  }, []);
+
+  // Trigger scroll when keyboard opens or focus changes
+  useEffect(() => {
+    if (isPasswordFocused && keyboardHeight > 0) {
+      // Small delay to allow layout to settle if needed, though keyboardWillShow gives us data early
+      setTimeout(scrollToButton, 100);
+    }
+  }, [isPasswordFocused, keyboardHeight, scrollToButton]);
 
   // Load saved credentials on mount
   useEffect(() => {
@@ -173,11 +251,13 @@ export default function LoginScreenMigrated() {
           keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : -100}
         >
           <ScrollView
+            ref={scrollViewRef}
             style={{ flex: 1 }}
-            contentContainerStyle={{ flexGrow: 1 }}
+            contentContainerStyle={{ flexGrow: 1, paddingBottom: 20 }}
             keyboardShouldPersistTaps="handled"
             scrollEnabled={true}
             showsVerticalScrollIndicator={false}
+            onLayout={(e) => setScrollViewHeight(e.nativeEvent.layout.height)}
           >
             <View style={MigratedStyles.loginContainer}>
               {/* Logo Section */}
@@ -244,7 +324,11 @@ export default function LoginScreenMigrated() {
                           leftIcon="lock-closed-outline"
                           value={values.password}
                           onChangeText={handleChange('password')}
-                          onBlur={handleBlur('password')}
+                          onFocus={() => setIsPasswordFocused(true)}
+                          onBlur={(e) => {
+                            setIsPasswordFocused(false);
+                            handleBlur('password')(e);
+                          }}
                           error={touched.password && errors.password ? errors.password : undefined}
                           secureTextEntry={true}
                           autoCapitalize="none"
@@ -284,15 +368,21 @@ export default function LoginScreenMigrated() {
                           </View>
                         ) : null}
 
-                        <Button
-                          title="Sign In"
-                          onPress={() => handleSubmit()}
-                          loading={loading}
-                          fullWidth
-                          size="lg"
-                          variant="primary"
-                          style={MigratedStyles.loginButton}
-                        />
+                        <View 
+                          ref={signInButtonRef} 
+                          collapsable={false}
+                          style={{ marginBottom: 10 }} // Add some margin to be part of the measurement
+                        >
+                          <Button
+                            title="Sign In"
+                            onPress={() => handleSubmit()}
+                            loading={loading}
+                            fullWidth
+                            size="lg"
+                            variant="primary"
+                            style={MigratedStyles.loginButton}
+                          />
+                        </View>
 
                         <Button
                           title="Forgot your password?"
