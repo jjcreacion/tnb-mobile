@@ -1,6 +1,6 @@
 import { Button, Input, Loading, Screen, Typography } from '@/components/common';
 import { MigratedStyles } from '@/constants/MigratedStyles';
-import { credentialsService } from '@/services/credentialsService';
+
 import { useAppDispatch } from '@/store/hooks';
 import { setAuthenticated } from '@/store/slices/authSlice';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -16,10 +16,10 @@ import {
   ImageBackground,
   Keyboard,
   KeyboardAvoidingView,
+  KeyboardEvent,
   Platform,
   ScrollView,
   StatusBar,
-  Switch,
   TextInput,
   UIManager,
   View
@@ -47,9 +47,7 @@ export default function LoginScreenMigrated() {
   const [errorMessage, setErrorMessage] = useState('');
   const [isSignUpModalVisible, setSignUpModalVisible] = useState(false);
   const [resetModalVisible, setResetModalVisible] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
-  const [initialEmail, setInitialEmail] = useState('');
-  const [initialPassword, setInitialPassword] = useState('');
+
 
   // Reference for password input navigation
   const passwordInputRef = useRef<TextInput>(null);
@@ -57,7 +55,8 @@ export default function LoginScreenMigrated() {
   const scrollViewRef = useRef<ScrollView>(null);
   // Reference for Sign In button to measure its position
   const signInButtonRef = useRef<View>(null);
-  // Track keyboard height
+  // Track ScrollView layout
+  const [scrollViewHeight, setScrollViewHeight] = useState(0);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [isPasswordFocused, setIsPasswordFocused] = useState(false);
 
@@ -103,7 +102,7 @@ export default function LoginScreenMigrated() {
   useEffect(() => {
     const showSubscription = Keyboard.addListener(
       Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
-      (e: any) => {
+      (e: KeyboardEvent) => {
         setKeyboardHeight(e.endCoordinates.height);
       }
     );
@@ -128,35 +127,19 @@ export default function LoginScreenMigrated() {
     }
   }, [isPasswordFocused, keyboardHeight, scrollToButton]);
 
-  // Load saved credentials on mount
+  // Configure StatusBar for Android
   useEffect(() => {
-    const loadSavedCredentials = async () => {
-      try {
-        const savedCredentials = await credentialsService.getCredentials();
-        if (savedCredentials) {
-          setInitialEmail(savedCredentials.email);
-          setInitialPassword(savedCredentials.password);
-          setRememberMe(true);
-        }
-      } catch (error) {
-        console.warn('Failed to load saved credentials:', error);
-      }
-    };
-
-    loadSavedCredentials();
-
-    // Hide status bar only on Android
     if (Platform.OS === 'android') {
       StatusBar.setHidden(false);
     }
-
-    // Clean up: restore status bar visibility when component unmounts
     return () => {
       if (Platform.OS === 'android') {
         StatusBar.setHidden(false);
       }
     };
   }, []);
+
+
 
   // Configure StatusBar for this screen
   useFocusEffect(
@@ -188,15 +171,7 @@ export default function LoginScreenMigrated() {
           AsyncStorage.setItem('userId', String(data.pkUser))
         ]);
 
-        // 2. Save credentials securely if user opted in
-        if (rememberMe) {
-          await credentialsService.saveCredentials(values.email, values.password);
-        } else {
-          // Delete any previously saved credentials if unchecked
-          await credentialsService.deleteCredentials();
-        }
-
-        // 3. Update Redux auth slice
+        // 2. Update Redux auth slice
         dispatch(setAuthenticated({
           accessToken: data.accessToken,
           userId: String(data.pkUser),
@@ -256,8 +231,8 @@ export default function LoginScreenMigrated() {
             keyboardShouldPersistTaps="handled"
             scrollEnabled={true}
             showsVerticalScrollIndicator={false}
+            onLayout={(e) => setScrollViewHeight(e.nativeEvent.layout.height)}
           >
-
             <View style={MigratedStyles.loginContainer}>
               {/* Logo Section */}
               <Animatable.View
@@ -294,10 +269,9 @@ export default function LoginScreenMigrated() {
               >
                 <View style={MigratedStyles.loginCard}>
                   <Formik
-                    initialValues={{ email: initialEmail, password: initialPassword }}
+                    initialValues={{ email: '', password: '' }}
                     validationSchema={validationSchema}
                     onSubmit={handleLogin}
-                    enableReinitialize={true}
                   >
                     {({ handleChange, handleBlur, handleSubmit, values, errors, touched }) => (
                       <>
@@ -310,7 +284,7 @@ export default function LoginScreenMigrated() {
                           error={touched.email && errors.email ? errors.email : undefined}
                           keyboardType="email-address"
                           autoCapitalize="none"
-                          autoComplete="email"
+                          autoComplete="username"
                           textContentType="username"
                           returnKeyType='next'
                           onSubmitEditing={() => passwordInputRef.current?.focus()}
@@ -337,27 +311,7 @@ export default function LoginScreenMigrated() {
                           onSubmitEditing={() => handleSubmit()}
                         />
 
-                        {/* Remember Me Toggle */}
-                        <View style={{ 
-                          flexDirection: 'row', 
-                          alignItems: 'center', 
-                          justifyContent: 'space-between',
-                          marginVertical: 12,
-                          paddingHorizontal: 4
-                        }}>
-                          <Typography 
-                            variant="body2" 
-                            style={{ color: '#6B7280' }}
-                          >
-                            Remember my credentials
-                          </Typography>
-                          <Switch
-                            value={rememberMe}
-                            onValueChange={setRememberMe}
-                            trackColor={{ false: '#ccc', true: '#E63946' }}
-                            thumbColor={rememberMe ? '#fff' : '#f4f3f4'}
-                          />
-                        </View>
+
 
                         {errorMessage ? (
                           <View style={MigratedStyles.loginErrorContainer}>

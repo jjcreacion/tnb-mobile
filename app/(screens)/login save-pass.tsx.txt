@@ -10,19 +10,19 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { Formik } from 'formik';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  Dimensions,
-  findNodeHandle,
-  Image,
-  ImageBackground,
-  Keyboard,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StatusBar,
-  Switch,
-  TextInput,
-  UIManager,
-  View
+    Dimensions,
+    findNodeHandle,
+    Image,
+    ImageBackground,
+    Keyboard,
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
+    StatusBar,
+    Switch,
+    TextInput,
+    UIManager,
+    View
 } from 'react-native';
 import * as Animatable from 'react-native-animatable';
 import * as Yup from 'yup';
@@ -57,7 +57,8 @@ export default function LoginScreenMigrated() {
   const scrollViewRef = useRef<ScrollView>(null);
   // Reference for Sign In button to measure its position
   const signInButtonRef = useRef<View>(null);
-  // Track keyboard height
+  // Track ScrollView layout
+  const [scrollViewHeight, setScrollViewHeight] = useState(0);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [isPasswordFocused, setIsPasswordFocused] = useState(false);
 
@@ -103,7 +104,7 @@ export default function LoginScreenMigrated() {
   useEffect(() => {
     const showSubscription = Keyboard.addListener(
       Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
-      (e: any) => {
+      (e: KeyboardEvent) => {
         setKeyboardHeight(e.endCoordinates.height);
       }
     );
@@ -256,8 +257,8 @@ export default function LoginScreenMigrated() {
             keyboardShouldPersistTaps="handled"
             scrollEnabled={true}
             showsVerticalScrollIndicator={false}
+            onLayout={(e) => setScrollViewHeight(e.nativeEvent.layout.height)}
           >
-
             <View style={MigratedStyles.loginContainer}>
               {/* Logo Section */}
               <Animatable.View

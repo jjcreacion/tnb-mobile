@@ -1,2 +1,5 @@
 1. Ya no se ve la ventana de login despues de autenticarse
-2. 
+2. Se ha corregido la vista del login, el boton "Sign In" se muestra al presionar 
+3. Se ha corregido 43 errores
+4. se Guarda el password (tanto por gestion de la app y gestion del Sistema operativo)
+
