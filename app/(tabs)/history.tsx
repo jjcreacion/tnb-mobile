@@ -1,21 +1,32 @@
+import { Card, SwipeableTabScreen } from '@/components/common';
+import { HistoryHeader } from '@/components/home';
+import { Theme } from '@/constants/Theme';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import Constants from 'expo-constants';
-import { StatusBar } from 'expo-status-bar';
 import { useRouter } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, Platform, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
-import { Card } from '@/components/common';
-import { SwipeableTabScreen } from '@/components/common';
-import { HistoryHeader } from '@/components/home';
-import { Theme } from '@/constants/Theme';
 import SideMenu from '../(screens)/SideMenu';
+
+interface ReadCategoryDto {
+  pkCategory: number;
+  name: string;
+}
+
+interface ReadSubCategoryDto {
+  pkSubCategory: number;
+  name: string;
+}
 
 interface ServiceRequest {
   requestId: number;
   serviceDescription: string;
+  fkCategory: ReadCategoryDto;
+  fkSubCategory?: ReadSubCategoryDto;
   address: string;
   latitude: string;
   longitude: string;
@@ -84,7 +95,7 @@ const HistoryScreen = () => {
       } else {
         console.error('Error al obtener servicios:', response);
       }
-    } catch (error) {
+    } catch {
       setServices([]);
     } finally {
       setLoading(false);
@@ -153,6 +164,14 @@ const HistoryScreen = () => {
     return (
       <TouchableOpacity onPress={() => handleCardPress(service)}>
         <Card variant="elevated" padding="md" style={styles.card}>
+          {/* Category and SubCategory Section */}
+          <View style={styles.categorySection}>
+            <Text style={styles.categoryText}>
+              {service.fkCategory?.name || 'No Category'}
+              {service.fkSubCategory && ` • ${service.fkSubCategory.name}`}
+            </Text>
+          </View>
+
           <View style={styles.cardHeader}>
             <View style={styles.cardHeaderLeft}>
               <Text style={styles.cardTitle} numberOfLines={2}>
@@ -306,6 +325,20 @@ const styles = StyleSheet.create({
 
   card: {
     marginBottom: Theme.spacing.sm,
+  },
+
+  categorySection: {
+    marginBottom: Theme.spacing.sm,
+    paddingBottom: Theme.spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: Theme.colors.border.light,
+  },
+
+  categoryText: {
+    fontSize: Theme.typography.fontSize.xs,
+    fontWeight: Theme.typography.fontWeight.semiBold,
+    color: Theme.colors.primary[500],
+    textTransform: 'capitalize',
   },
 
   cardHeader: {

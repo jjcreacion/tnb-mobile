@@ -2,4 +2,6 @@
 2. Se ha corregido la vista del login, el boton "Sign In" se muestra al presionar 
 3. Se ha corregido 43 errores
 4. se Guarda el password (tanto por gestion de la app y gestion del Sistema operativo)
+5. En el tab "Activity" su header era el mismo que en el tab "Services"
+6. Se agrego la category y sub categoria en el tab "Services"
 

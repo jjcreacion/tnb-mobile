@@ -1,5 +1,5 @@
 import { Card, SwipeableTabScreen } from '@/components/common';
-import { HistoryHeader } from '@/components/home';
+import { ActivityHeader } from '@/components/home';
 import { Theme } from '@/constants/Theme';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
@@ -200,7 +200,7 @@ const NotificationScreen = () => {
     <SwipeableTabScreen tabName="activity">
       <View style={styles.container}>
         <StatusBar style="light" backgroundColor={Theme.colors.primary[500]} />
-        <HistoryHeader onMenuPress={handleMenuPress} />
+        <ActivityHeader onMenuPress={handleMenuPress} />
 
       {loading ? (
         <View style={styles.loadingContainer}>
