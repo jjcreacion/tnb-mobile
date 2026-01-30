@@ -191,7 +191,7 @@ const HistoryScreen = () => {
 
   const handleCardPress = (service: ServiceRequest) => {
     const statusInfo = getStatusInfo(service.fkRequestStatus);
-    const statusName = statusList.find(s => s.statusId === (service.fkRequestStatus === null ? 2 : service.fkRequestStatus))?.name || 'Submitted';
+    const statusName = statusList.find(s => s.statusId === (service.fkRequestStatus === null ? 1 : service.fkRequestStatus))?.name || 'Submitted';
     const serviceWithStatus = { ...service, statusInfo: { ...statusInfo, text: statusName } };
     router.push({
       pathname: '/(screens)/ServiceRequestDetail',
@@ -200,7 +200,7 @@ const HistoryScreen = () => {
   };
 
   const getStatusInfo = (fkRequestStatus: number | null): StatusStyle => {
-    const statusId = fkRequestStatus === null ?1: fkRequestStatus;
+    const statusId = fkRequestStatus === null ? 1: fkRequestStatus;
     const statusObject = statusList.find(status => status.statusId === statusId);
     const statusName = statusObject?.name?.toLowerCase() || 'submitted';
     
@@ -242,9 +242,7 @@ const HistoryScreen = () => {
 
           {/* Address Section */}
           <View style={styles.addressRow}>
-            <View style={[styles.locationIconContainer, { backgroundColor: statusInfo.badgeBackground }]}>
-              <Icon name="location-sharp" size={16} color={statusInfo.badgeText} />
-            </View>
+            <Icon name="location-outline" size={20} color={statusInfo.borderColor} style={styles.locationIcon} />
             <Text style={styles.addressText} numberOfLines={2}>
               {service.address || 'No address'}
             </Text>
@@ -257,15 +255,15 @@ const HistoryScreen = () => {
           <View style={styles.bottomRow}>
             {/* Left: Status Badge */}
             <View style={[styles.statusBadge, { backgroundColor: statusInfo.badgeBackground }]}>
-              <Icon name={statusInfo.icon} size={16} color={statusInfo.badgeText} />
-              <Text style={[styles.statusBadgeText, { color: statusInfo.badgeText }]}>
+              <Icon name={statusInfo.icon} size={16} color={statusInfo.borderColor} />
+              <Text style={[styles.statusBadgeText, { color: statusInfo.borderColor }]}>
                 {statusName}
               </Text>
             </View>
 
             {/* Right: Date */}
             <View style={styles.dateSection}>
-              <Icon name="calendar-outline" size={14} color="#9CA3AF" />
+              <Icon name="calendar-clear-outline" size={16} color={statusInfo.borderColor} />
               <Text style={styles.dateText}>
                 {new Date(service.createdAt).toLocaleDateString('en-US', {
                   day: 'numeric',
@@ -468,17 +466,13 @@ const styles = StyleSheet.create({
 
   addressRow: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     gap: Theme.spacing.sm,
     marginBottom: 12,
   },
 
-  locationIconContainer: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
+  locationIcon: {
+    marginRight: 4,
   },
 
   addressText: {

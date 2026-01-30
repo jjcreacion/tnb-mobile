@@ -17,7 +17,7 @@ interface Notification {
 
 const NotificationDetailScreen = () => {
   const insets = useSafeAreaInsets();
-  const router = useRouter();
+  const router = useRouter()
   const params = useLocalSearchParams();
   const { notification: notificationJson } = params;
 

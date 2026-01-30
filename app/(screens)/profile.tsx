@@ -3,31 +3,28 @@ import Constants from 'expo-constants';
 import * as ImageManipulator from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
   Image,
   ImageBackground,
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-
-// Import migrated components
-import {
-  ActionSheet,
-  Button,
-  Card,
-  Input,
-  Loading,
-  Screen,
-  Typography
-} from '@/components/common';
-import { MigratedStyles } from '@/constants/MigratedStyles';
+import { Button, Typography } from '@/components/common';
 import { Theme } from '@/constants/Theme';
 
-export default function ProfileScreenMigrated() {
+export default function ProfileScreen() {
   const [userData, setUserData] = useState({
     profilePicture: '',
     username: '',
@@ -43,10 +40,12 @@ export default function ProfileScreenMigrated() {
   });
 
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [isEditing, setIsEditing] = useState(false);
+  const [focusedInput, setFocusedInput] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [showImageActionSheet, setShowImageActionSheet] = useState(false);
-  
+  const [pendingImageAction, setPendingImageAction] = useState<'camera' | 'gallery' | null>(null);
   const API_URL = Constants.expoConfig?.extra?.API_BASE_URL || 'http://localhost:12099';
   const UPLOAD_IMAGE_URL = `${API_URL}/user/upload-profile-image`;
 
@@ -68,7 +67,7 @@ export default function ProfileScreenMigrated() {
             let formattedCreatedAt = null;
             if (userDataFromApi.createdAt) {
               const date = new Date(userDataFromApi.createdAt);
-              formattedCreatedAt = date.toLocaleDateString('en-US', {
+              formattedCreatedAt = date.toLocaleDateString('es-ES', {
                 year: 'numeric',
                 month: 'long',
                 day: 'numeric',
@@ -81,27 +80,27 @@ export default function ProfileScreenMigrated() {
 
             console.log("Imagen de usuario: " + fullProfilePictureUrl + " API " + API_URL);
 
-            setUserData(prevData => ({
-              ...prevData,
+            setUserData({
+              profilePicture: fullProfilePictureUrl,
               username: userDataFromApi.username || '',
               email: userDataFromApi.email || '',
               phone: userDataFromApi.person?.phones?.[0]?.phone || '',
               firstName: userDataFromApi.person?.firstName || '',
               middleName: userDataFromApi.person?.middleName || '',
               lastName: userDataFromApi.person?.lastName || '',
+              birthdate: '',
               address: userDataFromApi.person?.addresses?.[0]?.address || '',
               pkUser: formattedPkUser,
               createdAt: formattedCreatedAt,
-              profilePicture: fullProfilePictureUrl,
-            }));
+            });
           } else {
             console.error('Error al cargar los datos del usuario:', response.status);
-            Alert.alert('Error', 'Could not load user data. Please try again later.');
+            Alert.alert('Error', 'No se pudieron cargar los datos del usuario. Inténtalo de nuevo más tarde.');
           }
         }
       } catch (error) {
         console.error('Error al cargar los datos del usuario:', error);
-        Alert.alert('Error', 'There was a connection problem loading user data.');
+        Alert.alert('Error', 'Hubo un problema de conexión al cargar los datos del usuario.');
       } finally {
         setIsLoading(false);
       }
@@ -110,334 +109,681 @@ export default function ProfileScreenMigrated() {
     loadUserData();
   }, [API_URL]);
 
-  const takePhoto = async () => {
-    const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
-    
-    if (permissionResult.granted === false) {
-      Alert.alert('Permission Denied', 'We need camera access to take photos.');
-      return;
-    }
-
-    const result = await ImagePicker.launchCameraAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.8,
-    });
-
-    if (!result.canceled && result.assets[0]) {
-      await processAndUploadImage(result.assets[0].uri);
-    }
+  const handleEdit = () => {
+    setIsEditing(!isEditing);
   };
 
-  const pickImage = async () => {
-    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    
-    if (permissionResult.granted === false) {
-      Alert.alert('Permission Denied', 'We need gallery access to select photos.');
-      return;
-    }
-
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.8,
-    });
-
-    if (!result.canceled && result.assets[0]) {
-      await processAndUploadImage(result.assets[0].uri);
-    }
+  /**
+   * Maneja los cambios en los campos de entrada de texto y actualiza el estado userData.
+   * @param {string} name - El nombre del campo que se está cambiando (ej., 'firstName').
+   * @param {string} value - El nuevo valor para el campo.
+   */
+  const handleChange = (name: string, value: string) => {
+    setUserData({ ...userData, [name]: value });
   };
 
-  const processAndUploadImage = async (uri: string) => {
-    try {
-      setIsLoading(true);
-
-      // Procesar imagen
-      const manipulatedImage = await ImageManipulator.manipulateAsync(
-        uri,
-        [{ resize: { width: 300, height: 300 } }],
-        { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG }
-      );
-
-      const userId = await AsyncStorage.getItem('userId');
-      const accessToken = await AsyncStorage.getItem('accessToken');
-
-      if (!userId || !accessToken) {
-        Alert.alert('Error', 'User information not found.');
-        return;
-      }
-
-      // Upload image
-      const formData = new FormData();
-      formData.append('image', {
-        uri: manipulatedImage.uri,
-        type: 'image/jpeg',
-        name: 'profile.jpg',
-      } as any);
-      formData.append('userId', userId);
-
-      const response = await fetch(UPLOAD_IMAGE_URL, {
-        method: 'POST',
-        body: formData,
-        headers: {
-          'Content-Type': 'multipart/form-data',
-          'Authorization': `Bearer ${accessToken}`,
-        },
-      });
-
-      if (response.ok) {
-        const responseData = await response.json();
-        const newImageUrl = `${API_URL}/${responseData.imagePath}`;
-        
-        setUserData(prev => ({
-          ...prev,
-          profilePicture: newImageUrl,
-        }));
-
-        Alert.alert('Success', 'Profile picture updated successfully.');
-      } else {
-        Alert.alert('Error', 'Could not update profile picture.');
-      }
-    } catch (error) {
-      console.error('Error al subir imagen:', error);
-      Alert.alert('Error', 'There was a problem uploading the image.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const saveChanges = async () => {
-    // Validation matching original profile.tsx
+  const handleSaveProfile = async () => {
     if (!userData.firstName || !userData.lastName || !userData.phone || !userData.address || !userData.email) {
-      Alert.alert('Error', 'All fields for first name, last name, phone, address and email are required.');
+      Alert.alert('Error', 'Todos los campos de nombre, apellido, teléfono, dirección y correo electrónico son obligatorios.');
       return;
     }
 
+    const bodyData = {
+      pkUser: userData.pkUser,
+      person: {
+        firstName: userData.firstName,
+        lastName: userData.lastName,
+        phones: [
+          {
+            phone: userData.phone,
+            isPrimary: 1,
+          },
+        ],
+        addresses: [
+          {
+            address: userData.address,
+            isPrimary: 1,
+          },
+        ],
+      },
+    };
+
+    console.log("Saving profile data:", bodyData);
+
     try {
       setIsLoading(true);
-      const userId = await AsyncStorage.getItem('userId');
-      const accessToken = await AsyncStorage.getItem('accessToken');
-
-      if (!userId || !accessToken) {
-        Alert.alert('Error', 'User information not found.');
-        return;
-      }
-
-      const updateData = {
-        pkUser: userData.pkUser,
-        person: {
-          firstName: userData.firstName,
-          lastName: userData.lastName,
-          phones: [{ phone: userData.phone, isPrimary: 1 }],
-          addresses: [{ address: userData.address, isPrimary: 1 }],
-        },
-      };
-
       const response = await fetch(`${API_URL}/user/updateUserProfile`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(updateData),
+        body: JSON.stringify(bodyData),
       });
 
       if (response.ok) {
+        await response.json();
+        Alert.alert('Perfil Guardado', 'Los cambios en tu perfil han sido guardados.');
         setIsEditing(false);
-        Alert.alert('Success', 'Profile updated successfully.');
       } else {
-        Alert.alert('Error', 'Could not save changes.');
+        const errorText = await response.text();
+        console.error('Error al guardar el perfil:', response.status, errorText);
+        Alert.alert('Error', 'No se pudieron guardar los cambios en el perfil. Inténtalo de nuevo.');
+      }
+
+    } catch (error) {
+      console.error('Error de red al guardar el perfil:', error);
+      Alert.alert('Error', 'Hubo un problema de conexión al guardar el perfil.');
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  /**
+   * Sube la imagen de perfil al servidor.
+   * @param {string} imageUri - La URI local de la imagen seleccionada.
+   * @param {string} pkUser - El ID del usuario.
+   */
+  const uploadProfileImage = async (imageUri: string, pkUser: string) => {
+    setIsLoading(true);
+    const formData = new FormData();
+    formData.append('pkUser', pkUser);
+    formData.append('file', {
+      uri: imageUri,
+      name: `profile_${pkUser}.jpg`,
+      type: 'image/jpeg',
+    } as any);
+
+    try {
+      const response = await fetch(UPLOAD_IMAGE_URL, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        if (result && typeof result.imageUrl === 'string') {
+          const imageUrl = result.imageUrl.startsWith('http')
+            ? result.imageUrl
+            : `${API_URL}/${result.imageUrl}`;
+
+          setUserData(prevData => ({
+            ...prevData,
+            profilePicture: imageUrl
+          }));
+          Alert.alert('Éxito', 'Imagen de perfil subida correctamente.');
+        } else {
+          // Fallback to local URI if server response is not as expected
+          setUserData(prevData => ({
+            ...prevData,
+            profilePicture: imageUri
+          }));
+        }
+      } else {
+        const errorText = await response.text();
+        console.error('Error al subir la imagen al servidor:', response.status, errorText);
+        // Fallback to local URI on server error
+        setUserData(prevData => ({
+          ...prevData,
+          profilePicture: imageUri
+        }));
+        Alert.alert('Advertencia', 'La imagen se guardó localmente, pero hubo un problema al subirla al servidor.');
       }
     } catch (error) {
-      console.error('Error al guardar cambios:', error);
-      Alert.alert('Error', 'There was a problem saving changes.');
+      console.error('Error de red al subir la imagen:', error);
+      // Fallback to local URI on network error
+      setUserData(prevData => ({
+        ...prevData,
+        profilePicture: imageUri
+      }));
+      Alert.alert('Error', 'Hubo un problema de conexión al subir la imagen, pero se guardó localmente.');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleInputChange = (field: string, value: string) => {
-    setUserData(prev => ({
-      ...prev,
-      [field]: value,
-    }));
+  const handleImagePick = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permiso denegado', 'Necesitamos permiso para acceder a tu galería de imágenes para cambiar la foto de perfil.');
+      return;
+    }
+
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 1,
+    });
+
+    if (!result.canceled && result.assets && result.assets.length > 0) {
+      const selectedImageUri = result.assets[0].uri;
+
+      try {
+        const manipulatedImage = await ImageManipulator.manipulateAsync(
+          selectedImageUri,
+          [],
+          { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG }
+        );
+
+        setUserData(prevData => ({ ...prevData, profilePicture: manipulatedImage.uri }));
+
+        if (userData.pkUser) {
+          uploadProfileImage(manipulatedImage.uri, userData.pkUser);
+        } else {
+          Alert.alert('Error', 'No se pudo obtener el ID de usuario para subir la imagen. Asegúrate de que el perfil se haya cargado correctamente.');
+        }
+      } catch (error) {
+        console.error('Error al manipular la imagen:', error);
+        Alert.alert('Error', 'No se pudo procesar la imagen seleccionada.');
+      }
+    }
   };
+
+  const handleTakePhoto = async () => {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permiso denegado', 'Necesitamos permiso para acceder a tu cámara para tomar una foto de perfil.');
+      return;
+    }
+
+    let result = await ImagePicker.launchCameraAsync({
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 1,
+    });
+
+    if (!result.canceled && result.assets && result.assets.length > 0) {
+      const selectedImageUri = result.assets[0].uri;
+
+      try {
+        const manipulatedImage = await ImageManipulator.manipulateAsync(
+          selectedImageUri,
+          [],
+          { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG }
+        );
+
+        setUserData(prevData => ({ ...prevData, profilePicture: manipulatedImage.uri }));
+
+        if (userData.pkUser) {
+          uploadProfileImage(manipulatedImage.uri, userData.pkUser);
+        } else {
+          Alert.alert('Error', 'No se pudo obtener el ID de usuario para subir la imagen. Asegúrate de que el perfil se haya cargado correctamente.');
+        }
+      } catch (error) {
+        console.error('Error al manipular la imagen:', error);
+        Alert.alert('Error', 'No se pudo procesar la imagen seleccionada.');
+      }
+    }
+  };
+
+  const handleOptionPress = (option: 'camera' | 'gallery') => {
+    setPendingImageAction(option);
+    setShowImageActionSheet(false);
+  };
+
+  // Execute pending action after modal closes
+  useEffect(() => {
+    if (!showImageActionSheet && pendingImageAction) {
+      // Wait for modal close animation to complete (iOS needs more time)
+      const timer = setTimeout(async () => {
+        const action = pendingImageAction;
+        setPendingImageAction(null);
+
+        if (action === 'camera') {
+          await handleTakePhoto();
+        } else {
+          await handleImagePick();
+        }
+      }, Platform.OS === 'ios' ? 600 : 300);
+
+      return () => clearTimeout(timer);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showImageActionSheet, pendingImageAction]);
 
   return (
     <>
-      <StatusBar 
-        style="light" 
-        backgroundColor={Theme.colors.primary[500]}
-      />
-      <Screen safeArea={true} scrollable disableKeyboardDismiss={true}>
-        <View style={MigratedStyles.profileContainer} pointerEvents="box-none">
-        {/* Header with Background Image */}
-        <ImageBackground
-          source={require('@/assets/images/roof-repair.jpg')}
-          style={MigratedStyles.profileBackgroundImage}
-          imageStyle={MigratedStyles.profileBackgroundImageStyle}
-        >
-          {/* Back Button */}
-          <TouchableOpacity style={MigratedStyles.profileBackButton} onPress={() => router.back()}>
-            <Icon name="arrow-back" size={28} color={Theme.colors.text.inverse} />
-          </TouchableOpacity>
+      <ScrollView style={styles.container}>
+      {isLoading && (
+        <View style={styles.loadingOverlay}>
+          <ActivityIndicator size="large" color="#007AFF" />
+          <Text style={styles.loadingText}>Cargando...</Text>
+        </View>
+      )}
 
-          {/* Profile Picture Section */}
-          <View style={MigratedStyles.profileHeader}>
-            <View style={MigratedStyles.profilePictureContainer}>
-              <Image
-                source={
-                  userData.profilePicture
-                    ? { uri: userData.profilePicture }
-                    : require('@/assets/images/user.png')
-                }
-                style={MigratedStyles.profilePicture}
-              />
-              <TouchableOpacity 
-                style={MigratedStyles.profileChangePictureButton}
+      <ImageBackground source={require('@/assets/images/roof-repair.jpg')} style={styles.backgroundImage}>
+        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <Icon name="arrow-back" size={28} color="#FFF" />
+        </TouchableOpacity>
+        <View style={styles.profileHeader}>
+          <View style={styles.profilePictureContainer}>
+            {/* Modificación: Asegura que la prop 'source' siempre tenga un valor válido. */}
+            <Image
+              source={userData.profilePicture ? { uri: userData.profilePicture } : require('@/assets/images/user.png')}
+              style={styles.profilePicture}
+            />
+            {isEditing && (
+              <TouchableOpacity
+                style={styles.changePictureButton}
                 onPress={() => setShowImageActionSheet(true)}
               >
-                <Icon name="camera-alt" size={24} color={Theme.colors.text.inverse} />
+                <Icon name="camera-alt" size={24} color="#FFF" />
               </TouchableOpacity>
-            </View>
-          </View>
-        </ImageBackground>
-
-        {/* Profile Content */}
-        <View style={MigratedStyles.profileContentContainer} pointerEvents="box-none">
-          {/* User ID and Join Date */}
-          <Card variant="elevated" style={MigratedStyles.profileUserInfoCard}>
-            <View pointerEvents="box-none">
-              <Typography variant="h3" color="secondary" style={MigratedStyles.profileEmailText} pointerEvents="none">
-                {userData.email}
-              </Typography>
-              <Typography variant="h3" color="primary" style={MigratedStyles.profileUserIdText} pointerEvents="none">
-                Client ID: #{userData.pkUser || '000000'}
-              </Typography>
-              {userData.createdAt && (
-                <Typography variant="body2" color="secondary" style={MigratedStyles.profileJoinDateText} pointerEvents="none">
-                  Member since {userData.createdAt}
-                </Typography>
-              )}
-            </View>
-          </Card>
-
-          {/* Profile Form */}
-          <Card variant="outlined" style={MigratedStyles.profileFormCard}>
-            <Typography variant="h4" color="primary" style={MigratedStyles.profileSectionTitle} pointerEvents="none">
-              My Profile
-            </Typography>
-
-            <View style={MigratedStyles.profileFormSection} pointerEvents="box-none">
-              <Input
-                label="First Name"
-                value={userData.firstName}
-                onChangeText={(value) => handleInputChange('firstName', value)}
-                disabled={!isEditing}
-                leftIcon="person-outline"
-                containerStyle={MigratedStyles.profileInputContainer}
-              />
-
-              <Input
-                label="Last Name"
-                value={userData.lastName}
-                onChangeText={(value) => handleInputChange('lastName', value)}
-                disabled={!isEditing}
-                leftIcon="person-outline"
-                containerStyle={MigratedStyles.profileInputContainer}
-              />
-
-              <Input
-                label="Phone"
-                value={userData.phone}
-                onChangeText={(value) => handleInputChange('phone', value)}
-                disabled={!isEditing}
-                leftIcon="call-outline"
-                keyboardType="phone-pad"
-                containerStyle={MigratedStyles.profileInputContainer}
-              />
-
-              <Input
-                label="Address"
-                value={userData.address}
-                onChangeText={(value) => handleInputChange('address', value)}
-                disabled={!isEditing}
-                leftIcon="location-on"
-                multiline
-                numberOfLines={3}
-                containerStyle={MigratedStyles.profileInputContainer}
-              />
-            </View>
-          </Card>
-
-          {/* Action Buttons */}
-          <View style={MigratedStyles.profileActionsContainer}>
-            {/* Edit Profile / Save Changes Button */}
-            <Button
-              title={isEditing ? "Save Changes" : "Edit Profile"}
-              variant="primary"
-              size="lg"
-              onPress={isEditing ? saveChanges : () => setIsEditing(true)}
-              loading={isLoading}
-              icon={
-                <Icon
-                  name={isEditing ? "save" : "edit"}
-                  size={20}
-                  color={Theme.colors.text.inverse}
-                />
-              }
-              iconPosition="left"
-              fullWidth
-            />
-
-            {/* Cancel Button - Only visible when editing */}
-            {isEditing && (
-              <Button
-                title="Cancel"
-                variant="outline"
-                size="lg"
-                onPress={() => setIsEditing(false)}
-                icon={<Icon name="close" size={20} color={Theme.colors.primary[500]} />}
-                iconPosition="left"
-                fullWidth
-                style={MigratedStyles.profileCancelButton}
-              />
             )}
           </View>
+          <Text style={styles.pkUserText}>
+            {userData.email}
+          </Text>
+          <Text style={styles.pkUserText}>
+            Client ID: {userData.pkUser}
+          </Text>
+        </View>
+      </ImageBackground>
+
+      <View style={styles.card}>
+        <View style={styles.cardHeader}>
+          <Text style={styles.header}>Mi Perfil</Text>
+          <TouchableOpacity onPress={handleEdit}>
+            <Icon name="edit" size={24} color="#007AFF" />
+          </TouchableOpacity>
         </View>
 
-        {/* Loading Overlay */}
-        <Loading
-          visible={isLoading}
-          variant="overlay"
-          message="Processing..."
-          size="lg"
-        />
+        <View style={styles.detailSection}>
+          <Text style={styles.sectionTitle}>Nombre</Text>
+          {isEditing ? (
+            <TextInput
+              style={[styles.detailInput, focusedInput === 'firstName' && styles.focusedInput]}
+              value={userData.firstName}
+              onChangeText={(text) => handleChange('firstName', text)}
+              onFocus={() => setFocusedInput('firstName')}
+              onBlur={() => setFocusedInput(null)}
+            />
+          ) : (
+            <Text style={styles.sectionValue}>{userData.firstName || 'N/A'}</Text>
+          )}
+        </View>
 
-        {/* Image Action Sheet */}
-        <ActionSheet
-          visible={showImageActionSheet}
-          onClose={() => setShowImageActionSheet(false)}
-          title="Update Profile Picture"
-          options={[
-            {
-              id: 'camera',
-              title: 'Take Photo',
-              icon: 'camera-alt',
-              onPress: takePhoto,
-            },
-            {
-              id: 'gallery',
-              title: 'Choose from Gallery',
-              icon: 'photo-library',
-              onPress: pickImage,
-            },
-          ]}
-        />
+        <View style={styles.detailSection}>
+          <Text style={styles.sectionTitle}>Apellido</Text>
+          {isEditing ? (
+            <TextInput
+              style={[styles.detailInput, focusedInput === 'lastName' && styles.focusedInput]}
+              value={userData.lastName}
+              onChangeText={(text) => handleChange('lastName', text)}
+              onFocus={() => setFocusedInput('lastName')}
+              onBlur={() => setFocusedInput(null)}
+            />
+          ) : (
+            <Text style={styles.sectionValue}>{userData.lastName || 'N/A'}</Text>
+          )}
+        </View>
+
+        <View style={styles.detailSection}>
+          <Text style={styles.sectionTitle}>Teléfono</Text>
+          {isEditing ? (
+            <TextInput
+              style={[styles.detailInput, focusedInput === 'phone' && styles.focusedInput]}
+              value={userData.phone}
+              onChangeText={(text) => handleChange('phone', text)}
+              onFocus={() => setFocusedInput('phone')}
+              onBlur={() => setFocusedInput(null)}
+            />
+          ) : (
+            <Text style={styles.sectionValue}>{userData.phone || 'N/A'}</Text>
+          )}
+        </View>
+
+        <View style={styles.detailSection}>
+          <Text style={styles.sectionTitle}>Dirección</Text>
+          {isEditing ? (
+            <TextInput
+              style={[styles.detailInput, focusedInput === 'address' && styles.focusedInput]}
+              value={userData.address}
+              onChangeText={(text) => handleChange('address', text)}
+              onFocus={() => setFocusedInput('address')}
+              onBlur={() => setFocusedInput(null)}
+            />
+          ) : (
+            <Text style={styles.sectionValue}>{userData.address || 'N/A'}</Text>
+          )}
+        </View>
+
+        {isEditing &&
+          <View style={styles.contSave}>
+            <TouchableOpacity style={styles.buttomSave} onPress={handleSaveProfile}>
+              <Text style={styles.buttonSaveText}>Save</Text>
+            </TouchableOpacity>
+          </View>
+        }
+
       </View>
-    </Screen>
+    </ScrollView>
+
+    {/* Image Action Sheet Modal */}
+    <Modal
+      visible={showImageActionSheet}
+      transparent
+      animationType="slide"
+      onRequestClose={() => setShowImageActionSheet(false)}
+      statusBarTranslucent
+    >
+      <Pressable
+        style={styles.modalOverlay}
+        onPress={() => setShowImageActionSheet(false)}
+      >
+        <Pressable
+          style={[styles.modalContent, { paddingBottom: Math.max(insets.bottom, 20) + Theme.spacing.lg }]}
+          onPress={(e) => e.stopPropagation()}
+        >
+          {/* Modal Handle Bar */}
+          <View style={styles.modalHandleBar} />
+
+          {/* Modal Header */}
+          <View style={styles.modalHeader}>
+            <Typography variant="h4" color="primary" style={styles.modalTitle}>
+              Update Profile Picture
+            </Typography>
+            <TouchableOpacity
+              onPress={() => setShowImageActionSheet(false)}
+              style={styles.closeButton}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Icon name="close" size={24} color={Theme.colors.text.secondary} />
+            </TouchableOpacity>
+          </View>
+
+          {/* Action Options */}
+          <View style={styles.optionsContainer}>
+            <TouchableOpacity
+              style={styles.modalOption}
+              onPress={() => handleOptionPress('camera')}
+              activeOpacity={0.7}
+            >
+              <View style={styles.optionIconContainer}>
+                <Icon name="camera-alt" size={24} color={Theme.colors.primary[500]} />
+              </View>
+              <View style={styles.optionTextContainer}>
+                <Typography variant="body1" style={styles.optionTitle}>
+                  Take Photo
+                </Typography>
+                <Typography variant="caption" color="secondary">
+                  Use your camera to take a new photo
+                </Typography>
+              </View>
+              <Icon name="chevron-right" size={20} color={Theme.colors.text.tertiary} />
+            </TouchableOpacity>
+
+            <View style={styles.optionDivider} />
+
+            <TouchableOpacity
+              style={styles.modalOption}
+              onPress={() => handleOptionPress('gallery')}
+              activeOpacity={0.7}
+            >
+              <View style={styles.optionIconContainer}>
+                <Icon name="photo-library" size={24} color={Theme.colors.primary[500]} />
+              </View>
+              <View style={styles.optionTextContainer}>
+                <Typography variant="body1" style={styles.optionTitle}>
+                  Choose from Gallery
+                </Typography>
+                <Typography variant="caption" color="secondary">
+                  Select a photo from your gallery
+                </Typography>
+              </View>
+              <Icon name="chevron-right" size={20} color={Theme.colors.text.tertiary} />
+            </TouchableOpacity>
+          </View>
+
+          {/* Cancel Button */}
+          <Button
+            title="Cancel"
+            variant="outline"
+            size="lg"
+            onPress={() => setShowImageActionSheet(false)}
+            fullWidth
+            style={styles.cancelButton}
+          />
+        </Pressable>
+      </Pressable>
+    </Modal>
     </>
   );
 }
 
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    padding: 0,
+  },
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: '#333',
+  },
+  backgroundImage: {
+    height: 150,
+    justifyContent: 'flex-end',
+    borderBottomLeftRadius: 10,
+    borderBottomRightRadius: 10,
+    overflow: 'visible',
+    position: 'relative',
+    ...Platform.select({
+      ios: {
+        shadowColor: 'gray',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.5,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 8,
+      },
+    }),
+  },
+  profileHeader: {
+    alignItems: 'center',
+    position: 'absolute',
+    bottom: -70,
+    left: 0,
+    right: 0,
+    width: '100%',
+    zIndex: 1,
+  },
+  backButton: {
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 50 : 20,
+    left: 15,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    padding: 8,
+    borderRadius: 25,
+    zIndex: 10,
+  },
+  profilePictureContainer: {
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'visible',
+    position: 'relative',
+    zIndex: 2,
+  },
+  profilePicture: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 75,
+  },
+  changePictureButton: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    borderRadius: 20,
+    padding: 8,
+    zIndex: 3,
+  },
+  pkUserText: {
+    marginTop: 0,
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+    textAlign: 'center',
+    width: '100%',
+  },
+  buttomSave: {
+    backgroundColor: '#007AFF',
+    borderRadius: 8,
+    paddingVertical: 10,
+    width: '60%',
+    alignItems: 'center',
+    marginBottom: 10,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  buttonSaveText: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  contSave: {
+    marginTop: 20,
+    marginBottom: 10,
+    alignItems: 'center',
+    width: '100%',
+  },
+  card: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    padding: 16,
+    marginBottom: 12,
+    marginTop: 90,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  header: {
+    fontSize: 24,
+    fontWeight: 'bold',
+  },
+  detailSection: {
+    marginBottom: 15,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 5,
+    color: '#333',
+  },
+  sectionValue: {
+    fontSize: 16,
+    color: '#555',
+  },
+  detailRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  detailInput: {
+    flex: 1,
+    borderBottomWidth: 1,
+    borderBottomColor: '#ccc',
+    paddingVertical: 5,
+    fontSize: 16,
+    marginLeft: 10,
+  },
+  focusedInput: {
+    borderBottomColor: 'blue',
+    color: 'black',
+  },
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    minHeight: 300,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  modalHandleBar: {
+    width: 40,
+    height: 4,
+    backgroundColor: '#E0E0E0',
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginBottom: 20,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  modalTitle: {
+    flex: 1,
+  },
+  closeButton: {
+    padding: 4,
+  },
+  optionsContainer: {
+    marginBottom: 24,
+  },
+  modalOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 12,
+  },
+  optionIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#FFF1F0',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  optionTextContainer: {
+    flex: 1,
+  },
+  optionTitle: {
+    marginBottom: 4,
+  },
+  optionDivider: {
+    height: 1,
+    backgroundColor: '#F0F0F0',
+    marginHorizontal: 12,
+  },
+  cancelButton: {
+    marginBottom: 8,
+  },
+});
