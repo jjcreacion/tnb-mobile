@@ -3,7 +3,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 import * as ImageManipulator from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
-import * as Location from 'expo-location';
 import { Formik } from 'formik';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -111,15 +110,7 @@ const RequestMigrated: React.FC<ModalProps> = ({
 
   // Estados utilizados en el componente
   const [images, setImages] = useState<string[]>([]);
-  const [latitude, setLatitude] = useState<number | null>(null);
-  const [longitude, setLongitude] = useState<number | null>(null);
   const [pkUser, setPkUser] = useState<string | null>(null);
-  const [region, setRegion] = useState({
-    latitude: 37.78825,
-    longitude: -122.4324,
-    latitudeDelta: 0.005,
-    longitudeDelta: 0.005,
-  });
   
   // Estados para subcategorías y carga
   const [subCategories, setSubCategories] = useState<SubCategory[]>([]);
@@ -378,47 +369,6 @@ const RequestMigrated: React.FC<ModalProps> = ({
     );
   };
 
-  const getLocation = async () => {
-    let { status } = await Location.requestForegroundPermissionsAsync();
-    
-    if (status !== 'granted') {
-      console.warn('Ubicación: Permiso denegado. Se usará la ubicación por defecto.');
-      setRegion({
-        latitude: 37.78825,
-        longitude: -122.4324,
-        latitudeDelta: 0.005,
-        longitudeDelta: 0.005,
-      });
-      setLatitude(null);
-      setLongitude(null);
-      return;
-    }
-  
-    try {
-      let location = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.Balanced, // Propiedad válida
-      });
-  
-      setLatitude(location.coords.latitude);
-      setLongitude(location.coords.longitude);
-      setRegion({
-        latitude: location.coords.latitude,
-        longitude: location.coords.longitude,
-        latitudeDelta: 0.005,
-        longitudeDelta: 0.005,
-      });
-    } catch (error) {
-      console.warn('Ubicación: Falló la solicitud de GPS (servicios del dispositivo insatisfactorios). Se usará la ubicación por defecto.');
-      setRegion({
-        latitude: 37.78825,
-        longitude: -122.4324,
-        latitudeDelta: 0.005,
-        longitudeDelta: 0.005,
-      });
-      setLatitude(null);
-      setLongitude(null);
-    }
-  };
 
   // Subir imágenes
   const uploadImages = async (serviceRequestId: number) => {
@@ -521,11 +471,11 @@ const RequestMigrated: React.FC<ModalProps> = ({
     const serviceRequestData = {
       fkUser: parseInt(pkUser, 10),
       fkCategory: selectedCategory?.pkCategory || 0,
-      fkSubCategory: selectedSubCategory, 
+      fkSubCategory: selectedSubCategory,
       serviceDescription: values.description,
       address: values.address,
-      latitude: latitude !== null ? latitude : 0,
-      longitude: longitude !== null ? longitude : 0,
+      latitude: 0,
+      longitude: 0,
     };
 
     console.log('Datos a enviar:', serviceRequestData);
@@ -610,7 +560,7 @@ const RequestMigrated: React.FC<ModalProps> = ({
     fetchSubCategories();
   }, [selectedCategory, API_URL]);
 
-  // useEffect para cargar datos del usuario y ubicación
+  // useEffect para cargar datos del usuario
   useEffect(() => {
     const fetchPkUser = async () => {
       try {
@@ -624,7 +574,6 @@ const RequestMigrated: React.FC<ModalProps> = ({
     };
 
     fetchPkUser();
-    getLocation();
   }, []);
 
   // useEffect para resetear estado cuando se cierra el modal
