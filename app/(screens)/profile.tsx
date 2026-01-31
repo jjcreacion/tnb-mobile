@@ -1,11 +1,16 @@
 import { Button, Typography } from '@/components/common';
+import { getCropperHtml } from '@/components/common/cropperHtml';
 import { Theme } from '@/constants/Theme';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { MaterialIcons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
+import * as FileSystem from 'expo-file-system';
+import * as FileSystemLegacy from 'expo-file-system/legacy';
 import * as ImageManipulator from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
-import React, { useEffect, useRef, useState } from 'react';
+import WebView from 'react-native-webview';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -28,6 +33,271 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { MigratedStyles } from '../../constants/MigratedStyles';
+
+interface ProfileImageCropEditorProps {
+  visible: boolean;
+  imageUri: string;
+  onClose: () => void;
+  onCropComplete: (croppedUri: string) => void;
+  onTakeAnother: () => void;
+  onChooseAnother: () => void;
+}
+
+const ProfileImageCropEditor: React.FC<ProfileImageCropEditorProps> = ({
+  visible,
+  imageUri,
+  onClose,
+  onCropComplete,
+  onTakeAnother,
+  onChooseAnother,
+}) => {
+  const insets = useSafeAreaInsets();
+  const webViewRef = useRef<WebView>(null);
+  const [loading, setLoading] = useState(true);
+  const [processing, setProcessing] = useState(false);
+  const [imageBase64, setImageBase64] = useState<string>('');
+
+  const loadImageAsBase64 = useCallback(async () => {
+    try {
+      setLoading(true);
+      const file = new FileSystem.File(imageUri);
+      const base64 = await file.base64();
+      setImageBase64(`data:image/jpeg;base64,${base64}`);
+    } catch (error) {
+      console.error('Failed to load image:', error);
+      Alert.alert('Error', 'Failed to load image for cropping');
+      onClose();
+    }
+  }, [imageUri, onClose]);
+
+  React.useEffect(() => {
+    if (visible && imageUri) {
+      loadImageAsBase64();
+    }
+  }, [visible, imageUri, loadImageAsBase64]);
+
+  const handleMessage = async (event: any) => {
+    try {
+      const message = JSON.parse(event.nativeEvent.data);
+
+      switch (message.type) {
+        case 'ready':
+          setLoading(false);
+          break;
+
+        case 'cropped':
+          setProcessing(true);
+          try {
+            const base64Data = message.data.split(',')[1];
+            const filename = `cropped_${Date.now()}.jpg`;
+            const fileUri = FileSystemLegacy.documentDirectory + filename;
+
+            const file = new FileSystem.File(fileUri);
+            await file.create();
+            await file.write(base64Data, { encoding: 'base64' });
+
+            onCropComplete(fileUri);
+          } catch (error) {
+            console.error('Failed to save cropped image:', error);
+            Alert.alert('Error', 'Failed to save cropped image');
+          } finally {
+            setProcessing(false);
+          }
+          break;
+
+        case 'error':
+          Alert.alert('Error', message.message || 'An error occurred');
+          setLoading(false);
+          setProcessing(false);
+          break;
+      }
+    } catch (error) {
+      console.error('Failed to parse message:', error);
+    }
+  };
+
+  const handleCrop = () => {
+    if (webViewRef.current) {
+      webViewRef.current.postMessage(JSON.stringify({ action: 'crop' }));
+    }
+  };
+
+  const handleRotate = () => {
+    if (webViewRef.current) {
+      webViewRef.current.postMessage(JSON.stringify({ action: 'rotate', degrees: 90 }));
+    }
+  };
+
+  const handleReset = () => {
+    if (webViewRef.current) {
+      webViewRef.current.postMessage(JSON.stringify({ action: 'reset' }));
+    }
+  };
+
+  if (!visible) return null;
+
+  return (
+    <Modal
+      visible={visible}
+      animationType="slide"
+      transparent={false}
+      onRequestClose={onClose}
+    >
+      <View style={[cropEditorStyles.container, { paddingTop: insets.top }]}>
+        {/* Header */}
+        <View style={cropEditorStyles.header}>
+          <TouchableOpacity onPress={onClose} style={cropEditorStyles.iconButton}>
+            <MaterialIcons name="close" size={24} color="white" />
+          </TouchableOpacity>
+          <Typography variant="h4" style={cropEditorStyles.headerTitle}>
+            Crop Profile Picture
+          </Typography>
+          <View style={cropEditorStyles.iconButton} />
+        </View>
+
+        {/* WebView */}
+        <View style={cropEditorStyles.webViewContainer}>
+          {imageBase64 ? (
+            <WebView
+              ref={webViewRef}
+              source={{ html: getCropperHtml(imageBase64) }}
+              onMessage={handleMessage}
+              style={cropEditorStyles.webView}
+              scrollEnabled={false}
+              bounces={false}
+              javaScriptEnabled={true}
+              domStorageEnabled={true}
+              startInLoadingState={false}
+              mixedContentMode="always"
+              allowFileAccess={true}
+              allowUniversalAccessFromFileURLs={true}
+            />
+          ) : null}
+
+          {/* Loading Overlay */}
+          {(loading || processing) && (
+            <View style={cropEditorStyles.loadingOverlay}>
+              <ActivityIndicator size="large" color="white" />
+              <Typography variant="body1" style={cropEditorStyles.loadingText}>
+                {processing ? 'Processing...' : 'Loading...'}
+              </Typography>
+            </View>
+          )}
+        </View>
+
+        {/* Toolbar */}
+        <View style={[cropEditorStyles.toolbar, { paddingBottom: Math.max(insets.bottom, 20) }]}>
+          <View style={cropEditorStyles.toolButtons}>
+            <TouchableOpacity style={cropEditorStyles.toolButton} onPress={handleRotate}>
+              <MaterialIcons name="rotate-right" size={24} color="white" />
+              <Typography variant="caption" style={cropEditorStyles.toolText}>
+                Rotate
+              </Typography>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={cropEditorStyles.toolButton} onPress={handleReset}>
+              <MaterialIcons name="refresh" size={24} color="white" />
+              <Typography variant="caption" style={cropEditorStyles.toolText}>
+                Reset
+              </Typography>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={cropEditorStyles.toolButton} onPress={onTakeAnother}>
+              <MaterialIcons name="camera-alt" size={24} color="white" />
+              <Typography variant="caption" style={cropEditorStyles.toolText}>
+                Take Another
+              </Typography>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={cropEditorStyles.toolButton} onPress={onChooseAnother}>
+              <MaterialIcons name="photo-library" size={24} color="white" />
+              <Typography variant="caption" style={cropEditorStyles.toolText}>
+                Choose Another
+              </Typography>
+            </TouchableOpacity>
+          </View>
+
+          <View style={cropEditorStyles.actionButtons}>
+            <Button
+              title="Done"
+              onPress={handleCrop}
+              variant="primary"
+              fullWidth
+              size="lg"
+              disabled={loading || processing}
+            />
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+};
+
+const cropEditorStyles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#000',
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+  },
+  headerTitle: {
+    color: 'white',
+    fontWeight: '600',
+  },
+  iconButton: {
+    padding: 8,
+    width: 40,
+  },
+  webViewContainer: {
+    flex: 1,
+    position: 'relative',
+  },
+  webView: {
+    flex: 1,
+    backgroundColor: '#000',
+  },
+  loadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    color: 'white',
+    marginTop: 16,
+  },
+  toolbar: {
+    backgroundColor: '#000',
+    paddingTop: 16,
+    paddingHorizontal: 16,
+  },
+  toolButtons: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 16,
+    marginBottom: 16,
+  },
+  toolButton: {
+    alignItems: 'center',
+    gap: 4,
+  },
+  toolText: {
+    color: 'white',
+    fontSize: 11,
+  },
+  actionButtons: {
+    marginBottom: 8,
+  },
+});
 
 export default function ProfileScreen() {
   const [userData, setUserData] = useState({
@@ -55,6 +325,8 @@ export default function ProfileScreen() {
   const [toastVisible, setToastVisible] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const toastOpacity = useRef(new Animated.Value(0)).current;
+  const [showCropEditor, setShowCropEditor] = useState(false);
+  const [tempImageUri, setTempImageUri] = useState<string>('');
   const API_URL = Constants.expoConfig?.extra?.API_BASE_URL || 'http://localhost:12099';
   const UPLOAD_IMAGE_URL = `${API_URL}/user/upload-profile-image`;
 
@@ -366,32 +638,14 @@ export default function ProfileScreen() {
 
     let result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [1, 1],
+      allowsEditing: false,
       quality: 1,
     });
 
     if (!result.canceled && result.assets && result.assets.length > 0) {
       const selectedImageUri = result.assets[0].uri;
-
-      try {
-        const manipulatedImage = await ImageManipulator.manipulateAsync(
-          selectedImageUri,
-          [],
-          { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG }
-        );
-
-        setUserData(prevData => ({ ...prevData, profilePicture: manipulatedImage.uri }));
-
-        if (userData.pkUser) {
-          uploadProfileImage(manipulatedImage.uri, userData.pkUser);
-        } else {
-          Alert.alert('Error', 'Could not get user ID to upload image. Make sure the profile has loaded correctly.');
-        }
-      } catch (error) {
-        console.error('Error manipulating image:', error);
-        Alert.alert('Error', 'Could not process the selected image.');
-      }
+      setTempImageUri(selectedImageUri);
+      setShowCropEditor(true);
     }
   };
 
@@ -403,38 +657,86 @@ export default function ProfileScreen() {
     }
 
     let result = await ImagePicker.launchCameraAsync({
-      allowsEditing: true,
-      aspect: [1, 1],
+      allowsEditing: false,
       quality: 1,
     });
 
     if (!result.canceled && result.assets && result.assets.length > 0) {
       const selectedImageUri = result.assets[0].uri;
-
-      try {
-        const manipulatedImage = await ImageManipulator.manipulateAsync(
-          selectedImageUri,
-          [],
-          { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG }
-        );
-
-        setUserData(prevData => ({ ...prevData, profilePicture: manipulatedImage.uri }));
-
-        if (userData.pkUser) {
-          uploadProfileImage(manipulatedImage.uri, userData.pkUser);
-        } else {
-          Alert.alert('Error', 'Could not get user ID to upload image. Make sure the profile has loaded correctly.');
-        }
-      } catch (error) {
-        console.error('Error manipulating image:', error);
-        Alert.alert('Error', 'Could not process the captured photo.');
-      }
+      setTempImageUri(selectedImageUri);
+      setShowCropEditor(true);
     }
   };
 
   const handleOptionPress = (option: 'camera' | 'gallery') => {
     setPendingImageAction(option);
     setShowImageActionSheet(false);
+  };
+
+  const handleCropComplete = async (croppedUri: string) => {
+    setShowCropEditor(false);
+
+    try {
+      // Compress the cropped image
+      const manipulatedImage = await ImageManipulator.manipulateAsync(
+        croppedUri,
+        [],
+        { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG }
+      );
+
+      // Update preview immediately
+      setUserData(prevData => ({ ...prevData, profilePicture: manipulatedImage.uri }));
+
+      // Upload to server
+      if (userData.pkUser) {
+        uploadProfileImage(manipulatedImage.uri, userData.pkUser);
+      } else {
+        Alert.alert('Error', 'Could not get user ID to upload image. Make sure the profile has loaded correctly.');
+      }
+    } catch (error) {
+      console.error('Error processing cropped image:', error);
+      Alert.alert('Error', 'Could not process the image.');
+    }
+  };
+
+  const handleCropEditorClose = () => {
+    setShowCropEditor(false);
+    setTempImageUri('');
+  };
+
+  const handleTakeAnotherPhoto = async () => {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission Denied', 'We need permission to access your camera.');
+      return;
+    }
+
+    let result = await ImagePicker.launchCameraAsync({
+      allowsEditing: false,
+      quality: 1,
+    });
+
+    if (!result.canceled && result.assets && result.assets.length > 0) {
+      setTempImageUri(result.assets[0].uri);
+    }
+  };
+
+  const handleChooseAnotherImage = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission Denied', 'We need permission to access your gallery.');
+      return;
+    }
+
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: false,
+      quality: 1,
+    });
+
+    if (!result.canceled && result.assets && result.assets.length > 0) {
+      setTempImageUri(result.assets[0].uri);
+    }
   };
 
   // Execute pending action after modal closes
@@ -722,6 +1024,16 @@ export default function ProfileScreen() {
         </Pressable>
       </Pressable>
     </Modal>
+
+    {/* Image Crop Editor */}
+    <ProfileImageCropEditor
+      visible={showCropEditor}
+      imageUri={tempImageUri}
+      onClose={handleCropEditorClose}
+      onCropComplete={handleCropComplete}
+      onTakeAnother={handleTakeAnotherPhoto}
+      onChooseAnother={handleChooseAnotherImage}
+    />
 
     {/* Toast for iOS */}
     {Platform.OS === 'ios' && toastVisible && (
