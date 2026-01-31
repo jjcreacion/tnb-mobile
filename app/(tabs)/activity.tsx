@@ -1,15 +1,15 @@
+import { Card, SwipeableTabScreen } from '@/components/common';
+import { ActivityHeader } from '@/components/home';
+import { Theme } from '@/constants/Theme';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import Constants from 'expo-constants';
-import { StatusBar } from 'expo-status-bar';
 import { useRouter } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, Platform, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
-import { Card } from '@/components/common';
-import { HistoryHeader } from '@/components/home';
-import { Theme } from '@/constants/Theme';
 import SideMenu from '../(screens)/SideMenu';
 
 interface Notification {
@@ -197,9 +197,10 @@ const NotificationScreen = () => {
   );
 
   return (
-    <View style={styles.container}>
-      <StatusBar style="light" backgroundColor={Theme.colors.primary[500]} />
-      <HistoryHeader onMenuPress={handleMenuPress} />
+    <SwipeableTabScreen tabName="activity">
+      <View style={styles.container}>
+        <StatusBar style="light" backgroundColor={Theme.colors.primary[500]} />
+        <ActivityHeader onMenuPress={handleMenuPress} />
 
       {loading ? (
         <View style={styles.loadingContainer}>
@@ -238,6 +239,7 @@ const NotificationScreen = () => {
         onClose={() => setMenuVisible(false)}
       />
     </View>
+    </SwipeableTabScreen>
   );
 };
 
@@ -262,10 +264,11 @@ const styles = StyleSheet.create({
           shadowOffset: { width: 0, height: 1 }, 
           shadowOpacity: 0.1, 
           shadowRadius: 1, 
-        },
+        } as any,
         android: {
           elevation: 2, 
-        },
+        } as any,
+        default: {} as any,
       }),
     
       notificationCard: {

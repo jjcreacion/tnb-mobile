@@ -1,5 +1,6 @@
 import { HapticTab } from '@/components/HapticTab';
 import { Theme } from '@/constants/Theme';
+import { useAuth } from '@/hooks/useAuth';
 import { Tabs } from 'expo-router';
 import React from 'react';
 import { Platform } from 'react-native';
@@ -8,6 +9,7 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 
 export default function TabsLayout() {
   const insets = useSafeAreaInsets();
+  const { isAuthenticated } = useAuth();
 
   return (
     <Tabs

@@ -42,3 +42,4 @@ export { ImagePreviewModal } from './ImagePreviewModal';
 
 export { ImageCropEditor } from './ImageCropEditor';
 
+export { SwipeableTabScreen } from './SwipeableTabScreen';

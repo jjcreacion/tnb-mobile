@@ -1,4 +1,4 @@
-import { Button, Card } from '@/components/common';
+import { Button, Card, SwipeableTabScreen } from '@/components/common';
 import { BillingHeader } from '@/components/home';
 import { Theme } from '@/constants/Theme';
 import { StatusBar } from 'expo-status-bar';
@@ -149,9 +149,10 @@ export default function BillingScreen() {
   );
 
   return (
-    <View style={styles.container}>
-      <StatusBar style="light" backgroundColor={Theme.colors.primary[500]} />
-      <BillingHeader onMenuPress={handleMenuPress} />
+    <SwipeableTabScreen tabName="billing">
+      <View style={styles.container}>
+        <StatusBar style="light" backgroundColor={Theme.colors.primary[500]} />
+        <BillingHeader onMenuPress={handleMenuPress} />
 
       <Card variant="elevated" padding="lg" style={styles.balanceCard}>
         <Text style={styles.balanceLabel}>Total Spent</Text>
@@ -185,6 +186,7 @@ export default function BillingScreen() {
         onClose={() => setMenuVisible(false)}
       />
     </View>
+    </SwipeableTabScreen>
   );
 }
 

@@ -1,16 +1,16 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  TouchableWithoutFeedback,
-  View,
+    KeyboardAvoidingView,
+    Modal,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    TouchableWithoutFeedback,
+    View,
 } from 'react-native';
 
 import { Button, Input } from '@/components/common';
@@ -19,8 +19,8 @@ import { useKeyboard } from '@/hooks/useKeyboard';
 import { Ionicons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
 import { validateEmail } from '../../scripts/validator';
+import TermsAndPolicies from './TermsAndPolicies';
 import VerifyCode from './verificode';
-import TermsAndPolicies from './TermsAndPolicies'; 
 
 interface ModalProps {
   isVisible: boolean;
@@ -659,7 +659,7 @@ const styles = StyleSheet.create({
     fontSize: Theme.typography.fontSize.sm,
     color: Theme.colors.text.secondary,
     textAlign: 'center',
-    lineHeight: Theme.typography.lineHeight.md,
+    lineHeight: Theme.typography.lineHeight.base,
   },
   termsLink: {
     color: Theme.colors.primary[600],

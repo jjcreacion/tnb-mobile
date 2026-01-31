@@ -1,7 +1,7 @@
-import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit'
-import AsyncStorage from '@react-native-async-storage/async-storage'
 import { userService } from '@/services/api'
-import type { User, Address } from '@/types'
+import type { User } from '@/types'
+import AsyncStorage from '@react-native-async-storage/async-storage'
+import { createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit'
 
 interface UserState {
     userId: string | null
@@ -26,12 +26,12 @@ export const toggleSmsNotifications = createAsyncThunk(
     async (status: boolean, { getState, rejectWithValue }) => {
         try {
             const state = getState() as { user: UserState };
-            const pkUser = state.user.userData?.pkUser || state.user.userId; 
-            if (!pkUser) { 
-                return rejectWithValue('Datos de usuario no cargados o PK no encontrado.');
+            const userId = state.user.userData?.userId || parseInt(state.user.userId || '0', 10); 
+            if (!userId) { 
+                return rejectWithValue('Datos de usuario no cargados o ID no encontrado.');
             }
 
-            const updatedUser = await userService.toggleSmsNotifications(pkUser, status);
+            const updatedUser = await userService.toggleSmsNotifications(userId, status);
             return updatedUser;
             
         } catch (error: any) {

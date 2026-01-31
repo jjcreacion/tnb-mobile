@@ -33,6 +33,7 @@ import {
   HomeHeader,
   ServicesExplorer,
 } from '@/components/home'
+import { SwipeableTabScreen } from '@/components/common'
 import { AddressModal } from '@/components/person-address'
 import CampaignModal from '../(screens)/CampaignModal'
 import RequestModal from '../(screens)/RequestModal'
@@ -198,20 +199,21 @@ const HomeScreen: React.FC = () => {
 
 
   return (
-    <View style={styles.container}>
-      <StatusBar style="light" backgroundColor={Theme.colors.primary[500]} />
-      
-      <HomeHeader
-        onMenuPress={handleMenuPress}
-        referralReward={referralReward || '15'}
-        userBalance={userBalance}
-      />
+    <SwipeableTabScreen tabName="index">
+      <View style={styles.container}>
+        <StatusBar style="light" backgroundColor={Theme.colors.primary[500]} />
+        
+          <HomeHeader
+          onMenuPress={handleMenuPress}
+          referralReward={referralReward || '15'}
+          userBalance={userBalance}
+        />
 
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.keyboardAvoidingView}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
-      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.keyboardAvoidingView}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+        >
         <ScrollView
           style={styles.scrollView}
           contentContainerStyle={[
@@ -241,7 +243,7 @@ const HomeScreen: React.FC = () => {
           apiBaseUrl={API_BASE_URL}
         />
 
-      <ServicesExplorer
+        <ServicesExplorer
           categories={categories}
           loading={loadingCategories}
           error={errorCategories}
@@ -253,39 +255,40 @@ const HomeScreen: React.FC = () => {
           apiBaseUrl={API_BASE_URL}
         />
 
-      </ScrollView>
-      </KeyboardAvoidingView>
+        </ScrollView>
+        </KeyboardAvoidingView>
 
-      <RequestModal
-        isVisible={isRequestModalVisible}
-        onClose={handleCloseServiceModal}
-        selectedCategory={selectedServiceData}
-        primaryAddress={primaryAddress}
-        cities={cities}
-        states={states}
-      />
+        <RequestModal
+          isVisible={isRequestModalVisible}
+          onClose={handleCloseServiceModal}
+          selectedCategory={selectedServiceData}
+          primaryAddress={primaryAddress}
+          cities={cities}
+          states={states}
+        />
 
-      <CampaignModal
-        isVisible={isCampaignModalVisible}
-        onClose={handleCloseCampaignModal}
-        campaign={selectedCampaignData}
-      />
+        <CampaignModal
+          isVisible={isCampaignModalVisible}
+          onClose={handleCloseCampaignModal}
+          campaign={selectedCampaignData}
+        />
 
-      <SideMenu
-        isVisible={isMenuVisible}
-        onClose={() => dispatch(setMenuVisible(false))}
-      />
+        <SideMenu
+          isVisible={isMenuVisible}
+          onClose={() => dispatch(setMenuVisible(false))}
+        />
 
-      <AddressModal
-        isVisible={isAddressModalVisible}
-        onClose={handleCloseAddressModal}
-        addresses={addresses}
-        onAddressSelect={handleAddressSelect}
-        primaryAddress={primaryAddress}
-        onAddNewAddress={() => {}}
-        onAddressAdded={handleAddressAdded}
-      />
-    </View>
+        <AddressModal
+          isVisible={isAddressModalVisible}
+          onClose={handleCloseAddressModal}
+          addresses={addresses}
+          onAddressSelect={handleAddressSelect}
+          primaryAddress={primaryAddress}
+          onAddNewAddress={() => {}}
+          onAddressAdded={handleAddressAdded}
+        />
+      </View>
+    </SwipeableTabScreen>
   )
 }
 

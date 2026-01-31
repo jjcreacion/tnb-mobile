@@ -41,6 +41,9 @@ FINAL_REPORT.txt
 index.backup.tsx.txt
 *.md
 !README.md
+
+
+captures/
+
 the-national-builders-firebase-adminsdk.json
-# google-services.json
-GoogleService-Info.plist
+history.tsx.bpk.tsx

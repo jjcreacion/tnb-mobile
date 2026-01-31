@@ -16,6 +16,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
 import Icon from 'react-native-vector-icons/Ionicons';
+import { SwipeableTabScreen } from '@/components/common';
 import SideMenu from '../(screens)/SideMenu';
 
 interface SocialLink {
@@ -99,9 +100,10 @@ export default function SupportScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <StatusBar style="light" backgroundColor={Theme.colors.primary[500]} />
-      <SupportHeader onMenuPress={handleMenuPress} />
+    <SwipeableTabScreen tabName="support">
+      <View style={styles.container}>
+        <StatusBar style="light" backgroundColor={Theme.colors.primary[500]} />
+        <SupportHeader onMenuPress={handleMenuPress} />
 
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -182,14 +184,15 @@ export default function SupportScreen() {
             </Text>
           </View>
         </Card>
-      </View>
-      </ScrollView>
+        </View>
+        </ScrollView>
 
-      <SideMenu
-        isVisible={isMenuVisible}
-        onClose={() => setMenuVisible(false)}
-      />
-    </View>
+        <SideMenu
+          isVisible={isMenuVisible}
+          onClose={() => setMenuVisible(false)}
+        />
+      </View>
+    </SwipeableTabScreen>
   );
 }
 

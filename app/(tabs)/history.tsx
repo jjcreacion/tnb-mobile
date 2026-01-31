@@ -1,20 +1,32 @@
+import { SwipeableTabScreen } from '@/components/common';
+import { HistoryHeader } from '@/components/home';
+import { Theme } from '@/constants/Theme';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import Constants from 'expo-constants';
-import { StatusBar } from 'expo-status-bar';
 import { useRouter } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, Platform, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
-import { Card } from '@/components/common';
-import { HistoryHeader } from '@/components/home';
-import { Theme } from '@/constants/Theme';
 import SideMenu from '../(screens)/SideMenu';
+
+interface ReadCategoryDto {
+  pkCategory: number;
+  name: string;
+}
+
+interface ReadSubCategoryDto {
+  pkSubCategory: number;
+  name: string;
+}
 
 interface ServiceRequest {
   requestId: number;
   serviceDescription: string;
+  fkCategory: ReadCategoryDto;
+  fkSubCategory?: ReadSubCategoryDto;
   address: string;
   latitude: string;
   longitude: string;
@@ -43,6 +55,64 @@ interface Status {
   name: string;
   color: string;
 }
+
+interface StatusStyle {
+  borderColor: string;
+  badgeBackground: string;
+  badgeText: string;
+  icon: string;
+}
+
+const STATUS_STYLES: { [key: string]: StatusStyle } = {
+  submitted: {
+    borderColor: '#3B82F6',
+    badgeBackground: '#EFF6FF',
+    badgeText: '#1E40AF',
+    icon: 'paper-plane',
+  },
+  'under review': {
+    borderColor: '#F59E0B',
+    badgeBackground: '#FFFBEB',
+    badgeText: '#B45309',
+    icon: 'search',
+  },
+  approved: {
+    borderColor: '#10B981',
+    badgeBackground: '#ECFDF5',
+    badgeText: '#065F46',
+    icon: 'checkmark-done-circle',
+  },
+  'in progress': {
+    borderColor: '#8B5CF6',
+    badgeBackground: '#F5F3FF',
+    badgeText: '#5B21B6',
+    icon: 'construct',
+  },
+  'on hold': {
+    borderColor: '#F97316',
+    badgeBackground: '#FFF7ED',
+    badgeText: '#C2410C',
+    icon: 'pause-circle',
+  },
+  completed: {
+    borderColor: '#06B6D4',
+    badgeBackground: '#ECFEFF',
+    badgeText: '#155E75',
+    icon: 'checkmark-circle',
+  },
+  rejected: {
+    borderColor: '#EF4444',
+    badgeBackground: '#FEF2F2',
+    badgeText: '#991B1B',
+    icon: 'close-circle',
+  },
+  canceled: {
+    borderColor: '#64748B',
+    badgeBackground: '#F8FAFC',
+    badgeText: '#334155',
+    icon: 'ban',
+  },
+};
 
 const HistoryScreen = () => {
   const insets = useSafeAreaInsets();
@@ -83,7 +153,7 @@ const HistoryScreen = () => {
       } else {
         console.error('Error al obtener servicios:', response);
       }
-    } catch (error) {
+    } catch {
       setServices([]);
     } finally {
       setLoading(false);
@@ -120,73 +190,90 @@ const HistoryScreen = () => {
   }, []);
 
   const handleCardPress = (service: ServiceRequest) => {
-    const statusInfo = getStatusTextAndColor(service.fkRequestStatus);
-    const serviceWithStatus = { ...service, statusInfo };
+    const statusInfo = getStatusInfo(service.fkRequestStatus);
+    const statusName = statusList.find(s => s.statusId === (service.fkRequestStatus === null ? 1 : service.fkRequestStatus))?.name || 'Submitted';
+    const serviceWithStatus = { ...service, statusInfo: { ...statusInfo, text: statusName } };
     router.push({
       pathname: '/(screens)/ServiceRequestDetail',
       params: { service: JSON.stringify(serviceWithStatus) },
     });
   };
 
-  const getStatusTextAndColor = (fkRequestStatus: number | null) => {
-    const statusId = fkRequestStatus === null ? 1 : fkRequestStatus;
+  const getStatusInfo = (fkRequestStatus: number | null): StatusStyle => {
+    const statusId = fkRequestStatus === null ? 1: fkRequestStatus;
     const statusObject = statusList.find(status => status.statusId === statusId);
-    const statusColor = statusObject ? statusObject.color : Theme.colors.text.tertiary;
-    const statusName = statusObject ? statusObject.name : 'Unknown';
-    return { text: statusName, color: statusColor };
-  };
-
-  const getStatusIcon = (statusName: string) => {
-    const name = statusName.toLowerCase();
-    if (name.includes('approved')) return 'checkmark-done-circle';
-    if (name.includes('progress')) return 'hourglass-outline';
-    if (name.includes('closed')) return 'close-circle-outline';
-    if (name.includes('finish')) return 'checkmark-circle-outline';
-    return 'time-outline';
+    const statusName = statusObject?.name?.toLowerCase() || 'submitted';
+    
+    return STATUS_STYLES[statusName] || STATUS_STYLES['submitted'];
   };
 
   const renderServiceCard = ({ item: service }: { item: ServiceRequest }) => {
-    const statusInfo = getStatusTextAndColor(service.fkRequestStatus);
-    const statusIcon = getStatusIcon(statusInfo.text);
+    const statusInfo = getStatusInfo(service.fkRequestStatus);
+    const statusName = statusList.find(s => s.statusId === (service.fkRequestStatus === null ? 1 : service.fkRequestStatus))?.name || 'Submitted';
+    const hasSubCategory = !!service.fkSubCategory;
 
     return (
-      <TouchableOpacity onPress={() => handleCardPress(service)}>
-        <Card variant="elevated" padding="md" style={styles.card}>
-          <View style={styles.cardHeader}>
-            <View style={styles.cardHeaderLeft}>
-              <Text style={styles.cardTitle} numberOfLines={2}>
-                {service.serviceDescription || 'No Description'}
-              </Text>
-            </View>
-            <Icon name="chevron-forward" size={20} color={Theme.colors.text.tertiary} />
+      <TouchableOpacity onPress={() => handleCardPress(service)} activeOpacity={0.7}>
+        <View style={[styles.card, { borderLeftColor: statusInfo.borderColor }]}>
+          
+          {/* Top Row: Category/Subcategory (Left) + Request ID (Right) */}
+          <View style={styles.topRow}>
+            {/* Left: Category → Subcategory */}
+            <Text style={styles.categoryText} numberOfLines={1}>
+              <Text style={styles.categoryBold}>{service.fkCategory?.name || 'Category'}</Text>
+              {hasSubCategory && (
+                <>
+                  <Text style={styles.categoryText}> → </Text>
+                  <Text style={styles.subCategoryItalic}>{service.fkSubCategory?.name}</Text>
+                </>
+              )}
+            </Text>
+
+            {/* Right: Request ID */}
+            <Text style={styles.requestIdText}>#{service.requestId}</Text>
           </View>
 
-          <View style={styles.addressContainer}>
-            <Icon name="location" size={16} color={Theme.colors.text.tertiary} />
-            <Text style={styles.addressText} numberOfLines={2}>
-              {service.address || 'No Address'}
+          {/* Title Section */}
+          <View style={styles.titleSection}>
+            <Text style={styles.cardTitle} numberOfLines={2}>
+              {service.serviceDescription || 'Service Request'}
             </Text>
           </View>
 
-          <View style={styles.cardFooter}>
-            <View style={styles.statusContainer}>
-              <View style={[styles.statusBadge, { backgroundColor: statusInfo.color }]}>
-                <Icon name={statusIcon} size={14} color="#FFFFFF" />
-                <Text style={styles.statusBadgeText}>{statusInfo.text}</Text>
-              </View>
+          {/* Address Section */}
+          <View style={styles.addressRow}>
+            <Icon name="location-outline" size={20} color={statusInfo.borderColor} style={styles.locationIcon} />
+            <Text style={styles.addressText} numberOfLines={2}>
+              {service.address || 'No address'}
+            </Text>
+          </View>
+
+          {/* Divider */}
+          <View style={styles.divider} />
+
+          {/* Bottom Row: Status (Left) + Date (Right) */}
+          <View style={styles.bottomRow}>
+            {/* Left: Status Badge */}
+            <View style={[styles.statusBadge, { backgroundColor: statusInfo.badgeBackground }]}>
+              <Icon name={statusInfo.icon} size={16} color={statusInfo.borderColor} />
+              <Text style={[styles.statusBadgeText, { color: statusInfo.borderColor }]}>
+                {statusName}
+              </Text>
             </View>
-            <View style={styles.dateContainer}>
-              <Icon name="calendar-outline" size={14} color={Theme.colors.text.tertiary} />
+
+            {/* Right: Date */}
+            <View style={styles.dateSection}>
+              <Icon name="calendar-clear-outline" size={16} color={statusInfo.borderColor} />
               <Text style={styles.dateText}>
-                {new Date(service.createdAt).toLocaleDateString()}
+                {new Date(service.createdAt).toLocaleDateString('en-US', {
+                  day: 'numeric',
+                  month: 'short',
+                  year: 'numeric',
+                })}
               </Text>
             </View>
           </View>
-
-          <View style={styles.requestIdContainer}>
-            <Text style={styles.requestIdText}>Request #{service.requestId}</Text>
-          </View>
-        </Card>
+        </View>
       </TouchableOpacity>
     );
   };
@@ -212,9 +299,10 @@ const HistoryScreen = () => {
   );
 
   return (
-    <View style={styles.container}>
-      <StatusBar style="light" backgroundColor={Theme.colors.primary[500]} />
-      <HistoryHeader onMenuPress={handleMenuPress} />
+    <SwipeableTabScreen tabName="history">
+      <View style={styles.container}>
+        <StatusBar style="light" backgroundColor={Theme.colors.primary[500]} />
+        <HistoryHeader onMenuPress={handleMenuPress} />
 
       {/* Content */}
       {loading ? (
@@ -254,13 +342,14 @@ const HistoryScreen = () => {
         onClose={() => setMenuVisible(false)}
       />
     </View>
+    </SwipeableTabScreen>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Theme.colors.background.secondary,
+    backgroundColor: '#f9fafb',
   },
 
   header: {
@@ -302,96 +391,122 @@ const styles = StyleSheet.create({
   },
 
   card: {
-    marginBottom: Theme.spacing.sm,
+    marginBottom: Theme.spacing.base,
+    // borderRadius: Theme.borderRadius.xl,
+    borderRadius: 8,
+
+    padding: 20,
+    backgroundColor: '#FFFFFF',
+    borderLeftWidth: 4,
+    borderLeftColor: '#3B82F6',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
   },
 
-  cardHeader: {
+  topRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: Theme.spacing.sm,
-    gap: Theme.spacing.sm,
+    alignItems: 'center',
+    marginBottom: 12,
   },
 
-  cardHeaderLeft: {
+  categoryText: {
     flex: 1,
+    fontSize: 12,
+    fontWeight: Theme.typography.fontWeight.medium,
+    color: '#64748B',
+    marginRight: Theme.spacing.sm,
   },
 
-  cardTitle: {
-    fontSize: Theme.typography.fontSize.lg,
+  categoryBold: {
     fontWeight: Theme.typography.fontWeight.bold,
-    color: Theme.colors.text.primary,
-    lineHeight: Theme.typography.lineHeight.base,
+    color: '#64748B',
   },
 
-  addressContainer: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: Theme.spacing.xs,
-    marginBottom: Theme.spacing.sm,
-    paddingVertical: Theme.spacing.sm,
-    paddingHorizontal: Theme.spacing.sm,
-    backgroundColor: Theme.colors.background.secondary,
-    borderRadius: Theme.borderRadius.md,
+  subCategoryItalic: {
+    fontStyle: 'italic',
+    color: '#64748B',
   },
 
-  addressText: {
-    flex: 1,
-    fontSize: Theme.typography.fontSize.sm,
-    color: Theme.colors.text.secondary,
-    lineHeight: Theme.typography.lineHeight.base,
-  },
-
-  cardFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: Theme.spacing.sm,
-    paddingTop: Theme.spacing.sm,
-    borderTopWidth: 1,
-    borderTopColor: Theme.colors.border.light,
-  },
-
-  statusContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  requestIdText: {
+    fontSize: 11,
+    fontWeight: Theme.typography.fontWeight.medium,
+    color: '#64748B',
   },
 
   statusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Theme.spacing.xs,
-    paddingVertical: Theme.spacing.xs,
-    paddingHorizontal: Theme.spacing.sm,
+    gap: 6,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
     borderRadius: Theme.borderRadius.full,
   },
 
   statusBadgeText: {
-    color: '#FFFFFF',
-    fontSize: Theme.typography.fontSize.xs,
-    fontWeight: Theme.typography.fontWeight.bold,
+    fontSize: 13,
+    fontWeight: Theme.typography.fontWeight.semiBold,
+    textTransform: 'capitalize',
   },
 
-  dateContainer: {
+  titleSection: {
+    marginBottom: Theme.spacing.base,
+  },
+
+  cardTitle: {
+    fontSize: 18,
+    fontWeight: Theme.typography.fontWeight.bold,
+    color: '#1F2937',
+    lineHeight: 24,
+    letterSpacing: -0.3,
+  },
+
+  addressRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Theme.spacing.sm,
+    marginBottom: 12,
+  },
+
+  locationIcon: {
+    marginRight: 4,
+  },
+
+  addressText: {
+    flex: 1,
+    fontSize: 14,
+    color: '#6B7280',
+    lineHeight: Theme.typography.lineHeight.base,
+  },
+
+  divider: {
+    height: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.06)',
+    marginVertical: 12,
+  },
+
+  bottomRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+
+  dateSection: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Theme.spacing.xs,
   },
 
   dateText: {
-    fontSize: Theme.typography.fontSize.xs,
-    color: Theme.colors.text.tertiary,
+    fontSize: 12,
+    color: '#9CA3AF',
+    fontWeight: Theme.typography.fontWeight.bold,
   },
 
-  requestIdContainer: {
-    marginTop: Theme.spacing.sm,
-  },
 
-  requestIdText: {
-    fontSize: Theme.typography.fontSize.xs,
-    color: Theme.colors.text.tertiary,
-    fontWeight: Theme.typography.fontWeight.medium,
-  },
 
   loadingContainer: {
     flex: 1,

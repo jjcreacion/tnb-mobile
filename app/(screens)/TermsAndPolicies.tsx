@@ -1,7 +1,7 @@
-import { MigratedStyles } from '@/constants/MigratedStyles'; 
-import { Theme } from '@/constants/Theme'; 
+import { MigratedStyles } from '@/constants/MigratedStyles';
+import { Theme } from '@/constants/Theme';
 import { FontAwesome } from '@expo/vector-icons';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useState } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
@@ -243,10 +243,11 @@ const termsAndPolicies_ES = {
 };
 
 interface TermsAndPoliciesProps {
-  onClose?: () => void; 
+  onClose?: () => void;
+  isVisible?: boolean;
 }
 
-const TermsAndPoliciesScreen = ({ onClose }) => {
+const TermsAndPoliciesScreen: React.FC<TermsAndPoliciesProps> = ({ onClose, isVisible = true }) => {
   const router = useRouter();
   const [language, setLanguage] = useState<'en' | 'es'>('en');
   const currentTerms = language === 'en' ? termsAndConditions_EN : termsAndPolicies_ES;

@@ -1,13 +1,11 @@
+import type { CreateDeviceDto, ReadDeviceDto, UpdateDevicePreferencesDto } from '@/types/device.types';
 import { apiClient } from './apiClient';
-import type { ReadDeviceDto, CreateDeviceDto, UpdateDevicePreferencesDto } from '@/types/device.types';
 
 export const deviceService = {
     async registerDevice(data: CreateDeviceDto): Promise<ReadDeviceDto> {
-        const response = await apiClient.post<ReadDeviceDto>('/devices/register', data);
-        return response; 
+        return apiClient.post<ReadDeviceDto>('/devices/register', data);
     },
     async updatePreferences(data: UpdateDevicePreferencesDto): Promise<ReadDeviceDto> {
-        const response = await apiClient.patch<ReadDeviceDto>('/devices/preferences', data);
-        return response.data;
+        return apiClient.patch<ReadDeviceDto>('/devices/preferences', data);
     },
 };
