@@ -1,28 +1,33 @@
+import { Button, Typography } from '@/components/common';
+import { Theme } from '@/constants/Theme';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 import * as ImageManipulator from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Animated,
   Image,
   ImageBackground,
+  KeyboardAvoidingView,
   Modal,
   Platform,
   Pressable,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
   TextInput,
+  ToastAndroid,
   TouchableOpacity,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import { Button, Typography } from '@/components/common';
-import { Theme } from '@/constants/Theme';
+import { MigratedStyles } from '../../constants/MigratedStyles';
 
 export default function ProfileScreen() {
   const [userData, setUserData] = useState({
@@ -46,8 +51,17 @@ export default function ProfileScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [showImageActionSheet, setShowImageActionSheet] = useState(false);
   const [pendingImageAction, setPendingImageAction] = useState<'camera' | 'gallery' | null>(null);
+  const [originalUserData, setOriginalUserData] = useState(userData);
+  const [toastVisible, setToastVisible] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
+  const toastOpacity = useRef(new Animated.Value(0)).current;
   const API_URL = Constants.expoConfig?.extra?.API_BASE_URL || 'http://localhost:12099';
   const UPLOAD_IMAGE_URL = `${API_URL}/user/upload-profile-image`;
+
+  // Refs for form inputs
+  const lastNameRef = useRef<TextInput>(null);
+  const phoneRef = useRef<TextInput>(null);
+  const addressRef = useRef<TextInput>(null);
 
   useEffect(() => {
     const loadUserData = async () => {
@@ -78,7 +92,7 @@ export default function ProfileScreen() {
               ? `${API_URL}/${userDataFromApi.img_profile}`
               : '';
 
-            console.log("Imagen de usuario: " + fullProfilePictureUrl + " API " + API_URL);
+            console.log("User image: " + fullProfilePictureUrl + " API " + API_URL);
 
             setUserData({
               profilePicture: fullProfilePictureUrl,
@@ -94,13 +108,13 @@ export default function ProfileScreen() {
               createdAt: formattedCreatedAt,
             });
           } else {
-            console.error('Error al cargar los datos del usuario:', response.status);
-            Alert.alert('Error', 'No se pudieron cargar los datos del usuario. Inténtalo de nuevo más tarde.');
+            console.error('Error loading user data:', response.status);
+            Alert.alert('Error', 'Could not load user data. Please try again later.');
           }
         }
       } catch (error) {
-        console.error('Error al cargar los datos del usuario:', error);
-        Alert.alert('Error', 'Hubo un problema de conexión al cargar los datos del usuario.');
+        console.error('Error loading user data:', error);
+        Alert.alert('Error', 'Connection problem loading user data.');
       } finally {
         setIsLoading(false);
       }
@@ -109,8 +123,107 @@ export default function ProfileScreen() {
     loadUserData();
   }, [API_URL]);
 
+  const showToast = (message: string) => {
+    if (Platform.OS === 'android') {
+      ToastAndroid.showWithGravity(
+        message,
+        ToastAndroid.LONG,
+        ToastAndroid.CENTER
+      );
+    } else {
+      setToastMessage(message);
+      setToastVisible(true);
+
+      // Reset opacity to 0 first
+      toastOpacity.setValue(0);
+
+      Animated.sequence([
+        Animated.timing(toastOpacity, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+        Animated.delay(2500),
+        Animated.timing(toastOpacity, {
+          toValue: 0,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+      ]).start(() => {
+        setToastVisible(false);
+      });
+    }
+  };
+
   const handleEdit = () => {
-    setIsEditing(!isEditing);
+    setOriginalUserData(userData); // Save original data
+    setIsEditing(true);
+  };
+
+  const hasChanges = () => {
+    return (
+      userData.firstName !== originalUserData.firstName ||
+      userData.lastName !== originalUserData.lastName ||
+      userData.phone !== originalUserData.phone ||
+      userData.address !== originalUserData.address
+    );
+  };
+
+  const handleCancel = async () => {
+    setIsEditing(false);
+    // Reload user data to revert changes
+    try {
+      const userId = await AsyncStorage.getItem('userId');
+      if (userId) {
+        const response = await fetch(`${API_URL}/user/findOne/${userId}`);
+        if (response.ok) {
+          const userDataFromApi = await response.json();
+
+          const rawPkUser = userDataFromApi.pkUser;
+          const formattedPkUser = rawPkUser
+            ? String(rawPkUser).padStart(6, '0')
+            : null;
+
+          let formattedCreatedAt = null;
+          if (userDataFromApi.createdAt) {
+            const date = new Date(userDataFromApi.createdAt);
+            formattedCreatedAt = date.toLocaleDateString('es-ES', {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric',
+            });
+          }
+
+          const fullProfilePictureUrl = userDataFromApi.img_profile
+            ? `${API_URL}/${userDataFromApi.img_profile}`
+            : '';
+
+          setUserData({
+            profilePicture: fullProfilePictureUrl,
+            username: userDataFromApi.username || '',
+            email: userDataFromApi.email || '',
+            phone: userDataFromApi.person?.phones?.[0]?.phone || '',
+            firstName: userDataFromApi.person?.firstName || '',
+            middleName: userDataFromApi.person?.middleName || '',
+            lastName: userDataFromApi.person?.lastName || '',
+            birthdate: '',
+            address: userDataFromApi.person?.addresses?.[0]?.address || '',
+            pkUser: formattedPkUser,
+            createdAt: formattedCreatedAt,
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error reloading user data:', error);
+    }
+  };
+
+  const handleEditOrSave = () => {
+    if (isEditing) {
+      handleSaveProfile();
+    } else {
+      handleEdit();
+    }
   };
 
   /**
@@ -124,7 +237,7 @@ export default function ProfileScreen() {
 
   const handleSaveProfile = async () => {
     if (!userData.firstName || !userData.lastName || !userData.phone || !userData.address || !userData.email) {
-      Alert.alert('Error', 'Todos los campos de nombre, apellido, teléfono, dirección y correo electrónico son obligatorios.');
+      Alert.alert('Error', 'All fields (first name, last name, phone, address, and email) are required.');
       return;
     }
 
@@ -162,17 +275,17 @@ export default function ProfileScreen() {
 
       if (response.ok) {
         await response.json();
-        Alert.alert('Perfil Guardado', 'Los cambios en tu perfil han sido guardados.');
+        Alert.alert('Profile Saved', 'Your profile changes have been saved.');
         setIsEditing(false);
       } else {
         const errorText = await response.text();
-        console.error('Error al guardar el perfil:', response.status, errorText);
-        Alert.alert('Error', 'No se pudieron guardar los cambios en el perfil. Inténtalo de nuevo.');
+        console.error('Error saving profile:', response.status, errorText);
+        Alert.alert('Error', 'Could not save profile changes. Please try again.');
       }
 
     } catch (error) {
-      console.error('Error de red al guardar el perfil:', error);
-      Alert.alert('Error', 'Hubo un problema de conexión al guardar el perfil.');
+      console.error('Network error saving profile:', error);
+      Alert.alert('Error', 'Connection problem saving profile.');
     } finally {
       setIsLoading(false);
     }
@@ -201,6 +314,7 @@ export default function ProfileScreen() {
 
       if (response.ok) {
         const result = await response.json();
+
         if (result && typeof result.imageUrl === 'string') {
           const imageUrl = result.imageUrl.startsWith('http')
             ? result.imageUrl
@@ -210,32 +324,34 @@ export default function ProfileScreen() {
             ...prevData,
             profilePicture: imageUrl
           }));
-          Alert.alert('Éxito', 'Imagen de perfil subida correctamente.');
+          showToast('Profile picture saved successfully');
         } else {
           // Fallback to local URI if server response is not as expected
           setUserData(prevData => ({
             ...prevData,
             profilePicture: imageUri
           }));
+          // Still show toast even if server response is unexpected
+          showToast('Profile picture saved successfully');
         }
       } else {
         const errorText = await response.text();
-        console.error('Error al subir la imagen al servidor:', response.status, errorText);
+        console.error('Error uploading image to server:', response.status, errorText);
         // Fallback to local URI on server error
         setUserData(prevData => ({
           ...prevData,
           profilePicture: imageUri
         }));
-        Alert.alert('Advertencia', 'La imagen se guardó localmente, pero hubo un problema al subirla al servidor.');
+        Alert.alert('Warning', 'Image saved locally, but there was a problem uploading to server.');
       }
     } catch (error) {
-      console.error('Error de red al subir la imagen:', error);
+      console.error('Network error uploading image:', error);
       // Fallback to local URI on network error
       setUserData(prevData => ({
         ...prevData,
         profilePicture: imageUri
       }));
-      Alert.alert('Error', 'Hubo un problema de conexión al subir la imagen, pero se guardó localmente.');
+      Alert.alert('Error', 'Connection problem uploading image, but it was saved locally.');
     } finally {
       setIsLoading(false);
     }
@@ -244,7 +360,7 @@ export default function ProfileScreen() {
   const handleImagePick = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permiso denegado', 'Necesitamos permiso para acceder a tu galería de imágenes para cambiar la foto de perfil.');
+      Alert.alert('Permission Denied', 'We need permission to access your photo gallery to change your profile picture.');
       return;
     }
 
@@ -270,11 +386,11 @@ export default function ProfileScreen() {
         if (userData.pkUser) {
           uploadProfileImage(manipulatedImage.uri, userData.pkUser);
         } else {
-          Alert.alert('Error', 'No se pudo obtener el ID de usuario para subir la imagen. Asegúrate de que el perfil se haya cargado correctamente.');
+          Alert.alert('Error', 'Could not get user ID to upload image. Make sure the profile has loaded correctly.');
         }
       } catch (error) {
-        console.error('Error al manipular la imagen:', error);
-        Alert.alert('Error', 'No se pudo procesar la imagen seleccionada.');
+        console.error('Error manipulating image:', error);
+        Alert.alert('Error', 'Could not process the selected image.');
       }
     }
   };
@@ -282,7 +398,7 @@ export default function ProfileScreen() {
   const handleTakePhoto = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permiso denegado', 'Necesitamos permiso para acceder a tu cámara para tomar una foto de perfil.');
+      Alert.alert('Permission Denied', 'We need permission to access your camera to take a profile photo.');
       return;
     }
 
@@ -307,11 +423,11 @@ export default function ProfileScreen() {
         if (userData.pkUser) {
           uploadProfileImage(manipulatedImage.uri, userData.pkUser);
         } else {
-          Alert.alert('Error', 'No se pudo obtener el ID de usuario para subir la imagen. Asegúrate de que el perfil se haya cargado correctamente.');
+          Alert.alert('Error', 'Could not get user ID to upload image. Make sure the profile has loaded correctly.');
         }
       } catch (error) {
-        console.error('Error al manipular la imagen:', error);
-        Alert.alert('Error', 'No se pudo procesar la imagen seleccionada.');
+        console.error('Error manipulating image:', error);
+        Alert.alert('Error', 'Could not process the captured photo.');
       }
     }
   };
@@ -343,16 +459,46 @@ export default function ProfileScreen() {
 
   return (
     <>
-      <ScrollView style={styles.container}>
+      <StatusBar
+        barStyle="light-content"
+        backgroundColor={Theme.colors.primary[500]}
+        translucent={false}
+      />
+      {/* iOS Status Bar Background */}
+      {Platform.OS === 'ios' && (
+        <View style={[styles.statusBarBackground, { height: insets.top }]} />
+      )}
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={0}
+        enabled
+      >
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={{ flexGrow: 1 }}
+        keyboardShouldPersistTaps="handled"
+      >
       {isLoading && (
         <View style={styles.loadingOverlay}>
-          <ActivityIndicator size="large" color="#007AFF" />
-          <Text style={styles.loadingText}>Cargando...</Text>
+          <ActivityIndicator size="large" color={Theme.colors.primary[500]} />
+          <Text style={styles.loadingText}>Loading...</Text>
         </View>
       )}
 
-      <ImageBackground source={require('@/assets/images/roof-repair.jpg')} style={styles.backgroundImage}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+      <ImageBackground
+        source={require('@/assets/images/roof-repair.jpg')}
+        blurRadius={3}
+        style={[styles.backgroundImage, {
+          paddingTop: Platform.OS === 'android' ? insets.top + 20 : insets.top,
+          height: Platform.OS === 'android' ? 150 + insets.top + 20 : 150 + insets.top
+
+        }]}
+      >
+        <TouchableOpacity
+          style={[styles.backButton, { top: insets.top + 10 }]}
+          onPress={() => router.back()}
+        >
           <Icon name="arrow-back" size={28} color="#FFF" />
         </TouchableOpacity>
         <View style={styles.profileHeader}>
@@ -362,34 +508,36 @@ export default function ProfileScreen() {
               source={userData.profilePicture ? { uri: userData.profilePicture } : require('@/assets/images/user.png')}
               style={styles.profilePicture}
             />
-            {isEditing && (
-              <TouchableOpacity
-                style={styles.changePictureButton}
-                onPress={() => setShowImageActionSheet(true)}
-              >
-                <Icon name="camera-alt" size={24} color="#FFF" />
-              </TouchableOpacity>
-            )}
+            <TouchableOpacity
+              style={styles.changePictureButton}
+              onPress={() => setShowImageActionSheet(true)}
+            >
+              <Icon name="camera-alt" size={24} color="#FFF" />
+            </TouchableOpacity>
           </View>
-          <Text style={styles.pkUserText}>
+          <Text style={[styles.pkUserText]}>
             {userData.email}
           </Text>
           <Text style={styles.pkUserText}>
             Client ID: {userData.pkUser}
           </Text>
+
+                {userData.createdAt && (
+                  <Typography variant="body2" color="secondary" style={MigratedStyles.profileJoinDateText} pointerEvents="none">
+                    Member since {userData.createdAt}
+                  </Typography>
+                )}
+
         </View>
       </ImageBackground>
 
       <View style={styles.card}>
         <View style={styles.cardHeader}>
-          <Text style={styles.header}>Mi Perfil</Text>
-          <TouchableOpacity onPress={handleEdit}>
-            <Icon name="edit" size={24} color="#007AFF" />
-          </TouchableOpacity>
+          <Text style={styles.header}>My Profile</Text>
         </View>
 
         <View style={styles.detailSection}>
-          <Text style={styles.sectionTitle}>Nombre</Text>
+          <Text style={styles.sectionTitle}>First Name</Text>
           {isEditing ? (
             <TextInput
               style={[styles.detailInput, focusedInput === 'firstName' && styles.focusedInput]}
@@ -397,6 +545,9 @@ export default function ProfileScreen() {
               onChangeText={(text) => handleChange('firstName', text)}
               onFocus={() => setFocusedInput('firstName')}
               onBlur={() => setFocusedInput(null)}
+              returnKeyType="next"
+              onSubmitEditing={() => lastNameRef.current?.focus()}
+              blurOnSubmit={false}
             />
           ) : (
             <Text style={styles.sectionValue}>{userData.firstName || 'N/A'}</Text>
@@ -404,14 +555,18 @@ export default function ProfileScreen() {
         </View>
 
         <View style={styles.detailSection}>
-          <Text style={styles.sectionTitle}>Apellido</Text>
+          <Text style={styles.sectionTitle}>Last Name</Text>
           {isEditing ? (
             <TextInput
+              ref={lastNameRef}
               style={[styles.detailInput, focusedInput === 'lastName' && styles.focusedInput]}
               value={userData.lastName}
               onChangeText={(text) => handleChange('lastName', text)}
               onFocus={() => setFocusedInput('lastName')}
               onBlur={() => setFocusedInput(null)}
+              returnKeyType="next"
+              onSubmitEditing={() => phoneRef.current?.focus()}
+              blurOnSubmit={false}
             />
           ) : (
             <Text style={styles.sectionValue}>{userData.lastName || 'N/A'}</Text>
@@ -419,14 +574,19 @@ export default function ProfileScreen() {
         </View>
 
         <View style={styles.detailSection}>
-          <Text style={styles.sectionTitle}>Teléfono</Text>
+          <Text style={styles.sectionTitle}>Phone</Text>
           {isEditing ? (
             <TextInput
+              ref={phoneRef}
               style={[styles.detailInput, focusedInput === 'phone' && styles.focusedInput]}
               value={userData.phone}
               onChangeText={(text) => handleChange('phone', text)}
               onFocus={() => setFocusedInput('phone')}
               onBlur={() => setFocusedInput(null)}
+              keyboardType="phone-pad"
+              returnKeyType="next"
+              onSubmitEditing={() => addressRef.current?.focus()}
+              blurOnSubmit={false}
             />
           ) : (
             <Text style={styles.sectionValue}>{userData.phone || 'N/A'}</Text>
@@ -434,30 +594,45 @@ export default function ProfileScreen() {
         </View>
 
         <View style={styles.detailSection}>
-          <Text style={styles.sectionTitle}>Dirección</Text>
+          <Text style={styles.sectionTitle}>Address</Text>
           {isEditing ? (
             <TextInput
+              ref={addressRef}
               style={[styles.detailInput, focusedInput === 'address' && styles.focusedInput]}
               value={userData.address}
               onChangeText={(text) => handleChange('address', text)}
               onFocus={() => setFocusedInput('address')}
               onBlur={() => setFocusedInput(null)}
+              returnKeyType="done"
             />
           ) : (
             <Text style={styles.sectionValue}>{userData.address || 'N/A'}</Text>
           )}
         </View>
 
-        {isEditing &&
-          <View style={styles.contSave}>
-            <TouchableOpacity style={styles.buttomSave} onPress={handleSaveProfile}>
-              <Text style={styles.buttonSaveText}>Save</Text>
-            </TouchableOpacity>
-          </View>
-        }
+        <View style={styles.buttonContainer}>
+          {isEditing && (
+            <Button
+              title="Cancel"
+              variant="outline"
+              size="lg"
+              onPress={handleCancel}
+              style={styles.cancelBtn}
+            />
+          )}
+          <Button
+            title={isEditing ? "Save Changes" : "Edit"}
+            variant="primary"
+            size="lg"
+            onPress={handleEditOrSave}
+            style={isEditing ? styles.saveBtn : styles.editBtn}
+            disabled={isEditing && !hasChanges()}
+          />
+        </View>
 
       </View>
     </ScrollView>
+    </KeyboardAvoidingView>
 
     {/* Image Action Sheet Modal */}
     <Modal
@@ -547,6 +722,25 @@ export default function ProfileScreen() {
         </Pressable>
       </Pressable>
     </Modal>
+
+    {/* Toast for iOS */}
+    {Platform.OS === 'ios' && toastVisible && (
+      <Animated.View
+        style={[
+          styles.toastContainer,
+          {
+            opacity: toastOpacity,
+            top: insets.top + 60,
+          },
+        ]}
+        pointerEvents="none"
+      >
+        <View style={styles.toastContent}>
+          <Icon name="check-circle" size={24} color="#4ADE80" />
+          <Text style={styles.toastText}>{toastMessage}</Text>
+        </View>
+      </Animated.View>
+    )}
     </>
   );
 }
@@ -556,28 +750,36 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 0,
   },
+  statusBarBackground: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: Theme.colors.primary[500],
+    zIndex: 100,
+  },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    backgroundColor: Theme.colors.overlay.medium,
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 10,
   },
   loadingText: {
-    marginTop: 10,
-    fontSize: 16,
-    color: '#333',
+    marginTop: Theme.spacing.sm,
+    fontSize: Theme.typography.fontSize.base,
+    color: Theme.colors.text.primary,
   },
   backgroundImage: {
     height: 150,
     justifyContent: 'flex-end',
-    borderBottomLeftRadius: 10,
-    borderBottomRightRadius: 10,
+    borderBottomLeftRadius: Theme.borderRadius.md,
+    borderBottomRightRadius: Theme.borderRadius.md,
     overflow: 'visible',
     position: 'relative',
     ...Platform.select({
       ios: {
-        shadowColor: 'gray',
+        shadowColor: Theme.colors.text.secondary,
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.5,
         shadowRadius: 4,
@@ -590,7 +792,7 @@ const styles = StyleSheet.create({
   profileHeader: {
     alignItems: 'center',
     position: 'absolute',
-    bottom: -70,
+    bottom: Platform.OS === 'android' ? -80 : -75,
     left: 0,
     right: 0,
     width: '100%',
@@ -598,11 +800,10 @@ const styles = StyleSheet.create({
   },
   backButton: {
     position: 'absolute',
-    top: Platform.OS === 'ios' ? 50 : 20,
-    left: 15,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    padding: 8,
-    borderRadius: 25,
+    left: Theme.spacing.base,
+    backgroundColor: Theme.colors.overlay.dark,
+    padding: Theme.spacing.sm,
+    borderRadius: Theme.borderRadius.full,
     zIndex: 10,
   },
   profilePictureContainer: {
@@ -624,166 +825,190 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 0,
     right: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    borderRadius: 20,
-    padding: 8,
+    backgroundColor: Theme.colors.overlay.dark,
+    borderRadius: Theme.borderRadius.xl,
+    padding: Theme.spacing.sm,
     zIndex: 3,
   },
   pkUserText: {
     marginTop: 0,
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
+    fontSize: 16,
+    fontWeight: '600' as any,
+    color: Theme.colors.text.primary,
     textAlign: 'center',
     width: '100%',
   },
-  buttomSave: {
-    backgroundColor: '#007AFF',
-    borderRadius: 8,
-    paddingVertical: 10,
-    width: '60%',
-    alignItems: 'center',
-    marginBottom: 10,
+  buttonContainer: {
     flexDirection: 'row',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  buttonSaveText: {
-    color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  contSave: {
-    marginTop: 20,
-    marginBottom: 10,
+    justifyContent: 'space-between',
     alignItems: 'center',
+    marginTop: Theme.spacing.lg,
+    marginBottom: Theme.spacing.sm,
+    gap: Theme.spacing.sm,
     width: '100%',
   },
+  cancelBtn: {
+    flex: 1,
+    minWidth: 0,
+  },
+  saveBtn: {
+    flex: 1,
+    minWidth: 0,
+  },
+  editBtn: {
+    flex: 1,
+  },
   card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 8,
-    padding: 16,
-    marginBottom: 12,
+    backgroundColor: Theme.colors.background.primary,
+    borderRadius: Theme.borderRadius.base,
+    padding: Theme.spacing.base,
+    // marginBottom: Platform.OS === 'android' ? Theme.spacing['3xl'] : Theme.spacing.sm,
+    marginBottom: Platform.OS === 'android' ? 5  : Theme.spacing.sm,
     marginTop: 90,
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+    zIndex: 10,
+    ...Theme.shadows.base,
   },
   cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: Theme.spacing.base,
   },
   header: {
-    fontSize: 24,
-    fontWeight: 'bold',
+    fontSize: 18,
+    fontWeight: '600' as any,
+    color: Theme.colors.text.primary,
+    flex: 1,
+    textAlign: 'center',
   },
   detailSection: {
-    marginBottom: 15,
+    marginBottom: Theme.spacing.base,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 5,
-    color: '#333',
+    fontSize: 16,
+    fontWeight: '600' as any,
+    marginBottom: Theme.spacing.xs,
+    color: Theme.colors.text.primary,
   },
   sectionValue: {
-    fontSize: 16,
-    color: '#555',
+    fontSize: Theme.typography.fontSize.base,
+    color: Theme.colors.text.secondary,
   },
   detailRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 10,
+    marginBottom: Theme.spacing.sm,
   },
   detailInput: {
-    flex: 1,
-    borderBottomWidth: 1,
-    borderBottomColor: '#ccc',
-    paddingVertical: 5,
+    borderWidth: 1,
+    borderColor: Theme.colors.border.default,
+    borderRadius: 8,
+    paddingHorizontal: 15,
+    paddingVertical: 12,
+    backgroundColor: Theme.colors.background.primary,
     fontSize: 16,
-    marginLeft: 10,
+    color: Theme.colors.text.primary,
   },
   focusedInput: {
-    borderBottomColor: 'blue',
-    color: 'black',
+    borderColor: Theme.colors.border.focus,
+    borderWidth: 1.5,
   },
   // Modal styles
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: Theme.colors.overlay.dark,
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    paddingHorizontal: 20,
-    paddingTop: 12,
+    backgroundColor: Theme.colors.background.primary,
+    borderTopLeftRadius: Theme.borderRadius['3xl'],
+    borderTopRightRadius: Theme.borderRadius['3xl'],
+    paddingHorizontal: Theme.spacing.lg,
+    paddingTop: Theme.spacing.sm,
     minHeight: 300,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 8,
+    ...Theme.shadows.xl,
   },
   modalHandleBar: {
     width: 40,
     height: 4,
-    backgroundColor: '#E0E0E0',
-    borderRadius: 2,
+    backgroundColor: Theme.colors.border.default,
+    borderRadius: Theme.borderRadius.xs,
     alignSelf: 'center',
-    marginBottom: 20,
+    marginBottom: Theme.spacing.lg,
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: Theme.spacing.xl,
   },
   modalTitle: {
     flex: 1,
   },
   closeButton: {
-    padding: 4,
+    padding: Theme.spacing.xs,
   },
   optionsContainer: {
-    marginBottom: 24,
+    marginBottom: Theme.spacing.xl,
   },
   modalOption: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 12,
+    paddingVertical: Theme.spacing.base,
+    paddingHorizontal: Theme.spacing.sm,
   },
   optionIconContainer: {
     width: 48,
     height: 48,
-    borderRadius: 24,
-    backgroundColor: '#FFF1F0',
+    borderRadius: Theme.borderRadius['3xl'],
+    backgroundColor: Theme.colors.primary[50],
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 16,
+    marginRight: Theme.spacing.base,
   },
   optionTextContainer: {
     flex: 1,
   },
   optionTitle: {
-    marginBottom: 4,
+    marginBottom: Theme.spacing.xs,
   },
   optionDivider: {
     height: 1,
-    backgroundColor: '#F0F0F0',
-    marginHorizontal: 12,
+    backgroundColor: Theme.colors.border.light,
+    marginHorizontal: Theme.spacing.sm,
   },
   cancelButton: {
-    marginBottom: 8,
+    marginBottom: Theme.spacing.sm,
+  },
+  toastContainer: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 99999,
+    elevation: 99999,
+  },
+  toastContent: {
+    backgroundColor: '#2D3748',
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+    minWidth: 280,
+    maxWidth: '90%',
+  },
+  toastText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600' as any,
+    flex: 1,
   },
 });
