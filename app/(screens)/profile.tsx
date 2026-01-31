@@ -92,9 +92,10 @@ const ProfileImageCropEditor: React.FC<ProfileImageCropEditorProps> = ({
             const filename = `cropped_${Date.now()}.jpg`;
             const fileUri = FileSystemLegacy.documentDirectory + filename;
 
-            const file = new FileSystem.File(fileUri);
-            await file.create();
-            await file.write(base64Data, { encoding: 'base64' });
+            // Use legacy API for cross-platform compatibility
+            await FileSystemLegacy.writeAsStringAsync(fileUri, base64Data, {
+              encoding: 'base64',
+            });
 
             onCropComplete(fileUri);
           } catch (error) {
