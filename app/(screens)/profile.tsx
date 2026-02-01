@@ -330,6 +330,8 @@ export default function ProfileScreen() {
   const [tempImageUri, setTempImageUri] = useState<string>('');
   const API_URL = Constants.expoConfig?.extra?.API_BASE_URL || 'http://localhost:12099';
   const UPLOAD_IMAGE_URL = `${API_URL}/user/upload-profile-image`;
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteConfirmationText, setDeleteConfirmationText] = useState('');
 
   // Refs for form inputs
   const lastNameRef = useRef<TextInput>(null);
@@ -760,6 +762,56 @@ export default function ProfileScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showImageActionSheet, pendingImageAction]);
 
+  const handleConfirmDelete = () => {
+    setDeleteConfirmationText(''); 
+    setShowDeleteModal(true);
+  };
+
+ 
+  const processDeleteAccount = async () => {
+    try {
+      setIsLoading(true);
+      setShowDeleteModal(false);
+
+      const token = await AsyncStorage.getItem('accessToken');
+
+      if (!token) {
+        Alert.alert("Error", "Session expired. Please log in again.");
+        router.replace('/login');
+        return;
+      }
+
+      const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/user/delete-my-account`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`, 
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        await AsyncStorage.multiRemove(['accessToken', 'userData']); 
+        
+        Alert.alert(
+          "Account Deleted",
+          "Your account and data have been removed.",
+          [{ 
+            text: "OK", 
+            onPress: () => router.replace('/login') 
+          }]
+        );
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Could not delete account");
+      }
+    } catch (error) {
+      console.error("Delete account error:", error);
+      Alert.alert("Error", "An error occurred while deleting your account.");
+    } finally {
+      setIsLoading(false);
+      setDeleteConfirmationText('');
+    }
+  };
   return (
     <>
       <StatusBar
@@ -933,6 +985,22 @@ export default function ProfileScreen() {
           />
         </View>
 
+        <View style={{ height: 20, borderTopWidth: 1, borderTopColor: '#EEE', marginTop: 20 }} />
+
+        <View style={styles.deleteSection}>
+          <TouchableOpacity 
+            style={styles.deleteBtn} 
+            onPress={handleConfirmDelete}
+            activeOpacity={0.7}
+          >
+            <Icon name="delete-forever" size={20} color="#FF4444" />
+            <Text style={styles.deleteText}>Delete Account</Text>
+          </TouchableOpacity>
+          <Text style={styles.deleteSubtext}>
+            Permanently remove your account and all associated data. This action cannot be undone.
+          </Text>
+        </View>
+
       </View>
     </ScrollView>
     </KeyboardAvoidingView>
@@ -1054,11 +1122,143 @@ export default function ProfileScreen() {
         </View>
       </Animated.View>
     )}
+
+    <Modal
+      visible={showDeleteModal}
+      transparent
+      animationType="fade"
+      onRequestClose={() => setShowDeleteModal(false)}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.confirmDeleteContent}>
+          <Typography variant="h4" color="primary" style={{ marginBottom: 15, color: '#FF4444' }}>
+            Confirm Deletion
+          </Typography>
+          
+          <Text style={styles.modalSubtext}>
+            To confirm, please type the word <Text style={{ fontWeight: 'bold', color: '#000' }}>delete</Text> below. This action is permanent.
+          </Text>
+
+          <TextInput
+            style={styles.confirmInput}
+            placeholder='Type "delete" here'
+            value={deleteConfirmationText}
+            onChangeText={setDeleteConfirmationText}
+            autoCapitalize="none"
+          />
+
+          <View style={styles.modalButtonContainer}>
+            <TouchableOpacity 
+              style={styles.modalCancelBtn} 
+              onPress={() => {
+                setShowDeleteModal(false);
+                setDeleteConfirmationText('');
+              }}
+            >
+              <Text style={styles.modalCancelText}>Cancel</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={[
+                styles.modalDeleteBtn, 
+                { opacity: deleteConfirmationText.toLowerCase() === 'delete' ? 1 : 0.5 }
+              ]} 
+              disabled={deleteConfirmationText.toLowerCase() !== 'delete'}
+              onPress={processDeleteAccount}
+            >
+              <Text style={styles.modalDeleteText}>Confirm Delete</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
     </>
   );
 }
 
 const styles = StyleSheet.create({
+  confirmDeleteContent: {
+    width: '85%',
+    backgroundColor: '#FFF',
+    borderRadius: 20,
+    padding: 25,
+    alignItems: 'center',
+    elevation: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+  },
+  deleteSection: {
+    marginTop: 10,
+    marginBottom: 20,
+    paddingHorizontal: 10,
+    alignItems: 'center',
+  },
+  deleteBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+  },
+  deleteText: {
+    color: '#FF4444',
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+  deleteSubtext: {
+    color: '#999',
+    fontSize: 12,
+    textAlign: 'center',
+    marginTop: 5,
+    lineHeight: 16,
+  },
+  modalSubtext: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 20,
+    lineHeight: 20,
+  },
+  confirmInput: {
+    width: '100%',
+    height: 50,
+    borderWidth: 1,
+    borderColor: '#DDD',
+    borderRadius: 10,
+    paddingHorizontal: 15,
+    marginBottom: 25,
+    fontSize: 16,
+    color: '#000',
+    backgroundColor: '#F9F9F9',
+  },
+  modalButtonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+  },
+  modalCancelBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  modalCancelText: {
+    color: '#666',
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  modalDeleteBtn: {
+    flex: 1,
+    backgroundColor: '#FF4444',
+    paddingVertical: 12,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  modalDeleteText: {
+    color: '#FFF',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
   container: {
     flex: 1,
     padding: 0,
