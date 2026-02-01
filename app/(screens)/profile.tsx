@@ -367,8 +367,6 @@ export default function ProfileScreen() {
               ? `${API_URL}/${userDataFromApi.img_profile}`
               : '';
 
-            console.log("User image: " + fullProfilePictureUrl + " API " + API_URL);
-
             setUserData({
               profilePicture: fullProfilePictureUrl,
               username: userDataFromApi.username || '',
@@ -781,16 +779,21 @@ export default function ProfileScreen() {
         return;
       }
 
-      const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/user/delete-my-account`, {
+      const endpoint = '/user/delete-my-account';
+      const finalUrl = `${API_URL}${endpoint}`.replace(/([^:]\/)\/+/g, "$1");
+      
+      const response = await fetch(finalUrl, {
         method: 'PATCH',
         headers: {
-          'Authorization': `Bearer ${token}`, 
+          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
+          'Accept': 'application/json', 
         },
+        body: JSON.stringify({ confirm: true }), 
       });
 
       if (response.ok) {
-        await AsyncStorage.multiRemove(['accessToken', 'userData']); 
+        await AsyncStorage.multiRemove(['accessToken', 'userData']);
         
         Alert.alert(
           "Account Deleted",
@@ -801,15 +804,26 @@ export default function ProfileScreen() {
           }]
         );
       } else {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Could not delete account");
+        const errorText = await response.text();
+        let errorMessage = "Could not delete account";
+        try {
+          const errorData = JSON.parse(errorText);
+          errorMessage = errorData.message || errorMessage;
+        } catch (e) {
+          console.error("No se pudo parsear error JSON:", errorText);
+        }
+        throw new Error(errorMessage);
       }
-    } catch (error) {
-      console.error("Delete account error:", error);
-      Alert.alert("Error", "An error occurred while deleting your account.");
-    } finally {
-      setIsLoading(false);
-      setDeleteConfirmationText('');
+    } catch (error: unknown) { 
+        console.error("Delete account error detail:", error);
+        
+        const errorMessage = error instanceof Error ? error.message : "An unknown error occurred";
+
+        const userMessage = errorMessage.includes('Network request failed')
+          ? "Connection error. Please check your internet or if the server is down."
+          : errorMessage;
+
+        Alert.alert("Error", userMessage);
     }
   };
   return (
@@ -1430,15 +1444,16 @@ const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
     backgroundColor: Theme.colors.overlay.dark,
-    justifyContent: 'flex-end',
+    justifyContent: 'center', 
+    alignItems: 'center',
   },
   modalContent: {
     backgroundColor: Theme.colors.background.primary,
-    borderTopLeftRadius: Theme.borderRadius['3xl'],
-    borderTopRightRadius: Theme.borderRadius['3xl'],
+    borderRadius: Theme.borderRadius.xl, 
     paddingHorizontal: Theme.spacing.lg,
-    paddingTop: Theme.spacing.sm,
-    minHeight: 300,
+    paddingVertical: Theme.spacing.xl,   
+    width: '85%',                        
+    minHeight: 200,                      
     ...Theme.shadows.xl,
   },
   modalHandleBar: {
