@@ -4,6 +4,7 @@ import { Theme } from '@/constants/Theme';
 import { FontAwesome } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import React, { useState, useCallback } from 'react';
+
 import {
     Linking,
     Platform,
@@ -35,7 +36,7 @@ interface ContactInfo {
 export default function SupportScreen() {
   const insets = useSafeAreaInsets();
   const [isMenuVisible, setMenuVisible] = useState(false);
-
+ 
   const handleMenuPress = useCallback(() => {
     setMenuVisible(true);
   }, []);

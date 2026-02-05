@@ -6,10 +6,37 @@ import React from 'react';
 import { Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import { useAppSelector } from '@/store/hooks'
+import { Alert } from 'react-native'; 
+import { useRouter } from 'expo-router'; 
 
 export default function TabsLayout() {
+  const router = useRouter();
   const insets = useSafeAreaInsets();
   const { isAuthenticated } = useAuth();
+
+  const userId = useAppSelector((state: any) => state.auth.userId);
+  const isGuest = userId === 'GUEST_USER';
+
+  const handleGuestRestriction = (e: any) => {
+    if (isGuest) {
+      e.preventDefault();
+
+      Alert.alert(
+        "Access Restricted",
+        "You need to be signed in to access this feature. Would you like to log in now?",
+        [
+          { text: "Later", style: "cancel" },
+          { 
+            text: "Sign In", 
+            onPress: async () => {
+              router.replace('/login'); 
+            } 
+          }
+        ]
+      );
+    }
+  };
 
   return (
     <Tabs
@@ -85,6 +112,7 @@ export default function TabsLayout() {
           title: 'Activity',
           tabBarIcon: ({ color }) => <Icon name="notifications" size={30} color={color} />,
         }}
+        listeners={{ tabPress: handleGuestRestriction }} 
       />
 
       <Tabs.Screen
@@ -93,6 +121,7 @@ export default function TabsLayout() {
           title: 'Services',
           tabBarIcon: ({ color }) => <Icon name="event-note" size={30} color={color} />,
         }}
+        listeners={{ tabPress: handleGuestRestriction }} 
       />
       
     
@@ -102,6 +131,7 @@ export default function TabsLayout() {
           title: 'Billing',
           tabBarIcon: ({ color }) => <Icon name="paid" size={30} color={color} />,
         }}
+        listeners={{ tabPress: handleGuestRestriction }} 
       />
 
       <Tabs.Screen

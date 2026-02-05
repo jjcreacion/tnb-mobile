@@ -108,9 +108,11 @@ Start simplifying your life and get your first service gift today!`;
     Alert.alert('Copied!', 'The invitation link has been copied to your clipboard.');
   };
 
-
   const imgShare = require('@/assets/images/share.png')
 
+  const userId = useAppSelector(state => state.auth.userId);
+  const isGuest = userId === 'GUEST_USER';
+  
   return (
     <>
       <StatusBar 
@@ -131,34 +133,44 @@ Start simplifying your life and get your first service gift today!`;
               style={styles.image}
               resizeMode="cover"
             />
-            <TouchableOpacity style={styles.shareImageButton} onPress={onShare}>
-              <FontAwesome name="share-alt" size={20} color={Theme.colors.text.inverse} />
-            </TouchableOpacity>
+            {!isGuest && (
+                <TouchableOpacity style={styles.shareImageButton} onPress={onShare}>
+                  <FontAwesome name="share-alt" size={20} color={Theme.colors.text.inverse} />
+                </TouchableOpacity>
+              )}
           </View>
 
           <Text style={styles.title}>Invite a friend</Text>
-          {/* Muestra el monto de la recompensa cargado dinámicamente */}
           <Text style={styles.subtitle}>Share your invitation link so your friends can join and get a ${referralReward} service gift.</Text>
           
-          <View style={styles.invitationLinkContainer}>
-            <Text style={styles.invitationLinkText}>Your invitation link:</Text>
-            <View style={styles.linkDisplay}>
-              {/* Muestra el enlace completo, cargado dinámicamente */}
-              <Text style={styles.link} numberOfLines={1} ellipsizeMode="middle">
-                {inviteLink || 'Loading link...'}
-              </Text>
-              <TouchableOpacity onPress={copyToClipboard} style={styles.copyButton}>
-                <FontAwesome name="copy" size={18} color={Theme.colors.text.inverse} />
-              </TouchableOpacity>
-            </View>
-          </View>
+          {isGuest ? (
+              <View style={[styles.invitationLinkContainer, { backgroundColor: '#F3F4F6', borderStyle: 'dashed', borderWidth: 1, borderColor: '#9CA3AF' }]}>
+                <Text style={[styles.invitationLinkText, { textAlign: 'center', color: '#4B5563', paddingVertical: 10 }]}>
+                  Only registered users can get an invitation link.
+                </Text>
+              </View>
+            ) : (
+              <>
+                <View style={styles.invitationLinkContainer}>
+                  <Text style={styles.invitationLinkText}>Your invitation link:</Text>
+                  <View style={styles.linkDisplay}>
+                    <Text style={styles.link} numberOfLines={1} ellipsizeMode="middle">
+                      {inviteLink || 'Loading link...'}
+                    </Text>
+                    <TouchableOpacity onPress={copyToClipboard} style={styles.copyButton}>
+                      <FontAwesome name="copy" size={18} color={Theme.colors.text.inverse} />
+                    </TouchableOpacity>
+                  </View>
+                </View>
 
-          <View style={styles.buttonContainer}>
-            <TouchableOpacity style={styles.shareButton} onPress={onShare}>
-              <FontAwesome name="share-alt" size={24} color={Theme.colors.text.inverse} style={styles.icon} />
-              <Text style={styles.buttonText}>Share link</Text>
-            </TouchableOpacity>
-          </View>
+                <View style={styles.buttonContainer}>
+                  <TouchableOpacity style={styles.shareButton} onPress={onShare}>
+                    <FontAwesome name="share-alt" size={24} color={Theme.colors.text.inverse} style={styles.icon} />
+                    <Text style={styles.buttonText}>Share link</Text>
+                  </TouchableOpacity>
+                </View>
+              </>
+            )}
             
             <TouchableOpacity 
                 style={styles.viewReferralsButton} 

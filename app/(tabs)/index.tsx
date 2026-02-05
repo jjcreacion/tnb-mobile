@@ -23,6 +23,7 @@ import { registerDevice } from '@/store/slices/deviceSlice';
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import Constants from 'expo-constants'
 import { StatusBar } from 'expo-status-bar'
+import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo } from 'react'
 import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -48,7 +49,7 @@ const API_BASE_URL = Constants.expoConfig?.extra?.API_BASE_URL || ''
 const HomeScreen: React.FC = () => {
   const dispatch = useAppDispatch()
   const insets = useSafeAreaInsets()
-
+  const router = useRouter();
   // Load referral reward
   useReferralReward()
 
@@ -83,6 +84,9 @@ const HomeScreen: React.FC = () => {
   const isAddressModalVisible = useAppSelector((state) => state.ui.isAddressModalVisible)
   const referralReward = useAppSelector((state) => state.ui.referralReward)
 
+  const userId = useAppSelector(state => state.auth.userId);
+  const isGuest = userId === 'GUEST_USER';
+
   useEffect(() => {
     dispatch(loadUserData())
       .unwrap() 
@@ -90,7 +94,7 @@ const HomeScreen: React.FC = () => {
         dispatch(registerDevice()); 
       })
       .catch((error) => {
-        console.error('Error al cargar datos de usuario o registrar dispositivo:', error);
+        //console.error('Error al cargar datos de usuario o registrar dispositivo:', error);
       });
       
     dispatch(loadUserAddresses()); 
@@ -114,12 +118,27 @@ const HomeScreen: React.FC = () => {
     [dispatch]
   )
 
-  const handleServicePress = useCallback(
+ const handleServicePress = useCallback(
     (category: Category) => {
-      dispatch(openRequestModal(category))
+      if (isGuest) {
+        Alert.alert(
+          "Access Restricted",
+          "You need to be signed in to request a service. Would you like to log in now?",
+          [
+            { text: "Later", style: "cancel" },
+            { 
+              text: "Sign In", 
+              onPress: () => router.replace('/login') 
+            }
+          ]
+        );
+        return; 
+      }
+      
+      dispatch(openRequestModal(category));
     },
-    [dispatch]
-  )
+    [dispatch, isGuest] 
+  );
 
   const handleCloseServiceModal = useCallback(() => {
     dispatch(closeRequestModal())
@@ -144,11 +163,11 @@ const HomeScreen: React.FC = () => {
           `Interest expressed for campaign ${campaign.campaignsId} by user ${userId}`
         )
       } catch (error) {
-        console.error('Network error expressing interest:', error)
+       /* console.error('Network error expressing interest:', error)
         Alert.alert(
           'Error',
           'Could not connect to the server. Please check your internet connection.'
-        )
+        )*/
       }
 
       dispatch(openCampaignModal(campaign))
@@ -203,12 +222,12 @@ const HomeScreen: React.FC = () => {
       <View style={styles.container}>
         <StatusBar style="light" backgroundColor={Theme.colors.primary[500]} />
         
-          <HomeHeader
+        <HomeHeader
           onMenuPress={handleMenuPress}
           referralReward={referralReward || '15'}
           userBalance={userBalance}
-        />
-
+         />
+        
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={styles.keyboardAvoidingView}
@@ -229,11 +248,14 @@ const HomeScreen: React.FC = () => {
           alwaysBounceVertical={false}
           keyboardShouldPersistTaps="handled"
         >
+        
+        {!isGuest && (
         <AddressSelector
           primaryAddress={primaryAddress}
           addressCount={addresses.length}
           onPress={handleAddressPress}
         />
+        )}
 
         <CampaignCarousel
           campaigns={campaigns}
@@ -267,12 +289,13 @@ const HomeScreen: React.FC = () => {
           states={states}
         />
 
+       {selectedCampaignData && isCampaignModalVisible && (
         <CampaignModal
           isVisible={isCampaignModalVisible}
           onClose={handleCloseCampaignModal}
           campaign={selectedCampaignData}
         />
-
+       )}
         <SideMenu
           isVisible={isMenuVisible}
           onClose={() => dispatch(setMenuVisible(false))}

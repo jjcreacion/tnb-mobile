@@ -12,10 +12,12 @@ import {
   TouchableOpacity,
   View,
   Platform,
-  StatusBar as RNStatusBar
+  StatusBar as RNStatusBar,
+  Alert
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useAppSelector } from '@/store/hooks';
+
 
 interface SideMenuProps {
   isVisible: boolean;
@@ -41,10 +43,13 @@ const SideMenu: React.FC<SideMenuProps> = ({ isVisible, onClose }) => {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   // Store pending timers for cleanup on unmount
   const pendingTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  
+  const userId = useAppSelector((state) => state.auth.userId);
+  const isGuest = userId === 'GUEST_USER';
 
   // Get user data from Redux
   const { userName, userData } = useAppSelector((state) => state.user);
-  const userEmail = userData?.email || 'user@mail.com';
+  const userEmail = isGuest ? "Guest Mode" : (userData?.email || 'user@mail.com');
 
   // Clean up all pending timers on unmount
   useEffect(() => {
@@ -86,7 +91,22 @@ const SideMenu: React.FC<SideMenuProps> = ({ isVisible, onClose }) => {
   }, [isVisible, slideAnim, fadeAnim]);
 
   const handleItemPress = (item: MenuItem) => {
-  onClose(); 
+    if (isGuest && (item.id === 'profile' || item.id === 'notifications')) {
+      onClose();
+      setTimeout(() => {
+        Alert.alert(
+          "Access Restricted",
+          "Please sign in to access this feature.",
+          [
+            { text: "Later", style: "cancel" },
+            { text: "Sign In", onPress: () => router.replace('/login') }
+          ]
+        );
+      }, 300);
+      return;
+    }
+
+    onClose(); 
     const timer = setTimeout(() => {
       if (item.action) {
         item.action();
@@ -97,6 +117,7 @@ const SideMenu: React.FC<SideMenuProps> = ({ isVisible, onClose }) => {
     
     pendingTimersRef.current.push(timer); 
   };
+
 
   const handleLogout = async () => {
     try {
@@ -252,8 +273,8 @@ const SideMenu: React.FC<SideMenuProps> = ({ isVisible, onClose }) => {
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
               >
-                <Icon name="logout" size={18} color={Theme.colors.text.inverse} />
-                <Text style={styles.logoutText}>Log Out</Text>
+                <Icon name={isGuest ? "login" : "logout"} size={18} color={Theme.colors.text.inverse} />
+                <Text style={styles.logoutText}>{isGuest ? "Sign In / Register" : "Log Out"}</Text>
               </LinearGradient>
             </TouchableOpacity>
 

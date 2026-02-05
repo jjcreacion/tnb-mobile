@@ -5,6 +5,7 @@ import { useRouter } from 'expo-router';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { Theme } from '@/constants/Theme';
 import { styles } from './styles';
+import { useAppSelector } from '@/store/hooks'
 
 const tnbLogo = require('../../../assets/images/icon.png');
 
@@ -17,6 +18,9 @@ interface HomeHeaderProps {
 export const HomeHeader = memo<HomeHeaderProps>(
   ({ onMenuPress, referralReward, userBalance }) => {
     const router = useRouter();
+
+    const userId = useAppSelector(state => state.auth.userId);
+    const isGuest = userId === 'GUEST_USER';
 
     return (
       <View style={styles.container}>
@@ -54,6 +58,7 @@ export const HomeHeader = memo<HomeHeaderProps>(
                 </Text>
               </TouchableOpacity>
 
+              {!isGuest && (
               <TouchableOpacity
                 style={styles.balanceButton}
                 onPress={() => router.push('/(tabs)/billing')}
@@ -68,6 +73,7 @@ export const HomeHeader = memo<HomeHeaderProps>(
                   ${userBalance || '0'}
                 </Text>
               </TouchableOpacity>
+              )}
             </View>
           </View>
         </LinearGradient>

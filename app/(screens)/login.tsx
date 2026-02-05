@@ -221,6 +221,24 @@ export default function LoginScreenMigrated() {
     }
   };
 
+  const handleGuestMode = async () => {
+  setLoading(true);
+    try {
+      await AsyncStorage.setItem('userId', 'GUEST_USER');
+      
+      dispatch(setAuthenticated({
+        accessToken: 'guest_token',
+        userId: 'GUEST_USER',
+      }));
+
+      router.replace('/(tabs)');
+    } catch (error) {
+      console.log('Guest Mode error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <ImageBackground
       source={require('@/assets/images/ingenieros.jpeg')}
@@ -410,6 +428,16 @@ export default function LoginScreenMigrated() {
                     size="lg"
                     style={MigratedStyles.loginSignupButton}
                   />
+
+                  <Button
+                    title="Explore as Guest"
+                    onPress={handleGuestMode}
+                    variant="ghost"
+                    fullWidth
+                    size="md"
+                    style={{ marginTop: 10 }}
+                  />
+                  
                 </View>
               </Animatable.View>
             </View>

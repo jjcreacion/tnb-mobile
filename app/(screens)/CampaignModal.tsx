@@ -13,6 +13,7 @@ import {
   View,
 } from 'react-native'
 import Icon from 'react-native-vector-icons/MaterialIcons'
+import { useAppSelector } from '@/store/hooks'
 
 interface Campaign {
   campaignsId: number
@@ -43,6 +44,9 @@ const CampaignModal: React.FC<CampaignModalProps> = ({
     return null
   }
 
+  const userId = useAppSelector(state => state.auth.userId);
+  const isGuest = userId === 'GUEST_USER';
+
   const API_BASE_URL = Constants.expoConfig?.extra?.API_BASE_URL
   const fullImageUrl = `${API_BASE_URL}${campaign.imageUrl}`
 
@@ -63,17 +67,17 @@ const CampaignModal: React.FC<CampaignModalProps> = ({
       if (canOpen) {
         await Linking.openURL(phoneUrl)
       } else {
-        Alert.alert(
+       /* Alert.alert(
           'Error',
           'Could not open the dialer. Please verify that your device has a phone app available.'
-        )
+        )*/
       }
     } catch (error) {
-      console.error('Failed to open dialer:', error)
-      Alert.alert(
+      //console.error('Failed to open dialer:', error)
+     /* Alert.alert(
         'Error',
         'Could not open the dialer. Please verify that your device has a phone app available.'
-      )
+      )*/
     }
   }
 

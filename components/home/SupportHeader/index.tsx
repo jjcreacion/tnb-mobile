@@ -4,12 +4,17 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { Theme } from '@/constants/Theme';
 import { styles } from './styles';
+import { useAppSelector } from '@/store/hooks';
 
 interface SupportHeaderProps {
   onMenuPress: () => void;
 }
 
 export const SupportHeader = memo<SupportHeaderProps>(({ onMenuPress }) => {
+ 
+  const userId = useAppSelector(state => state.auth.userId);
+  const isGuest = userId === 'GUEST_USER';
+ 
   return (
     <View style={styles.container}>
       <LinearGradient
@@ -20,6 +25,8 @@ export const SupportHeader = memo<SupportHeaderProps>(({ onMenuPress }) => {
       >
         <View style={styles.content}>
           <View style={styles.leftSection}>
+             {!isGuest && (
+       
             <TouchableOpacity
               onPress={onMenuPress}
               style={styles.menuButton}
@@ -27,6 +34,7 @@ export const SupportHeader = memo<SupportHeaderProps>(({ onMenuPress }) => {
             >
               <Icon name="menu" size={28} color={Theme.colors.text.inverse} />
             </TouchableOpacity>
+             )}
             <View style={styles.titleContainer}>
               <Text style={styles.title}>Support</Text>
               <Text style={styles.subtitle}>We're here to help you</Text>
