@@ -55,8 +55,9 @@ const SignUp: React.FC<ModalProps> = ({ isVisible, onClose }) => {
   const passwordRef = useRef<TextInput>(null);
   const confirmPasswordRef = useRef<TextInput>(null);
   const referralCodeRef = useRef<TextInput>(null); // Ref para Código de Referido
+  const scrollViewRef = useRef<ScrollView>(null);
 
-  const { dismissKeyboard } = useKeyboard();
+  const { dismissKeyboard, isKeyboardVisible } = useKeyboard();
   const API_URL = Constants.expoConfig?.extra?.API_BASE_URL;
 
   useEffect(() => {
@@ -297,6 +298,7 @@ const SignUp: React.FC<ModalProps> = ({ isVisible, onClose }) => {
             >
               <View style={styles.content}>
                 <ScrollView
+                  ref={scrollViewRef}
                   contentContainerStyle={styles.scrollContent}
                   keyboardShouldPersistTaps="handled"
                   showsVerticalScrollIndicator={false}
@@ -383,8 +385,14 @@ const SignUp: React.FC<ModalProps> = ({ isVisible, onClose }) => {
                       autoComplete="new-password"
                       textContentType="newPassword"
                       editable={!loading}
-                      returnKeyType="next"
-                      onSubmitEditing={() => referralCodeRef.current?.focus()}
+                      returnKeyType={noReferralCode ? 'done' : 'next'}
+                      onSubmitEditing={() => {
+                        if (noReferralCode) {
+                          dismissKeyboard();
+                        } else {
+                          referralCodeRef.current?.focus();
+                        }
+                      }}
                     />
 
                     <Input
@@ -403,15 +411,22 @@ const SignUp: React.FC<ModalProps> = ({ isVisible, onClose }) => {
                       returnKeyType="go"
                       onSubmitEditing={handleNext}
                       containerStyle={styles.referralInput}
+                      onFocus={() => {
+                        setTimeout(() => {
+                          scrollViewRef.current?.scrollToEnd({ animated: true });
+                        }, 300);
+                      }}
                     />
 
                     <TouchableOpacity
                       style={styles.checkboxContainer}
                       onPress={() => {
-                        setNoReferralCode(!noReferralCode);
-                        if (!noReferralCode) {
+                        const willCheck = !noReferralCode;
+                        setNoReferralCode(willCheck);
+                        if (willCheck) {
                           setReferralCode('');
                           setReferralCodeError('');
+                          dismissKeyboard();
                         }
                       }}
                       activeOpacity={0.8}
@@ -473,18 +488,20 @@ const SignUp: React.FC<ModalProps> = ({ isVisible, onClose }) => {
                       style={styles.continueButton}
                     />
 
-                    <View style={styles.footer} pointerEvents="box-none">
-                      <Text style={styles.footerText} pointerEvents="none">
-                        Already have an account?{' '}
-                      </Text>
-                      <Button
-                        title="Sign In"
-                        variant="ghost"
-                        size="sm"
-                        onPress={handleClose}
-                        disabled={loading}
-                      />
-                    </View>
+                    {!isKeyboardVisible && (
+                      <View style={styles.footer} pointerEvents="box-none">
+                        <Text style={styles.footerText} pointerEvents="none">
+                          Already have an account?{' '}
+                        </Text>
+                        <Button
+                          title="Sign In"
+                          variant="ghost"
+                          size="sm"
+                          onPress={handleClose}
+                          disabled={loading}
+                        />
+                      </View>
+                    )}
                   </View>
                 </ScrollView>
               </View>
