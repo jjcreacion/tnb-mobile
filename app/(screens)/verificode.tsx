@@ -3,6 +3,7 @@ import { Theme } from '@/constants/Theme';
 import { StatusBar } from 'expo-status-bar';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -39,6 +40,7 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
   const inputsRef = useRef<(TextInput | null)[]>([]);
   const timeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const validationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const codeValidRef = useRef(false);
   const [refereeFullName, setRefereeFullName] = useState<string | null>(null);
   
   // Track recent input activity to prevent phantom backspaces (iOS)
@@ -260,7 +262,9 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
   // Optimized focus function for immediate response
   const focusInput = useCallback((index: number) => {
     requestAnimationFrame(() => {
-      inputsRef.current[index]?.focus();
+      if (!codeValidRef.current) {
+        inputsRef.current[index]?.focus();
+      }
     });
   }, []);
 
@@ -290,10 +294,11 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
           verificationCode,
           newState: 'valid'
         });
+        codeValidRef.current = true;
         setValidationState('valid');
-        // Dismiss keyboard immediately
-        inputsRef.current.forEach(input => input?.blur());
+        Keyboard.dismiss();
       } else {
+        codeValidRef.current = false;
         logDebugEvent('VALIDATION_FAILED', {
           codeString,
           verificationCode,
@@ -306,6 +311,7 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
     } else if (codeString.length < 6) {
       // Code is incomplete - reset to idle immediately
       // This allows user to correct their input
+      codeValidRef.current = false;
       setValidationState((prevState) => {
         if (prevState !== 'idle') {
           logDebugEvent('VALIDATION_RESET_TO_IDLE', {
@@ -1207,6 +1213,7 @@ const VerifyCode: React.FC<VerifyCodeProps> = ({ onBack, verificationCode, email
     setCode(Array(6).fill(''));
     setValidationState('idle');
     setIsProcessing(false);
+    codeValidRef.current = false;
     
     // Optimized focus - immediate response
     if (Platform.OS === 'ios') {
