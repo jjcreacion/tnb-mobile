@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { Platform, Text, TouchableOpacity, View, StyleSheet } from 'react-native'
 import DateTimePicker from '@react-native-community/datetimepicker'
+import DatePicker from 'react-native-date-picker'
 import { Theme } from '../../constants/Theme'
 
 interface DateInputProps {
@@ -20,6 +21,13 @@ const parseLocalDate = (dateString: string): Date => {
   return new Date(year, month - 1, day) // month is 0-indexed
 }
 
+const formatDateToString = (date: Date): string => {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
 export const DateInput: React.FC<DateInputProps> = ({
   label,
   value,
@@ -35,6 +43,9 @@ export const DateInput: React.FC<DateInputProps> = ({
     ? parseLocalDate(value)
     : new Date(new Date().getFullYear() - 25, 0, 15) // January 15, 25 years ago
 
+  // Temporary date for Android inline picker (commit only on Done)
+  const [androidTempDate, setAndroidTempDate] = useState<Date>(dateValue)
+
   // Format date for display using local date to avoid timezone issues
   const formatDate = (dateString: string) => {
     if (!dateString) return 'Select date'
@@ -47,30 +58,22 @@ export const DateInput: React.FC<DateInputProps> = ({
   }
 
   const handleDateChange = (event: any, selectedDate?: Date) => {
-    if (Platform.OS === 'android') {
-      setShowPicker(false)
-    }
-
     if (selectedDate) {
-      // Format as YYYY-MM-DD
-      const year = selectedDate.getFullYear()
-      const month = String(selectedDate.getMonth() + 1).padStart(2, '0')
-      const day = String(selectedDate.getDate()).padStart(2, '0')
-      onChange(`${year}-${month}-${day}`)
+      onChange(formatDateToString(selectedDate))
     }
   }
 
   const handlePress = () => {
+    setAndroidTempDate(dateValue)
     setShowPicker(true)
   }
 
-  const handleIOSConfirm = () => {
-    // Save the current date value if no value was previously set
-    if (!value) {
-      const year = dateValue.getFullYear()
-      const month = String(dateValue.getMonth() + 1).padStart(2, '0')
-      const day = String(dateValue.getDate()).padStart(2, '0')
-      onChange(`${year}-${month}-${day}`)
+  const handleConfirm = () => {
+    if (!value && Platform.OS === 'ios') {
+      onChange(formatDateToString(dateValue))
+    }
+    if (Platform.OS === 'android') {
+      onChange(formatDateToString(androidTempDate))
     }
     setShowPicker(false)
   }
@@ -97,13 +100,13 @@ export const DateInput: React.FC<DateInputProps> = ({
       {showPicker && (
         <>
           {Platform.OS === 'ios' ? (
-            <View style={styles.iosPickerContainer}>
-              <View style={styles.iosPickerHeader}>
+            <View style={styles.pickerContainer}>
+              <View style={styles.pickerHeader}>
                 <TouchableOpacity onPress={() => setShowPicker(false)}>
-                  <Text style={styles.iosPickerButton}>Cancel</Text>
+                  <Text style={styles.pickerButton}>Cancel</Text>
                 </TouchableOpacity>
-                <TouchableOpacity onPress={handleIOSConfirm}>
-                  <Text style={[styles.iosPickerButton, styles.iosPickerConfirm]}>Done</Text>
+                <TouchableOpacity onPress={handleConfirm}>
+                  <Text style={[styles.pickerButton, styles.pickerConfirm]}>Done</Text>
                 </TouchableOpacity>
               </View>
               <DateTimePicker
@@ -116,13 +119,24 @@ export const DateInput: React.FC<DateInputProps> = ({
               />
             </View>
           ) : (
-            <DateTimePicker
-              value={dateValue}
-              mode="date"
-              display="default"
-              onChange={handleDateChange}
-              maximumDate={new Date()}
-            />
+            <View style={styles.pickerContainer}>
+              <View style={styles.pickerHeader}>
+                <TouchableOpacity onPress={() => setShowPicker(false)}>
+                  <Text style={styles.pickerButton}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={handleConfirm}>
+                  <Text style={[styles.pickerButton, styles.pickerConfirm]}>Done</Text>
+                </TouchableOpacity>
+              </View>
+              <DatePicker
+                date={androidTempDate}
+                onDateChange={setAndroidTempDate}
+                mode="date"
+                maximumDate={new Date()}
+                androidVariant="iosClone"
+                theme="light"
+              />
+            </View>
           )}
         </>
       )}
@@ -166,7 +180,7 @@ const styles = StyleSheet.create({
     color: Theme.colors.error[500],
     marginTop: 4,
   },
-  iosPickerContainer: {
+  pickerContainer: {
     backgroundColor: Theme.colors.background.primary,
     borderTopWidth: 1,
     borderTopColor: Theme.colors.neutral[200],
@@ -176,7 +190,7 @@ const styles = StyleSheet.create({
     right: 0,
     zIndex: 1000,
   },
-  iosPickerHeader: {
+  pickerHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -185,11 +199,11 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: Theme.colors.neutral[200],
   },
-  iosPickerButton: {
+  pickerButton: {
     fontSize: 16,
     color: Theme.colors.primary[500],
   },
-  iosPickerConfirm: {
+  pickerConfirm: {
     fontWeight: '600',
   },
 })
