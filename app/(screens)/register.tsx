@@ -49,7 +49,16 @@ import type { RegistrationFormData } from '../../types/registration'
 const validationSchema = Yup.object().shape({
   firstName: Yup.string().required('First Name is required').min(2, 'Too short'),
   lastName: Yup.string().required('Last Name is required').min(2, 'Too short'),
-  birthDate: Yup.string().required('Date of Birth is required'),
+  birthDate: Yup.string()
+    .required('Date of Birth is required')
+    .test('min-age', 'You must be at least 18 years old', (value) => {
+      if (!value) return false
+      const [year, month, day] = value.split('-').map(Number)
+      const birth = new Date(year, month - 1, day)
+      const today = new Date()
+      const cutoff = new Date(today.getFullYear() - 18, today.getMonth(), today.getDate())
+      return birth <= cutoff
+    }),
   phoneNumber: Yup.string()
     .required('Phone number is required')
     .min(10, 'Phone number must be at least 10 digits'),
