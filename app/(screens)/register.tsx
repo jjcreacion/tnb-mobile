@@ -4,6 +4,7 @@ import { Formik } from 'formik'
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import {
   Alert,
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -113,8 +114,12 @@ const Register: React.FC = () => {
   const addressLine2Ref = useRef<TextInput>(null)
   const zipCodeRef = useRef<TextInput>(null)
   const scrollViewRef = useRef<ScrollView>(null)
+  const scrollOffsetRef = useRef<number>(0)
+  const pendingScrollRestoreRef = useRef(false)
   const phoneSectionY = useRef<number>(0)
   const addressSectionY = useRef<number>(0)
+  const addressLine2SectionY = useRef<number>(0)
+  const zipCodeSectionY = useRef<number>(0)
 
   // Focus states for TextInput fields
   const [focusedField, setFocusedField] = useState<string | null>(null)
@@ -148,6 +153,31 @@ const Register: React.FC = () => {
       scrollViewRef.current?.scrollTo({ y: addressSectionY.current, animated: true })
     }, 300)
   }, [])
+
+  // Scroll to address line 2 section when it gets focus
+  const scrollToAddressLine2Section = useCallback(() => {
+    setTimeout(() => {
+      scrollViewRef.current?.scrollTo({ y: addressLine2SectionY.current, animated: true })
+    }, 300)
+  }, [])
+
+  // Scroll to zip code section when it gets focus
+  const scrollToZipCodeSection = useCallback(() => {
+    setTimeout(() => {
+      scrollViewRef.current?.scrollTo({ y: zipCodeSectionY.current, animated: true })
+    }, 300)
+  }, [])
+
+  // Restore scroll position after returning from state/city selection
+  useEffect(() => {
+    if (currentScreen === 'form' && pendingScrollRestoreRef.current) {
+      pendingScrollRestoreRef.current = false
+      const timer = setTimeout(() => {
+        scrollViewRef.current?.scrollTo({ y: scrollOffsetRef.current, animated: false })
+      }, 50)
+      return () => clearTimeout(timer)
+    }
+  }, [currentScreen])
 
   // Store setFieldValue in a ref to avoid recreating callbacks
   const setFieldValueRef = useRef<any>(null)
@@ -569,6 +599,8 @@ const Register: React.FC = () => {
                   keyboardShouldPersistTaps="handled"
                   showsVerticalScrollIndicator={false}
                   scrollEnabled={!datePickerActive}
+                  onScroll={(e) => { scrollOffsetRef.current = e.nativeEvent.contentOffset.y }}
+                  scrollEventThrottle={16}
                 >
                   <View style={styles.formContainer} pointerEvents="box-none">
                     {/* Personal Information Section */}
@@ -713,7 +745,7 @@ const Register: React.FC = () => {
                         returnKeyType="next"
                         onSubmitEditing={handleAddressSubmitEditing}
                         onFocus={scrollToAddressSection}
-                        onAddressLine2Focus={scrollToAddressSection}
+                        onAddressLine2Focus={scrollToAddressLine2Section}
                       />
                     ) : (
                       <TextInput
@@ -752,7 +784,13 @@ const Register: React.FC = () => {
                       </View>
                     )}
 
-                    <Text style={styles.sectionLabel} pointerEvents="none">Address Line 2 (Optional)</Text>
+                    <Text
+                      style={styles.sectionLabel}
+                      pointerEvents="none"
+                      onLayout={(e) => { addressLine2SectionY.current = e.nativeEvent.layout.y }}
+                    >
+                      Address Line 2 (Optional)
+                    </Text>
                     <TextInput
                       ref={addressLine2Ref}
                       style={[
@@ -762,11 +800,30 @@ const Register: React.FC = () => {
                       placeholder="Apt, suite, unit, building, floor, PO BOX, etc."
                       value={values.addressLine2}
                       onChangeText={handleChange('addressLine2')}
-                      onFocus={() => setFocusedField('addressLine2')}
+                      onFocus={() => {
+                        setFocusedField('addressLine2')
+                        scrollToAddressLine2Section()
+                      }}
                       onBlur={() => setFocusedField(null)}
                       placeholderTextColor={Theme.colors.neutral[400]}
                       returnKeyType="next"
-                      onSubmitEditing={() => focusNextField(zipCodeRef)}
+                      onSubmitEditing={() => {
+                        if (!values.state) {
+                          Keyboard.dismiss()
+                          setFormData(values)
+                          pendingScrollRestoreRef.current = true
+                          setCurrentScreen('state')
+                        } else if (!values.city) {
+                          Keyboard.dismiss()
+                          setFormData(values)
+                          pendingScrollRestoreRef.current = true
+                          setCurrentScreen('city')
+                        } else if (!values.zipCode) {
+                          focusNextField(zipCodeRef)
+                        } else {
+                          Keyboard.dismiss()
+                        }
+                      }}
                       autoCapitalize="words"
                       textContentType="streetAddressLine2"
                       autoComplete="address-line2"
@@ -785,6 +842,7 @@ const Register: React.FC = () => {
                           onPress={() => {
                             // Save current form values before navigating
                             setFormData(values)
+                            pendingScrollRestoreRef.current = true
                             setCurrentScreen('state')
                           }}
                         >
@@ -812,6 +870,7 @@ const Register: React.FC = () => {
                           onPress={() => {
                             // Save current form values before navigating
                             setFormData(values)
+                            pendingScrollRestoreRef.current = true
                             setCurrentScreen('city')
                           }}
                         >
@@ -828,7 +887,11 @@ const Register: React.FC = () => {
                       </View>
                     </View>
 
-                    <Text style={styles.sectionLabel} pointerEvents="none">
+                    <Text
+                      style={styles.sectionLabel}
+                      pointerEvents="none"
+                      onLayout={(e) => { zipCodeSectionY.current = e.nativeEvent.layout.y }}
+                    >
                       Zip Code <Text style={styles.requiredAsterisk}>*</Text>
                     </Text>
                     <TextInput
@@ -841,7 +904,10 @@ const Register: React.FC = () => {
                       placeholder="e.g 12345"
                       value={values.zipCode}
                       onChangeText={handleChange('zipCode')}
-                      onFocus={() => setFocusedField('zipCode')}
+                      onFocus={() => {
+                        setFocusedField('zipCode')
+                        scrollToZipCodeSection()
+                      }}
                       onBlur={(e) => {
                         setFocusedField(null)
                         handleBlur('zipCode')(e)
