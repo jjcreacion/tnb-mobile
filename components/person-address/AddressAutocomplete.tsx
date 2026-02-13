@@ -28,6 +28,8 @@ export interface AddressAutocompleteProps {
   onScrollEnabledChange?: (enabled: boolean) => void
   returnKeyType?: 'next' | 'done' | 'go'
   onSubmitEditing?: () => void
+  onFocus?: () => void
+  onAddressLine2Focus?: () => void
 }
 
 const AddressAutocompleteComponent = forwardRef<TextInput, AddressAutocompleteProps>(({
@@ -43,6 +45,8 @@ const AddressAutocompleteComponent = forwardRef<TextInput, AddressAutocompletePr
   onScrollEnabledChange,
   returnKeyType = 'next',
   onSubmitEditing,
+  onFocus: onFocusProp,
+  onAddressLine2Focus,
 }, ref) => {
   const [suggestions, setSuggestions] = useState<AddressAutocompleteSuggestion[]>([])
   const [allSuggestions, setAllSuggestions] = useState<AddressAutocompleteSuggestion[]>([])
@@ -296,9 +300,6 @@ const AddressAutocompleteComponent = forwardRef<TextInput, AddressAutocompletePr
       textInputRef.current.setNativeProps({ text: selectedText })
     }
 
-    // Dismiss keyboard
-    Keyboard.dismiss()
-
     // Notify parent component with both the parsed address and the selected text
     onAddressSelect(suggestion.parsedAddress, selectedText)
 
@@ -309,20 +310,20 @@ const AddressAutocompleteComponent = forwardRef<TextInput, AddressAutocompletePr
       setIsSelectionInProgress(false)
     }, selectionDelay)
 
-    // Focus Address Line 2 if ref provided and position cursor at end of existing text
+    // Focus Address Line 2 directly without dismissing keyboard to avoid flicker
     if (addressLine2Ref && addressLine2Ref.current) {
-      setTimeout(() => {
-        const addressLine2Input = addressLine2Ref.current
-        if (addressLine2Input) {
-          addressLine2Input.focus()
+      const addressLine2Input = addressLine2Ref.current
+      addressLine2Input.focus()
+      onAddressLine2Focus?.()
 
-          // Position cursor at the end of existing text
-          if (addressLine2Value.length > 0) {
-            // Use setSelection to position cursor at end of text
-            addressLine2Input.setSelection(addressLine2Value.length, addressLine2Value.length)
-          }
-        }
-      }, 300)
+      // Position cursor at the end of existing text
+      if (addressLine2Value.length > 0) {
+        setTimeout(() => {
+          addressLine2Input.setSelection(addressLine2Value.length, addressLine2Value.length)
+        }, 50)
+      }
+    } else {
+      Keyboard.dismiss()
     }
   }
 
@@ -358,6 +359,7 @@ const AddressAutocompleteComponent = forwardRef<TextInput, AddressAutocompletePr
   // Show suggestions when input gains focus
   const handleFocus = () => {
     setIsInputFocused(true)
+    onFocusProp?.()
 
     // Don't show suggestions if selection is in progress
     if (isSelectionInProgress) {

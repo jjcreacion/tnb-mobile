@@ -24,7 +24,7 @@ import { Input } from '../../components/common/Input'
 import { Loading } from '../../components/common/Loading'
 import { Typography } from '../../components/common/Typography'
 import { CountryCodeSelector } from '../../components/registration/CountryCodeSelector'
-import { DateInput } from '../../components/registration/DateInput'
+import { DateInput, DateInputRef } from '../../components/registration/DateInput'
 
 // Address components (reused from AddressModal)
 import { AddressAutocomplete } from '../../components/person-address/AddressAutocomplete'
@@ -98,13 +98,18 @@ const Register: React.FC = () => {
   // Form field refs for keyboard navigation
   const firstNameRef = useRef<TextInput>(null)
   const lastNameRef = useRef<TextInput>(null)
+  const dateInputRef = useRef<DateInputRef>(null)
   const phoneNumberRef = useRef<TextInput>(null)
   const addressRef = useRef<TextInput>(null)
   const addressLine2Ref = useRef<TextInput>(null)
   const zipCodeRef = useRef<TextInput>(null)
+  const scrollViewRef = useRef<ScrollView>(null)
+  const phoneSectionY = useRef<number>(0)
+  const addressSectionY = useRef<number>(0)
 
   // Focus states for TextInput fields
   const [focusedField, setFocusedField] = useState<string | null>(null)
+  const [datePickerActive, setDatePickerActive] = useState(false)
 
   // Address field state
   const [useManualEntry, setUseManualEntry] = useState(false)
@@ -126,6 +131,13 @@ const Register: React.FC = () => {
   // Memoize submit editing handler to prevent component remounting
   const handleAddressSubmitEditing = useCallback(() => {
     focusNextField(addressLine2Ref)
+  }, [])
+
+  // Scroll to address section when address field gets focus
+  const scrollToAddressSection = useCallback(() => {
+    setTimeout(() => {
+      scrollViewRef.current?.scrollTo({ y: addressSectionY.current, animated: true })
+    }, 300)
   }, [])
 
   // Store setFieldValue in a ref to avoid recreating callbacks
@@ -543,9 +555,11 @@ const Register: React.FC = () => {
 
               return (
                 <ScrollView
+                  ref={scrollViewRef}
                   contentContainerStyle={styles.scrollContent}
                   keyboardShouldPersistTaps="handled"
                   showsVerticalScrollIndicator={false}
+                  scrollEnabled={!datePickerActive}
                 >
                   <View style={styles.formContainer} pointerEvents="box-none">
                     {/* Personal Information Section */}
@@ -582,7 +596,10 @@ const Register: React.FC = () => {
                       }
                       required
                       returnKeyType="next"
-                      onSubmitEditing={() => focusNextField(phoneNumberRef)}
+                      onSubmitEditing={() => {
+                        lastNameRef.current?.blur()
+                        dateInputRef.current?.open()
+                      }}
                       blurOnSubmit={false}
                       autoCapitalize="words"
                       textContentType="familyName"
@@ -590,6 +607,7 @@ const Register: React.FC = () => {
                     />
 
                     <DateInput
+                      ref={dateInputRef}
                       label="Date of Birth"
                       value={values.birthDate}
                       onChange={(date) => setFieldValue('birthDate', date)}
@@ -599,10 +617,23 @@ const Register: React.FC = () => {
                           : undefined
                       }
                       required
+                      onPickerToggle={setDatePickerActive}
+                      onDismiss={() => {
+                        focusNextField(phoneNumberRef)
+                        setTimeout(() => {
+                          scrollViewRef.current?.scrollTo({ y: phoneSectionY.current, animated: true })
+                        }, 150)
+                      }}
                     />
 
                     {/* Phone Section */}
-                    <Text style={styles.sectionTitle} pointerEvents="none">Phone Number</Text>
+                    <Text
+                      style={styles.sectionTitle}
+                      pointerEvents="none"
+                      onLayout={(e) => { phoneSectionY.current = e.nativeEvent.layout.y }}
+                    >
+                      Phone Number
+                    </Text>
 
                     <Text style={styles.sectionLabel} pointerEvents="none">
                       Phone <Text style={styles.requiredAsterisk}>*</Text>
@@ -645,7 +676,13 @@ const Register: React.FC = () => {
                     )}
 
                     {/* Address Section */}
-                    <Text style={styles.sectionTitle} pointerEvents="none">Address Information</Text>
+                    <Text
+                      style={styles.sectionTitle}
+                      pointerEvents="none"
+                      onLayout={(e) => { addressSectionY.current = e.nativeEvent.layout.y }}
+                    >
+                      Address Information
+                    </Text>
 
                     <Text style={styles.sectionLabel} pointerEvents="none">
                       Address <Text style={styles.requiredAsterisk}>*</Text>
@@ -666,6 +703,8 @@ const Register: React.FC = () => {
                         onScrollEnabledChange={handleScrollEnabledChange}
                         returnKeyType="next"
                         onSubmitEditing={handleAddressSubmitEditing}
+                        onFocus={scrollToAddressSection}
+                        onAddressLine2Focus={scrollToAddressSection}
                       />
                     ) : (
                       <TextInput
@@ -678,7 +717,10 @@ const Register: React.FC = () => {
                         placeholder="e.g 108 Jackson St"
                         value={values.address}
                         onChangeText={handleChange('address')}
-                        onFocus={() => setFocusedField('address')}
+                        onFocus={() => {
+                          setFocusedField('address')
+                          scrollToAddressSection()
+                        }}
                         onBlur={(e) => {
                           setFocusedField(null)
                           handleBlur('address')(e)

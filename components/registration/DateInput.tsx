@@ -1,8 +1,12 @@
-import React, { useState } from 'react'
-import { Platform, Text, TouchableOpacity, View, StyleSheet } from 'react-native'
+import React, { forwardRef, useImperativeHandle, useState } from 'react'
+import { Modal, Platform, Text, TouchableOpacity, View, StyleSheet } from 'react-native'
 import DateTimePicker from '@react-native-community/datetimepicker'
 import DatePicker from 'react-native-date-picker'
 import { Theme } from '../../constants/Theme'
+
+export interface DateInputRef {
+  open: () => void
+}
 
 interface DateInputProps {
   label: string
@@ -10,6 +14,8 @@ interface DateInputProps {
   onChange: (date: string) => void
   error?: string
   required?: boolean
+  onPickerToggle?: (visible: boolean) => void
+  onDismiss?: () => void
 }
 
 /**
@@ -28,13 +34,15 @@ const formatDateToString = (date: Date): string => {
   return `${year}-${month}-${day}`
 }
 
-export const DateInput: React.FC<DateInputProps> = ({
+export const DateInput = forwardRef<DateInputRef, DateInputProps>(({
   label,
   value,
   onChange,
   error,
   required = false,
-}) => {
+  onPickerToggle,
+  onDismiss,
+}, ref) => {
   const [showPicker, setShowPicker] = useState(false)
 
   // Convert string to Date object using local date to avoid timezone issues
@@ -43,10 +51,17 @@ export const DateInput: React.FC<DateInputProps> = ({
     ? parseLocalDate(value)
     : new Date(new Date().getFullYear() - 25, 0, 15) // January 15, 25 years ago
 
-  // Temporary date for Android inline picker (commit only on Done)
-  const [androidTempDate, setAndroidTempDate] = useState<Date>(dateValue)
+  // Temporary date for picker (commit only on Done)
+  const [tempDate, setTempDate] = useState<Date>(dateValue)
 
-  // Format date for display using local date to avoid timezone issues
+  useImperativeHandle(ref, () => ({
+    open: () => {
+      setTempDate(dateValue)
+      setShowPicker(true)
+      onPickerToggle?.(true)
+    },
+  }))
+
   const formatDate = (dateString: string) => {
     if (!dateString) return 'Select date'
     const date = parseLocalDate(dateString)
@@ -57,25 +72,29 @@ export const DateInput: React.FC<DateInputProps> = ({
     })
   }
 
-  const handleDateChange = (event: any, selectedDate?: Date) => {
+  const handleTempDateChange = (_event: any, selectedDate?: Date) => {
     if (selectedDate) {
-      onChange(formatDateToString(selectedDate))
+      setTempDate(selectedDate)
     }
   }
 
   const handlePress = () => {
-    setAndroidTempDate(dateValue)
+    setTempDate(dateValue)
     setShowPicker(true)
+    onPickerToggle?.(true)
   }
 
   const handleConfirm = () => {
-    if (!value && Platform.OS === 'ios') {
-      onChange(formatDateToString(dateValue))
-    }
-    if (Platform.OS === 'android') {
-      onChange(formatDateToString(androidTempDate))
-    }
+    onChange(formatDateToString(tempDate))
     setShowPicker(false)
+    onPickerToggle?.(false)
+    onDismiss?.()
+  }
+
+  const handleCancel = () => {
+    setShowPicker(false)
+    onPickerToggle?.(false)
+    onDismiss?.()
   }
 
   return (
@@ -97,52 +116,47 @@ export const DateInput: React.FC<DateInputProps> = ({
 
       {error && <Text style={styles.errorText}>{error}</Text>}
 
-      {showPicker && (
-        <>
-          {Platform.OS === 'ios' ? (
-            <View style={styles.pickerContainer}>
-              <View style={styles.pickerHeader}>
-                <TouchableOpacity onPress={() => setShowPicker(false)}>
-                  <Text style={styles.pickerButton}>Cancel</Text>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={handleConfirm}>
-                  <Text style={[styles.pickerButton, styles.pickerConfirm]}>Done</Text>
-                </TouchableOpacity>
-              </View>
+      <Modal
+        visible={showPicker}
+        transparent
+        animationType="slide"
+        onRequestClose={handleCancel}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.pickerContainer}>
+            <View style={styles.pickerHeader}>
+              <TouchableOpacity onPress={handleCancel}>
+                <Text style={styles.pickerButton}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={handleConfirm}>
+                <Text style={[styles.pickerButton, styles.pickerConfirm]}>Done</Text>
+              </TouchableOpacity>
+            </View>
+            {Platform.OS === 'ios' ? (
               <DateTimePicker
-                value={dateValue}
+                value={tempDate}
                 mode="date"
                 display="spinner"
-                onChange={handleDateChange}
+                onChange={handleTempDateChange}
                 maximumDate={new Date()}
                 textColor={Theme.colors.neutral[900]}
               />
-            </View>
-          ) : (
-            <View style={styles.pickerContainer}>
-              <View style={styles.pickerHeader}>
-                <TouchableOpacity onPress={() => setShowPicker(false)}>
-                  <Text style={styles.pickerButton}>Cancel</Text>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={handleConfirm}>
-                  <Text style={[styles.pickerButton, styles.pickerConfirm]}>Done</Text>
-                </TouchableOpacity>
-              </View>
+            ) : (
               <DatePicker
-                date={androidTempDate}
-                onDateChange={setAndroidTempDate}
+                date={tempDate}
+                onDateChange={setTempDate}
                 mode="date"
                 maximumDate={new Date()}
-                androidVariant="iosClone"
+                {...({ androidVariant: 'iosClone' } as any)}
                 theme="light"
               />
-            </View>
-          )}
-        </>
-      )}
+            )}
+          </View>
+        </View>
+      </Modal>
     </View>
   )
-}
+})
 
 const styles = StyleSheet.create({
   container: {
@@ -180,15 +194,15 @@ const styles = StyleSheet.create({
     color: Theme.colors.error[500],
     marginTop: 4,
   },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+  },
   pickerContainer: {
     backgroundColor: Theme.colors.background.primary,
-    borderTopWidth: 1,
-    borderTopColor: Theme.colors.neutral[200],
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    zIndex: 1000,
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
   },
   pickerHeader: {
     flexDirection: 'row',
